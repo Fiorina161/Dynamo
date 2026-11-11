@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Skull and crossbones, carried over from the old CustomTab start page.
+       The ink switches with the browser's color scheme so the icon stays
+       visible on light and dark tab strips. -->
+  <style>
+    .ink  { fill: #1b1b1f; }
+    .bone { stroke: #1b1b1f; }
+    .hole { fill: #ffffff; }
+    .tooth { stroke: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .ink  { fill: #e7e9f4; }
+      .bone { stroke: #e7e9f4; }
+      .hole { fill: #1b1e29; }
+      .tooth { stroke: #1b1e29; }
+    }
+  </style>
+  <defs>
+    <!-- Cuts a thin gap around the skull so it stays distinct from the bones. -->
+    <mask id="gap" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect width="64" height="64" fill="#fff"/>
+      <g transform="translate(7.04 -1.7) scale(0.78)">
+        <path d="M32 6C18 6 9 15.5 9 28c0 8 3.5 13 8 16v8c0 2 1.5 3.5 3.5 3.5h23c2 0 3.5-1.5 3.5-3.5v-8c4.5-3 8-8 8-16C55 15.5 46 6 32 6z" fill="#000" stroke="#000" stroke-width="8" stroke-linejoin="round"/>
+      </g>
+    </mask>
+  </defs>
+  <g mask="url(#gap)">
+    <line class="bone" x1="9" y1="30" x2="55" y2="60" stroke-width="6.5" stroke-linecap="round"/>
+    <circle class="ink" cx="7.14" cy="32.85" r="4.8"/>
+    <circle class="ink" cx="10.86" cy="27.15" r="4.8"/>
+    <circle class="ink" cx="53.14" cy="62.85" r="4.8"/>
+    <circle class="ink" cx="56.86" cy="57.15" r="4.8"/>
+    <line class="bone" x1="55" y1="30" x2="9" y2="60" stroke-width="6.5" stroke-linecap="round"/>
+    <circle class="ink" cx="53.14" cy="27.15" r="4.8"/>
+    <circle class="ink" cx="56.86" cy="32.85" r="4.8"/>
+    <circle class="ink" cx="7.14" cy="57.15" r="4.8"/>
+    <circle class="ink" cx="10.86" cy="62.85" r="4.8"/>
+  </g>
+  <g transform="translate(7.04 -1.7) scale(0.78)">
+    <path class="ink bone" d="M32 6C18 6 9 15.5 9 28c0 8 3.5 13 8 16v8c0 2 1.5 3.5 3.5 3.5h23c2 0 3.5-1.5 3.5-3.5v-8c4.5-3 8-8 8-16C55 15.5 46 6 32 6z" stroke-width="2" stroke-linejoin="round"/>
+    <circle class="hole" cx="22.5" cy="29" r="6.5"/>
+    <circle class="hole" cx="41.5" cy="29" r="6.5"/>
+    <path class="tooth" d="M26 47v8M32 47v8M38 47v8" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+  </g>
+</svg>

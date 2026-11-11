@@ -1,0 +1,63 @@
+@model Board
+@{
+    string Handler(string name) => Url.Page("/Bookmarks/Index", name)!;
+    string Handler2(string name, object values) => Url.Page("/Bookmarks/Index", name, values)!;
+}
+
+@if (Context.Request.Headers.ContainsKey("HX-Request"))
+{
+    <partial name="_Count" model="Model" />
+}
+
+@* hx-target/hx-swap are inherited: every action inside replaces the board. *@
+<div id="board" hx-target="#board" hx-swap="outerHTML"
+     data-arrange="@Handler("Arrange")" data-arrange-groups="@Handler("ArrangeGroups")">
+
+    @if (Model.Groups.Count == 0 && Model.Ungrouped.Count == 0)
+    {
+        <p class="empty">No bookmarks yet. Use “New bookmark” to add the first one.</p>
+    }
+
+    <div class="cards">
+        @* Not in a group. Hidden while empty, except as a drop target during a drag. *@
+        <section class="group ungrouped @(Model.Ungrouped.Count == 0 ? "empty-card" : "")">
+            <header><h2>Ungrouped</h2><span class="count">@Model.Ungrouped.Count</span></header>
+            <ul class="items dropzone" data-group="">
+                @foreach (var b in Model.Ungrouped)
+                {
+                    <partial name="_Bookmark" model="b" />
+                }
+            </ul>
+        </section>
+
+        @foreach (var g in Model.Groups)
+        {
+            <section class="group @(g.Collapsed ? "collapsed" : "")" data-id="@g.Id">
+                <header draggable="true" title="Drag to reorder">
+                    <h2>
+                        <button type="button" class="toggle"
+                                title="@(g.Collapsed ? "Expand" : "Collapse")"
+                                hx-post="@Handler2("ToggleGroup", new { id = g.Id })">
+                            <span class="chev" aria-hidden="true">▾</span>@g.Name
+                        </button>
+                    </h2>
+                    <span class="count">@g.Bookmarks.Count</span>
+                    <span class="row-actions">
+                        <button type="button" class="ghost small"
+                                hx-get="@Handler2("BookmarkForm", new { groupId = g.Id })"
+                                hx-target="#dlg" hx-swap="innerHTML">Add</button>
+                        <button type="button" class="ghost small"
+                                hx-get="@Handler2("GroupForm", new { id = g.Id })"
+                                hx-target="#dlg" hx-swap="innerHTML">Edit</button>
+                    </span>
+                </header>
+                <ul class="items dropzone" data-group="@g.Id">
+                    @foreach (var b in g.Bookmarks)
+                    {
+                        <partial name="_Bookmark" model="b" />
+                    }
+                </ul>
+            </section>
+        }
+    </div>
+</div>

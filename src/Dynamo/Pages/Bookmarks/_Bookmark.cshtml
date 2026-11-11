@@ -1,0 +1,24 @@
+@model Bookmark
+<li class="item" draggable="true" data-id="@Model.Id">
+    @if (Model.IsWeb)
+    {
+        <a class="link" href="@Url.Page("/Bookmarks/Index", "Go", new { id = Model.Id })"
+           target="_blank" rel="noopener" draggable="false">
+            <span class="title">@Model.Label</span>
+            <span class="hint">@Model.Hint</span>
+        </a>
+    }
+    else
+    {
+        @* Local targets are opened by the service, not by the browser. *@
+        <a class="link" href="#" draggable="false"
+           hx-post="@Url.Page("/Bookmarks/Index", "Open", new { id = Model.Id })"
+           hx-swap="none">
+            <span class="title">@Model.Label</span>
+            <span class="hint">@Model.Hint</span>
+        </a>
+    }
+    <button type="button" class="ghost small edit" title="Edit" aria-label="Edit @Model.Label"
+            hx-get="@Url.Page("/Bookmarks/Index", "BookmarkForm", new { id = Model.Id })"
+            hx-target="#dlg" hx-swap="innerHTML">Edit</button>
+</li>

@@ -1,0 +1,29 @@
+@model Dynamo.Pages.Bookmarks.GroupFormModel
+@{
+    var g = Model.Group;
+}
+<form hx-post="@Url.Page("/Bookmarks/Index", "SaveGroup")" hx-target="#board" hx-swap="outerHTML">
+    <h2>@(g.Id == 0 ? "New group" : "Rename group")</h2>
+    <input type="hidden" name="id" value="@g.Id" />
+
+    <label>Name
+        <input name="name" value="@g.Name" autocomplete="off" autofocus />
+    </label>
+
+    @if (Model.Error is not null)
+    {
+        <p class="error">@Model.Error</p>
+    }
+
+    <footer>
+        @if (g.Id != 0)
+        {
+            <button type="button" class="ghost danger"
+                    hx-post="@Url.Page("/Bookmarks/Index", "DeleteGroup", new { id = g.Id })"
+                    hx-confirm="Delete this group? Its bookmarks are kept, ungrouped.">Delete</button>
+        }
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit">Save</button>
+    </footer>
+</form>

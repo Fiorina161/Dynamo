@@ -1,0 +1,272 @@
+/* Dynamo — clean and sober. Palette, fonts and spacing follow the old
+   start page (CustomTab). One accent colour, used sparingly. */
+
+:root {
+    --bg: #f9fafc;
+    --surface: #f4f5f8;          /* panels */
+    --fg: #1d2033;
+    --muted: #6b7088;
+    --line: #e2e5f0;
+    --hover: #f0f2ff;
+    --accent: #5b6cff;
+    --danger: #b3261e;
+    --shadow: 0 1px 2px rgba(20, 24, 60, .06), 0 4px 14px rgba(20, 24, 60, .05);
+    --radius: 6px;               /* controls; panels are square */
+    --font: system-ui, "Segoe UI", Roboto, sans-serif;
+    --font-title: "Segoe UI", sans-serif;
+    color-scheme: light;
+}
+
+/* Dark: explicit choice, or system preference when nothing is chosen. */
+:root[data-theme="dark"] {
+    --bg: #1b1e29;
+    --surface: #242836;
+    --fg: #e7e9f4;
+    --muted: #8b90aa;
+    --line: #343950;
+    --hover: #2e3350;
+    --accent: #8b97ff;
+    --danger: #f2877f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg: #1b1e29;
+        --surface: #242836;
+        --fg: #e7e9f4;
+        --muted: #8b90aa;
+        --line: #343950;
+        --hover: #2e3350;
+        --accent: #8b97ff;
+        --danger: #f2877f;
+        --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 18px rgba(0, 0, 0, .25);
+        color-scheme: dark;
+    }
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 15px/1.4 var(--font);
+}
+a { color: inherit; text-decoration: none; }
+
+/* ---- Shell ------------------------------------------------------------ */
+
+.shell { display: flex; min-height: 100vh; }
+
+.side {
+    width: 190px;
+    flex: none;
+    padding: 20px 12px;
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.brand { font-weight: 600; font-size: 16px; padding: 0 8px; letter-spacing: .02em; }
+
+.side ul { list-style: none; margin: 0; padding: 0; flex: 1; }
+.side li a { display: block; padding: 6px 8px; border-radius: var(--radius); color: var(--muted); }
+.side li a:hover { background: var(--hover); color: var(--fg); }
+.side li a.active { color: var(--fg); font-weight: 600; background: var(--hover); }
+
+main { flex: 1; min-width: 0; padding: 40px 32px 64px; }
+
+.page-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px 24px;
+    margin-bottom: 28px;
+}
+.greeting h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -.02em; }
+.greeting p { margin: 2px 0 0; color: var(--muted); }
+.page-tools { display: flex; align-items: center; gap: 16px; }
+.count { color: var(--muted); font-size: 13px; }
+.actions { display: flex; gap: 8px; }
+/* ---- Controls --------------------------------------------------------- */
+
+button {
+    font: inherit;
+    color: var(--bg);
+    background: var(--fg);
+    border: 1px solid var(--fg);
+    border-radius: var(--radius);
+    padding: 5px 12px;
+    cursor: pointer;
+}
+button:hover { opacity: .85; }
+button.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+button.ghost:hover { background: var(--hover); opacity: 1; }
+button.danger { color: var(--danger); }
+button.small { padding: 1px 8px; font-size: 12px; color: var(--muted); }
+
+input, select {
+    font: inherit;
+    color: var(--fg);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 6px 8px;
+    width: 100%;
+}
+input:focus, select:focus, button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+/* ---- Board ------------------------------------------------------------ */
+
+.empty { color: var(--muted); }
+
+/* Groups run top to bottom, then continue at the top of the next column:
+   as many columns of at least 340px as fit, stretched to the full width. */
+.cards { columns: 340px; column-gap: 20px; }
+
+.group {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: var(--shadow);
+    padding: 16px 10px 10px;
+    overflow: hidden;
+    /* Never split a group across two columns. */
+    break-inside: avoid;
+    margin-bottom: 20px;
+}
+.group > header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 10px 10px;
+}
+.group > header[draggable="true"] { cursor: grab; }
+.group h2 {
+    margin: 0;
+    font: 700 15px var(--font-title);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+}
+.toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+}
+.toggle:hover { color: var(--fg); opacity: 1; }
+.chev { display: inline-block; width: 12px; font-size: 11px; transition: transform .12s; }
+.group.collapsed .chev { transform: rotate(-90deg); }
+.group .count { margin-left: auto; font-size: 13px; }
+/* Add/Edit appear over the count, on the right, when the header is hovered. */
+.row-actions {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 4px;
+    padding-left: 12px;
+    background: var(--surface);
+    opacity: 0;
+}
+.group > header:hover .row-actions,
+.group > header:focus-within .row-actions { opacity: 1; }
+
+/* An empty group keeps a little height so it can still receive a drop. */
+.items { list-style: none; margin: 0; padding: 0; min-height: 24px; }
+.group.collapsed .items { display: none; }
+.group.collapsed { padding-bottom: 6px; }
+.group.collapsed > header { margin-bottom: 4px; }
+/* A collapsed group opens while something is dragged over it. */
+.group.collapsed.peek .items { display: block; }
+
+/* Not in a group: only worth a panel when it holds something. */
+.ungrouped.empty-card { display: none; }
+body.dragging .ungrouped.empty-card { display: block; }
+
+.item { display: flex; align-items: center; cursor: grab; transition: background .12s; }
+/* A thin, muted line between consecutive items (none above the first). */
+.item + .item { border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.item:hover, .item:focus-within {
+    background: color-mix(in srgb, var(--fg) 6%, transparent);
+}
+/* The whole row is the click target. */
+.item .link {
+    flex: 1;
+    min-width: 0;
+    display: block;
+    padding: 8px 10px;
+    cursor: pointer;
+    outline: none;
+}
+.item .title {
+    display: block;
+    font: 400 16px var(--font-title);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.item .hint {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.item .edit { margin-right: 8px; opacity: 0; }
+.item:hover .edit, .item:focus-within .edit { opacity: 1; }
+
+.item.dragging, .group.dragging { opacity: .4; }
+.dropzone.over { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+/* ---- Dialog & toast --------------------------------------------------- */
+
+dialog {
+    width: min(440px, 92vw);
+    padding: 20px;
+    color: var(--fg);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .25);
+}
+dialog::backdrop { background: rgba(0, 0, 0, .35); }
+dialog h2 { margin: 0 0 14px; font-size: 16px; }
+dialog label { display: block; margin-bottom: 12px; color: var(--muted); font-size: 12px; }
+dialog label > input, dialog label > select { margin-top: 4px; font-size: 14px; color: var(--fg); }
+dialog footer { display: flex; gap: 8px; margin-top: 18px; }
+.spacer { flex: 1; }
+.error { color: var(--danger); margin: 0 0 8px; }
+
+#toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    max-width: 420px;
+    padding: 10px 14px;
+    background: var(--fg);
+    color: var(--bg);
+    border-radius: var(--radius);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity .15s, transform .15s;
+    pointer-events: none;
+}
+#toast.show { opacity: 1; transform: none; }
