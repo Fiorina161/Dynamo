@@ -74,6 +74,13 @@ in the local database and never shown again in the UI; leave the password
 blank when editing to keep it. Each row has a Test button, and the edit
 dialog can test unsaved values.
 
+### Duplicating a connection
+
+Open a connection and press **Duplicate**: a new connection form opens with the
+same data source and schema and a free name ("PROD copy"). Change what should
+differ (typically the schema) and save; Cancel creates nothing. Leave the
+password empty to reuse the original's, which is never shown on screen.
+
 ### Deleting several connections
 
 Tick the boxes (shift-click selects a range; the box in the header selects every

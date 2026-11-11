@@ -59,6 +59,14 @@ Then `git checkout master && git pull`, and delete the branch. Never force-push.
   shows `schema@host:port/service` (`DataSourceSummary`), flags what is still to
   fill in, and has a filter box. 235 connections were imported; `LAVAL.TEST` is
   defined twice in the user's file with different targets (first kept).
+- Duplicate a connection (done, 11 Nov 2026): a **Duplicate** button in an
+  existing connection's edit dialog opens the *new*-connection form prefilled
+  (name "X copy", then "X copy 2"..., same data source and schema); **nothing is
+  created until Save**, so Cancel leaves no stray copy. The password is never
+  sent to the browser, so the form carries `copyFrom` (the original's id) and a
+  **blank password means the original's** (`StoredPassword`, also used by the
+  dialog's Test). It copies the *saved* connection, not unsaved edits in the
+  dialog. If the original is deleted before saving, the password is required.
 - Batch delete of connections (done, 11 Nov 2026): checkbox per row + select-all
   on the Oracle page, a live "N selected" and a "Delete selected" button that
   opens a confirmation listing exactly the connections to go (`ConfirmDelete`

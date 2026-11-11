@@ -5,11 +5,18 @@
         Url.Page("/OracleConnections/Index", name, values)!;
 }
 <form hx-post="@Handler("Save")" hx-target="#connections" hx-swap="outerHTML">
-    <h2>@(c.Id == 0 ? "New connection" : "Edit connection")</h2>
+    <h2>@(Model.CopyFrom != 0 ? "Duplicate connection" : c.Id == 0 ? "New connection" : "Edit connection")</h2>
     <input type="hidden" name="id" value="@c.Id" />
+    <input type="hidden" name="copyFrom" value="@Model.CopyFrom" />
+    @if (Model.CopyOf is not null)
+    {
+        <p class="hint-text">A copy of “@Model.CopyOf”. Change what should differ, then save.</p>
+    }
 
     <label>Name
-        <input name="name" value="@c.Name" autocomplete="off" autofocus placeholder="PROD" />
+        @* On a copy the name is the first thing to change: start with it selected. *@
+        <input name="name" value="@c.Name" autocomplete="off" autofocus placeholder="PROD"
+               onfocus="@(Model.CopyOf is not null ? "this.select()" : null)" />
     </label>
     <label>Data source
         <input name="dataSource" value="@c.DataSource" autocomplete="off" spellcheck="false"
@@ -20,7 +27,7 @@
     </label>
     <label>Password
         <input name="password" type="password" autocomplete="new-password"
-               placeholder="@(c.Id == 0 ? "" : "unchanged")" />
+               placeholder="@(Model.CopyOf is not null ? $"same as “{Model.CopyOf}”" : c.Id == 0 ? "" : "unchanged")" />
     </label>
 
     @if (Model.Error is not null)
@@ -34,6 +41,13 @@
             <button type="button" class="ghost danger"
                     hx-post="@Handler("Delete", new { id = c.Id })"
                     hx-confirm="Delete the connection “@c.Name”?">Delete</button>
+        }
+        @if (c.Id != 0)
+        {
+            @* Copies the saved connection, not unsaved changes in this form. *@
+            <button type="button" class="ghost" title="Start a new connection from this one"
+                    hx-get="@Handler("Duplicate", new { id = c.Id })"
+                    hx-target="#dlg" hx-swap="innerHTML">Duplicate</button>
         }
         <button type="button" class="ghost"
                 hx-post="@Handler("TestForm")" hx-include="closest form" hx-swap="none">Test</button>

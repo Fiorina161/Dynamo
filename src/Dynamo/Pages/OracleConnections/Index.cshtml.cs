@@ -5,8 +5,16 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace Dynamo.Pages.OracleConnections;
 
-/// <summary>Model of the connection dialog.</summary>
-public sealed record ConnectionFormModel(OracleConnectionInfo Connection, string? Error = null);
+/// <summary>
+/// Model of the connection dialog. <paramref name="CopyFrom"/> is the id of the
+/// connection being duplicated (0 otherwise): the password is never sent to the
+/// browser, so a blank password on the copy means "the original's".
+/// </summary>
+public sealed record ConnectionFormModel(
+    OracleConnectionInfo Connection,
+    string? Error = null,
+    long CopyFrom = 0,
+    string? CopyOf = null);
 
 /// <summary>Model of the confirmation of a batch delete.</summary>
 public sealed record DeleteManyModel(IReadOnlyList<OracleConnectionInfo> Connections);
@@ -32,8 +40,29 @@ public class IndexModel(OracleConnectionRepository repo, OracleConnector connect
             : Partial("_Form", new ConnectionFormModel(connection));
     }
 
+    /// <summary>
+    /// The new-connection form prefilled from an existing one: same data source and
+    /// schema, a free name. Nothing is created until it is saved.
+    /// </summary>
+    public IActionResult OnGetDuplicate(long id)
+    {
+        var source = repo.Get(id);
+        if (source is null)
+            return NotFound();
+
+        var copy = new OracleConnectionInfo
+        {
+            Name = UniqueCopyName(source.Name),
+            DataSource = source.DataSource,
+            Username = source.Username,
+            // The password stays on the server: see ConnectionFormModel.CopyFrom.
+        };
+        return Partial("_Form", new ConnectionFormModel(copy, null, source.Id, source.Name));
+    }
+
     public IActionResult OnPostSave(
-        long id, string? name, string? dataSource, string? username, string? password)
+        long id, string? name, string? dataSource, string? username, string? password,
+        long copyFrom)
     {
         var existing = id == 0 ? null : repo.Get(id);
         if (id != 0 && existing is null)
@@ -45,8 +74,8 @@ public class IndexModel(OracleConnectionRepository repo, OracleConnector connect
             Name = (name ?? "").Trim(),
             DataSource = (dataSource ?? "").Trim(),
             Username = (username ?? "").Trim(),
-            // Left blank on an existing connection: keep the stored password.
-            Password = string.IsNullOrEmpty(password) ? existing?.Password ?? "" : password,
+            // Left blank: keep the stored password (an edit) or take the original's (a copy).
+            Password = string.IsNullOrEmpty(password) ? StoredPassword(id, copyFrom) : password,
         };
 
         var error = Validate(c);
@@ -55,7 +84,8 @@ public class IndexModel(OracleConnectionRepository repo, OracleConnector connect
             Response.Headers["HX-Retarget"] = "#dlg";
             Response.Headers["HX-Reswap"] = "innerHTML";
             c.Password = "";
-            return Partial("_Form", new ConnectionFormModel(c, error));
+            return Partial("_Form", new ConnectionFormModel(
+                c, error, copyFrom, copyFrom == 0 ? null : repo.Get(copyFrom)?.Name));
         }
 
         repo.Save(c);
@@ -96,18 +126,34 @@ public class IndexModel(OracleConnectionRepository repo, OracleConnector connect
 
     /// <summary>Tests what is typed in the dialog, saved or not.</summary>
     public async Task<IActionResult> OnPostTestForm(
-        long id, string? name, string? dataSource, string? username, string? password)
+        long id, string? name, string? dataSource, string? username, string? password,
+        long copyFrom)
     {
         var c = new OracleConnectionInfo
         {
             Name = string.IsNullOrWhiteSpace(name) ? "(unsaved)" : name.Trim(),
             DataSource = (dataSource ?? "").Trim(),
             Username = (username ?? "").Trim(),
-            Password = string.IsNullOrEmpty(password) ? repo.Get(id)?.Password ?? "" : password,
+            Password = string.IsNullOrEmpty(password) ? StoredPassword(id, copyFrom) : password,
         };
         if (c.DataSource.Length == 0 || c.Username.Length == 0)
             return Toast("Enter a data source and a schema first.");
         return await ToastResult(c);
+    }
+
+    /// <summary>The password already stored for this edit (id) or this copy (copyFrom).</summary>
+    private string StoredPassword(long id, long copyFrom) =>
+        repo.Get(id != 0 ? id : copyFrom)?.Password ?? "";
+
+    /// <summary>"PROD copy", then "PROD copy 2", "PROD copy 3"... the first free name.</summary>
+    private string UniqueCopyName(string name)
+    {
+        // Leave room for the suffix: names are limited to 64 characters.
+        var stem = (name.Length > 52 ? name[..52] : name) + " copy";
+        var candidate = stem;
+        for (var n = 2; repo.NameTaken(candidate, 0); n++)
+            candidate = $"{stem} {n}";
+        return candidate;
     }
 
     private static string? ValidateText(string label, string value, int max) =>
