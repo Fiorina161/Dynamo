@@ -64,6 +64,16 @@ anything else (files, folders, `\\server\share`, `mailto:`, custom protocols)
 is opened by the service itself with the Windows default handler, since a
 browser refuses `file://` links from an http page.
 
+## Oracle connections
+
+The Oracle page keeps named connections: a data source (TNS alias, Easy
+Connect `host:port/service` or a full descriptor), a schema and its password,
+much like `tnsnames.ora` aliases. Later features refer to a connection by its
+name only (`OracleConnector.OpenAsync("PROD")`). Passwords are stored in clear
+in the local database and never shown again in the UI; leave the password
+blank when editing to keep it. Each row has a Test button, and the edit
+dialog can test unsaved values.
+
 ### Importing from the old browser extension
 
     dotnet run --project src\Dynamo -- import-bookmarks C:\My\CustomTab\bookmarks.json

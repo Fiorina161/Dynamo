@@ -1,5 +1,6 @@
 using Dynamo.Core;
 using Dynamo.Modules.Bookmarks;
+using Dynamo.Modules.OracleConnections;
 using Microsoft.Extensions.Hosting.WindowsServices;
 
 const string ServiceName = "Dynamo";
@@ -34,9 +35,12 @@ builder.Services.AddSingleton(home);
 builder.Services.AddSingleton<Db>();
 builder.Services.AddSingleton<BookmarkRepository>();
 builder.Services.AddSingleton<BookmarkImporter>();
+builder.Services.AddSingleton<OracleConnectionRepository>();
+builder.Services.AddSingleton<OracleConnector>();
 
 // Each use case registers its module here.
 builder.Services.AddSingleton<IModule, BookmarksModule>();
+builder.Services.AddSingleton<IModule, OracleConnectionsModule>();
 
 builder.Services.AddRazorPages();
 

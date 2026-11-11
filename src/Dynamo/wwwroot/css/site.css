@@ -236,6 +236,15 @@ body.dragging .ungrouped.empty-card { display: block; }
 
 .item.dragging, .group.dragging { opacity: .4; }
 .dropzone.over { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+/* ---- Lists of plain rows (Oracle connections) -------------------------- */
+
+/* One wide panel instead of the column flow. */
+.group.wide { max-width: 720px; }
+.items.plain .item { cursor: default; }
+.item .row-btn { margin-right: 10px; }
+/* A button waiting for an answer (htmx adds the class while it is in flight). */
+button.htmx-request { opacity: .5; pointer-events: none; }
+
 /* ---- Dialog & toast --------------------------------------------------- */
 
 dialog {

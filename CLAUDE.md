@@ -30,14 +30,25 @@ Then `git checkout master && git pull`, and delete the branch. Never force-push.
   use the console for that.
 - UI: sober, minimal color (one accent), light/dark/system theme.
 - Every setting is edited in the web UI and stored in Sqlite.
-- Multiple Oracle connections are planned (a connections module: name, host,
-  port, service, user, password stored in Sqlite as the user wants no
-  security; package `Oracle.ManagedDataAccess.Core`).
+- Oracle connections (done): `Modules/OracleConnections`, page `/Oracle`.
+  A connection is a unique name (case-insensitive) + data source (TNS alias
+  via TNS_ADMIN, Easy Connect `host:port/service`, or a full descriptor) +
+  schema (user) + password, in table `oracle_connection`. The password is
+  stored in clear (no security by design), never rendered back in HTML; a
+  blank password on edit keeps the stored one. The page has Test buttons
+  (row and dialog; the dialog tests unsaved values). **Other features must
+  get Oracle only through `OracleConnector`** (singleton):
+  `await using var conn = await connector.OpenAsync("PROD");`, and
+  `connector.Names()` for pickers; the data source and password never leave
+  the module. Connect timeout 15 s. Driver `Oracle.ManagedDataAccess.Core`;
+  `System.Security.Cryptography.Pkcs` is pinned directly because the
+  driver's own dependency has known vulnerabilities (NU1902/NU1903).
 
 ## Roadmap (user's list, in no fixed order)
 
-Bookmarks (done) → command-line tools → scripts → common database queries
-(needs Oracle connections) → accessed links history / other.
+Bookmarks (done) → Oracle connections (done) → common database queries
+(next natural step: uses `OracleConnector`) → command-line tools → scripts →
+accessed links history / other.
 
 ## Conventions
 

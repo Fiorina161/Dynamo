@@ -1,0 +1,38 @@
+@model List<OracleConnectionInfo>
+@{
+    string Handler(string name, object? values = null) =>
+        Url.Page("/OracleConnections/Index", name, values)!;
+}
+
+@* Every action inside replaces the list; dialog buttons override the target. *@
+<div id="connections" hx-target="#connections" hx-swap="outerHTML">
+    @if (Model.Count == 0)
+    {
+        <p class="empty">No connections yet. Use “New connection” to add the first one.</p>
+    }
+    else
+    {
+        <section class="group wide">
+            <header>
+                <h2>Connections</h2>
+                <span class="count">@Model.Count</span>
+            </header>
+            <ul class="items plain">
+                @foreach (var c in Model)
+                {
+                    <li class="item">
+                        <a class="link" href="#"
+                           hx-get="@Handler("Form", new { id = c.Id })"
+                           hx-target="#dlg" hx-swap="innerHTML">
+                            <span class="title">@c.Name</span>
+                            <span class="hint">@(c.Username + "@" + c.DataSource)</span>
+                        </a>
+                        <button type="button" class="ghost small row-btn"
+                                hx-post="@Handler("Test", new { id = c.Id })"
+                                hx-swap="none">Test</button>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+</div>

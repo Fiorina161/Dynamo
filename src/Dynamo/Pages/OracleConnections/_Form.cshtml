@@ -1,0 +1,44 @@
+@model Dynamo.Pages.OracleConnections.ConnectionFormModel
+@{
+    var c = Model.Connection;
+    string Handler(string name, object? values = null) =>
+        Url.Page("/OracleConnections/Index", name, values)!;
+}
+<form hx-post="@Handler("Save")" hx-target="#connections" hx-swap="outerHTML">
+    <h2>@(c.Id == 0 ? "New connection" : "Edit connection")</h2>
+    <input type="hidden" name="id" value="@c.Id" />
+
+    <label>Name
+        <input name="name" value="@c.Name" autocomplete="off" autofocus placeholder="PROD" />
+    </label>
+    <label>Data source
+        <input name="dataSource" value="@c.DataSource" autocomplete="off" spellcheck="false"
+               placeholder="host:1521/service  ·  TNS alias  ·  (DESCRIPTION=…)" />
+    </label>
+    <label>Schema
+        <input name="username" value="@c.Username" autocomplete="off" spellcheck="false" />
+    </label>
+    <label>Password
+        <input name="password" type="password" autocomplete="new-password"
+               placeholder="@(c.Id == 0 ? "" : "unchanged")" />
+    </label>
+
+    @if (Model.Error is not null)
+    {
+        <p class="error">@Model.Error</p>
+    }
+
+    <footer>
+        @if (c.Id != 0)
+        {
+            <button type="button" class="ghost danger"
+                    hx-post="@Handler("Delete", new { id = c.Id })"
+                    hx-confirm="Delete the connection “@c.Name”?">Delete</button>
+        }
+        <button type="button" class="ghost"
+                hx-post="@Handler("TestForm")" hx-include="closest form" hx-swap="none">Test</button>
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit">Save</button>
+    </footer>
+</form>
