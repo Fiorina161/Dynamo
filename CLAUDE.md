@@ -4,6 +4,17 @@ Self-hosted local Windows site for a programmer's tools (see README.md for
 run/install and architecture). Work directly in this checkout; no worktrees.
 Comments wrap at column 80. Commit and push only when the user asks.
 
+## Git
+
+Solo repo: `master` is the main line and the user wants no pull requests.
+Claude's background sessions may not push to `master` themselves, so Claude
+commits on a working branch, pushes that branch, and gives the user the one
+command that fast-forwards `master`:
+
+    git push origin <branch>:master
+
+Then `git checkout master && git pull`, and delete the branch. Never force-push.
+
 ## Decisions made with the user
 
 - Stack: ASP.NET Core 10, Razor Pages + htmx (vendored, offline), Sqlite via
