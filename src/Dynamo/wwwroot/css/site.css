@@ -296,7 +296,16 @@ code, .sql, .sql-edit { font-family: Consolas, "Cascadia Mono", monospace; font-
 .run-grid label { flex: 1 1 200px; max-width: 320px; color: var(--muted); font-size: 12px; }
 .run-grid label input, .run-grid label select { margin-top: 4px; font-size: 14px; color: var(--fg); }
 .run-grid label:last-child { flex: 0 0 110px; }
-.run-actions { display: flex; gap: 8px; margin: 0 10px 8px; }
+.run-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 10px 8px; }
+
+/* Auto-refresh: pushed to the right; the status text turns accent while it runs. */
+.auto-refresh { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.auto-refresh label { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+.auto-refresh input { width: 70px; padding: 4px 6px; margin: 0; }
+.refresh-status { color: var(--muted); font-size: 13px; min-width: 0; }
+.auto-refresh.on .refresh-status { color: var(--accent); }
+.auto-refresh.on [data-refresh-toggle] { border-color: var(--accent); color: var(--accent); }
+.ran-at { font-variant-numeric: tabular-nums; }
 
 .sql-view { margin: 4px 10px 0; color: var(--muted); }
 .sql-view summary { cursor: pointer; font-size: 13px; }

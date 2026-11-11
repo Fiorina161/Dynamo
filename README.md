@@ -109,6 +109,15 @@ fill in; the run page shows one box per bind variable and remembers what you
 typed. Results show in a table (default 500 rows, up to 10,000) and **Export
 CSV** downloads up to 100,000 rows.
 
+**Auto-refresh:** next to Run, type a number of seconds (1 to 3600) and press
+**Start auto-refresh**: the query runs now and then again every N seconds until
+you press **Stop auto-refresh** or leave the page. The next run starts N seconds
+after the previous one *finished*, so a slow query never overlaps itself. A
+failed run (wrong password, Oracle error, server down) stops it, so a bad
+password is not retried over and over. Each refresh uses the values currently in
+the form, keeps the table's scroll position, and the result header shows when it
+was fetched. The interval is remembered per query.
+
 Queries are read-only: only a single `SELECT` or `WITH` is accepted, and it runs
 in a read-only transaction that is rolled back. Values are sent as text, so use
 `TO_DATE(:since, 'YYYY-MM-DD')` for dates.

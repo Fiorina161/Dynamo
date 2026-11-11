@@ -52,6 +52,145 @@
         toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 5000);
     });
 
+    // ---- Auto-refresh of a query -----------------------------------------------
+    // A box marked data-auto-refresh="#form" re-submits that htmx form every N
+    // seconds until stopped. The next run is scheduled when the previous one has
+    // finished (a slow query never overlaps itself), and a failed run stops it, so
+    // a wrong password is not retried again and again.
+    function initAutoRefresh(box) {
+        var form = document.querySelector(box.dataset.autoRefresh);
+        var input = box.querySelector('[data-refresh-seconds]');
+        var toggle = box.querySelector('[data-refresh-toggle]');
+        var status = box.querySelector('[data-refresh-status]');
+        if (!form || !input || !toggle || !status) return;
+
+        var key = 'refresh-seconds:' + location.pathname;
+        var seconds = 0;          // 0 = not running
+        var ticker = null;
+        var nextAt = 0;
+        var lastRun = null;
+        var inFlight = false;
+
+        try {
+            var saved = localStorage.getItem(key);
+            if (saved) input.value = saved;
+        } catch (e) { }
+
+        function running() { return seconds > 0; }
+
+        function clock(d) {
+            return d ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
+        }
+
+        function show() {
+            var left = Math.max(0, Math.ceil((nextAt - Date.now()) / 1000));
+            status.textContent = 'Every ' + seconds + ' s · last run ' + clock(lastRun) + ' · ' +
+                (inFlight ? 'running…' : 'next in ' + left + ' s');
+        }
+
+        function stop(message) {
+            seconds = 0;
+            clearInterval(ticker);
+            ticker = null;
+            box.classList.remove('on');
+            toggle.textContent = 'Start auto-refresh';
+            status.textContent = message || '';
+        }
+
+        function run() {
+            inFlight = true;
+            htmx.trigger(form, 'submit');
+            show();
+        }
+
+        function scheduleNext() {
+            nextAt = Date.now() + seconds * 1000;
+            clearInterval(ticker);
+            ticker = setInterval(function () {
+                if (!running()) return;
+                if (Date.now() >= nextAt) {
+                    clearInterval(ticker);
+                    run();
+                } else {
+                    show();
+                }
+            }, 1000);
+            show();
+        }
+
+        function secondsOf(text) {
+            var n = parseInt(text, 10);
+            return n >= 1 && n <= 3600 ? n : 0;
+        }
+
+        toggle.addEventListener('click', function () {
+            if (running()) {
+                stop('Stopped.');
+                return;
+            }
+            var n = secondsOf(input.value);
+            if (!n) {
+                status.textContent = 'Enter a number of seconds, from 1 to 3600.';
+                input.focus();
+                return;
+            }
+            seconds = n;
+            try { localStorage.setItem(key, String(n)); } catch (e) { }
+            box.classList.add('on');
+            toggle.textContent = 'Stop auto-refresh';
+            run();
+        });
+
+        // A new interval while running applies from now.
+        input.addEventListener('change', function () {
+            var n = secondsOf(input.value);
+            if (!running() || !n) return;
+            seconds = n;
+            try { localStorage.setItem(key, String(n)); } catch (e) { }
+            if (!inFlight) scheduleNext();
+        });
+
+        document.body.addEventListener('htmx:beforeRequest', function (e) {
+            if (e.detail && e.detail.elt === form) inFlight = true;
+        });
+
+        // The answer is in the page: schedule the next run, or stop if it failed.
+        document.body.addEventListener('htmx:afterSwap', function (e) {
+            if (!e.target || e.target.id !== 'results') return;
+            inFlight = false;
+            lastRun = new Date();
+            if (!running()) return;
+            if (e.target.querySelector('.error')) stop('Stopped: the last run failed.');
+            else scheduleNext();
+        });
+
+        ['htmx:responseError', 'htmx:sendError', 'htmx:timeout'].forEach(function (name) {
+            document.body.addEventListener(name, function (e) {
+                if (!e.detail || e.detail.elt !== form) return;
+                inFlight = false;
+                if (running()) stop('Stopped: the server did not answer.');
+            });
+        });
+    }
+
+    document.querySelectorAll('[data-auto-refresh]').forEach(initAutoRefresh);
+
+    // A refresh replaces the results: keep the table where the user had scrolled it.
+    var savedScroll = null;
+    document.body.addEventListener('htmx:beforeSwap', function (e) {
+        if (!e.target || e.target.id !== 'results') return;
+        var table = e.target.querySelector('.results');
+        savedScroll = table ? { top: table.scrollTop, left: table.scrollLeft } : null;
+    });
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+        if (!e.target || e.target.id !== 'results' || !savedScroll) return;
+        var table = e.target.querySelector('.results');
+        if (table) {
+            table.scrollTop = savedScroll.top;
+            table.scrollLeft = savedScroll.left;
+        }
+        savedScroll = null;
+    });
     // ---- Selecting rows: checkboxes, select-all, shift-click ---------------
     // A list marked data-selectable has [data-select-item] checkboxes in its
     // rows, one [data-select-all], a [data-select-count] and a

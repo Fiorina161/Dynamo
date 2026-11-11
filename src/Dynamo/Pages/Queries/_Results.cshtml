@@ -11,6 +11,7 @@ else if (Model.Result is { } r)
         <header>
             <h2>Results</h2>
             <span class="count">
+                <span class="ran-at" title="When this result was fetched">@DateTime.Now.ToString("HH:mm:ss")</span> ·
                 @r.Rows.Count @(r.Rows.Count == 1 ? "row" : "rows") · @r.ElapsedMs ms@(r.Truncated ? " · more rows exist, raise Max rows or export" : "")
             </span>
         </header>

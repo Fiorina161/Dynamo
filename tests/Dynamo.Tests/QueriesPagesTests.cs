@@ -189,6 +189,34 @@ public class QueriesPagesTests
     }
 
     [Test]
+    public async Task RunPage_OffersAutoRefresh_WithoutSendingTheIntervalToTheServer()
+    {
+        var id = await SaveQuery("Auto", "SELECT 1 FROM dual");
+
+        var page = await _client.GetStringAsync($"/Queries/{id}");
+
+        Assert.That(page, Does.Contain("id=\"run\""));
+        Assert.That(page, Does.Contain("data-auto-refresh=\"#run\""));
+        Assert.That(page, Does.Contain("data-refresh-toggle"));
+        var interval = Regex.Match(page, "<input[^>]*data-refresh-seconds[^>]*>").Value;
+        Assert.That(interval, Does.Not.Contain(" name="), "the interval is not a form field");
+        Assert.That(interval, Does.Contain("min=\"1\"").And.Contain("max=\"3600\""));
+    }
+
+    [Test]
+    public async Task Results_SayWhenTheyWereFetched()
+    {
+        var id = await SaveQuery("Stamped", "SELECT 1 FROM dual");
+        _runner.Failure = null;
+        _runner.Result = Sample();
+
+        var html = await (await Post($"/Queries/{id}?handler=Run", ("connection", "DEV")))
+            .Content.ReadAsStringAsync();
+
+        Assert.That(html, Does.Match("class=\"ran-at\"[^>]*>\\d{2}:\\d{2}:\\d{2}<"));
+    }
+
+    [Test]
     public async Task Save_RefusesAnythingButASingleSelect()
     {
         var response = await Post("/Queries?handler=Save",

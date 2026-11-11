@@ -61,6 +61,17 @@
             <button type="button" class="ghost"
                     data-post-form="@Url.Page("/Queries/Run", "Csv", new { id = q.Id })"
                     title="Run again and download every row (up to 100,000) as CSV">Export CSV</button>
+
+            @* Re-runs the form every N seconds until stopped (see site.js). The
+               number has no name: it is not part of what is sent to the server. *@
+            <div class="auto-refresh" data-auto-refresh="#run">
+                <label>Refresh every
+                    <input type="number" min="1" max="3600" value="10" inputmode="numeric"
+                           data-refresh-seconds aria-label="Seconds between refreshes" /> s
+                </label>
+                <button type="button" class="ghost" data-refresh-toggle>Start auto-refresh</button>
+                <span class="refresh-status" data-refresh-status role="status"></span>
+            </div>
         </footer>
     </form>
 

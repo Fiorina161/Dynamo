@@ -91,6 +91,19 @@ Then `git checkout master && git pull`, and delete the branch. Never force-push.
   timeout 120 s; leaving the page cancels the statement. Pages depend on
   `IQueryRunner` so tests use a fake. The CSV button posts natively through
   `data-post-form` (site.js) because htmx cannot save a file.
+- Auto-refresh of a query (done, 11 Nov 2026): client side only
+  (`initAutoRefresh` in site.js, markup `data-auto-refresh="#run"` on the run
+  page; no server change except a "fetched at" time in the results header).
+  Re-submits the htmx form every N s (1..3600). **Decisions**: the next run is
+  scheduled *after the previous answer* (no overlap on a slow query); **a failed
+  run stops it** (a wrong password must not be retried: account lockout); each
+  refresh reads the live form values; scroll position of the table is kept; the
+  interval is remembered per query in localStorage; it dies with the page. It
+  detects failure by an `.error` in the swapped `#results`. The interval input
+  has no `name` so it is never posted. Verified with jsdom (fake clock +
+  fake htmx, then real htmx.min.js against a stand-in server; jsdom needs
+  `XPathEvaluator` stubbed for htmx), scripts kept only in the scratch dir,
+  not in the repo.
 - Tests: `tests/Dynamo.Tests` (NUnit 5, `dotnet test`): scanner, CSV and the
   queries pages end to end in memory (`WebApplicationFactory<Program>`; the
   fake runner means **no test touches Oracle**). A real Oracle run has only
