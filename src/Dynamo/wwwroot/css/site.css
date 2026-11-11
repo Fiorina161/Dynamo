@@ -87,9 +87,10 @@ main { flex: 1; min-width: 0; padding: 40px 32px 64px; }
     gap: 12px 24px;
     margin-bottom: 28px;
 }
+.greeting { flex: 1 1 280px; min-width: 0; }
 .greeting h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -.02em; }
 .greeting p { margin: 2px 0 0; color: var(--muted); }
-.page-tools { display: flex; align-items: center; gap: 16px; }
+.page-tools { display: flex; align-items: center; gap: 16px; margin-left: auto; }
 .count { color: var(--muted); font-size: 13px; }
 .actions { display: flex; gap: 8px; }
 /* ---- Controls --------------------------------------------------------- */
@@ -242,6 +243,8 @@ body.dragging .ungrouped.empty-card { display: block; }
 .group.wide { max-width: 720px; }
 .items.plain .item { cursor: default; }
 .item .row-btn { margin-right: 10px; }
+/* What still has to be filled in: the one thing worth a colour. */
+.hint .todo { color: var(--accent); }
 /* A button waiting for an answer (htmx adds the class while it is in flight). */
 button.htmx-request { opacity: .5; pointer-events: none; }
 

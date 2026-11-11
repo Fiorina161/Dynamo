@@ -9,10 +9,14 @@
         <h1>Oracle connections</h1>
         <p>Each name stands for a data source, a schema and its password. Other features pick a connection by name.</p>
     </div>
-    <div class="actions">
-        <button type="button"
-                hx-get="@Url.Page("/OracleConnections/Index", "Form")"
-                hx-target="#dlg">New connection</button>
+    <div class="page-tools">
+        <input type="search" class="filter" placeholder="Filter…" aria-label="Filter connections"
+               data-filter="#connections" autocomplete="off" />
+        <div class="actions">
+            <button type="button"
+                    hx-get="@Url.Page("/OracleConnections/Index", "Form")"
+                    hx-target="#dlg">New connection</button>
+        </div>
     </div>
 </header>
 

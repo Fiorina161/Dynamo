@@ -74,6 +74,18 @@ in the local database and never shown again in the UI; leave the password
 blank when editing to keep it. Each row has a Test button, and the edit
 dialog can test unsaved values.
 
+### Importing from tnsnames.ora
+
+    Dynamo.exe import-tnsnames [path\to\tnsnames.ora]
+
+Without a path it reads `tnsnames.ora` in `TNS_ADMIN`. Each alias becomes a
+connection (same name, full descriptor as the data source); the schema and
+password stay empty, to be filled in on the Oracle page (the list flags those
+that are still missing and the filter box finds them). Safe to repeat: names
+that already exist are left alone, so what you filled in is kept. An alias
+defined twice in the file keeps its first definition, and the command says so.
+From source: `dotnet run --project src\Dynamo -- import-tnsnames`.
+
 ## Queries
 
 Save the SELECTs you run often and run them on any Oracle connection.

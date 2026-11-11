@@ -38,6 +38,7 @@ builder.Services.AddSingleton<BookmarkRepository>();
 builder.Services.AddSingleton<BookmarkImporter>();
 builder.Services.AddSingleton<OracleConnectionRepository>();
 builder.Services.AddSingleton<OracleConnector>();
+builder.Services.AddSingleton<TnsNamesImporter>();
 builder.Services.AddSingleton<QueryRepository>();
 builder.Services.AddSingleton<IQueryRunner, QueryRunner>();
 
@@ -59,6 +60,37 @@ if (args is ["import-bookmarks", var file])
     Console.WriteLine(
         $"Imported into {home.DatabaseFile}: {r.Added} bookmarks added, " +
         $"{r.Skipped} already present, {r.Groups} groups created.");
+    return;
+}
+
+// One-shot command, no web server:  Dynamo import-tnsnames [tnsnames.ora]
+// (default: the file in TNS_ADMIN)
+if (args is ["import-tnsnames", ..var rest] && rest.Length <= 1)
+{
+    var tnsAdmin = Environment.GetEnvironmentVariable("TNS_ADMIN");
+    var tnsFile = rest.Length == 1
+        ? rest[0]
+        : tnsAdmin is { Length: > 0 } ? Path.Combine(tnsAdmin, "tnsnames.ora") : "";
+    if (!File.Exists(tnsFile))
+    {
+        Console.Error.WriteLine(
+            tnsFile.Length == 0
+                ? "No file given and TNS_ADMIN is not set."
+                : $"File not found: {tnsFile}");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    var t = app.Services.GetRequiredService<TnsNamesImporter>().Import(tnsFile);
+    Console.WriteLine($"Read {tnsFile}");
+    Console.WriteLine(
+        $"Imported into {home.DatabaseFile}: {t.Added} connections added, " +
+        $"{t.AlreadyThere} already defined.");
+    if (t.Identical.Count > 0)
+        Console.WriteLine($"Defined more than once, identical (kept once): {string.Join(", ", t.Identical)}");
+    if (t.Conflicting.Count > 0)
+        Console.WriteLine(
+            $"Defined more than once with DIFFERENT targets (the first was kept): {string.Join(", ", t.Conflicting)}");
     return;
 }
 

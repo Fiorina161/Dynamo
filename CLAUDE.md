@@ -44,6 +44,21 @@ Then `git checkout master && git pull`, and delete the branch. Never force-push.
   `System.Security.Cryptography.Pkcs` is pinned directly because the
   driver's own dependency has known vulnerabilities (NU1902/NU1903).
 
+- tnsnames.ora import (done, 11 Nov 2026): `Dynamo.exe import-tnsnames [file]`
+  (default `%TNS_ADMIN%\tnsnames.ora`; the user's is
+  `C:\ora\product\19.0.0\client_1\network\admin`, TNS_ADMIN is set machine-wide).
+  `TnsNamesParser` (any layout, `#` comments, `A, B = (...)`, quotes) +
+  `TnsNamesImporter`: **alias = connection name, full descriptor collapsed to
+  one line = data source** (self-contained: works under any service account),
+  schema and password left empty for the user. Idempotent: existing names are
+  never touched, so filled-in credentials survive a re-import. A name defined
+  several times in the file keeps its first definition and is reported
+  (identical vs different). An imported connection is "not ready"
+  (`OracleConnection.Complete` false): `Test` and `OpenAsync` answer a clear
+  message (`ConnectionNotReadyException`) instead of an ORA error. The list
+  shows `schema@host:port/service` (`DataSourceSummary`), flags what is still to
+  fill in, and has a filter box. 235 connections were imported; `LAVAL.TEST` is
+  defined twice in the user's file with different targets (first kept).
 - Queries (done): `Modules/Queries`, pages `/Queries` (list) and
   `/Queries/{id}` (run). A saved query = name, free-text category (panels, like
   bookmark groups), default connection **by name** (renaming a connection

@@ -21,6 +21,15 @@ public sealed class OracleConnectionInfo
 
     /// <summary>Stored as typed, in clear: Dynamo has no security by design.</summary>
     public string Password { get; set; } = "";
+
+    /// <summary>The data source in a short, readable form (for lists).</summary>
+    public string Summary => DataSourceSummary.Of(DataSource);
+
+    /// <summary>
+    /// False for a connection imported from tnsnames.ora whose schema and
+    /// password have not been filled in yet: it cannot log in.
+    /// </summary>
+    public bool Complete => Username.Length > 0 && Password.Length > 0;
 }
 
 public sealed class OracleConnectionRepository(Db db)

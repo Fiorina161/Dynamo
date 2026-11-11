@@ -3,6 +3,9 @@ using Oracle.ManagedDataAccess.Client;
 
 namespace Dynamo.Modules.OracleConnections;
 
+/// <summary>A defined connection that cannot log in yet (no schema or password).</summary>
+public sealed class ConnectionNotReadyException(string message) : Exception(message);
+
 /// <summary>
 /// The entry point other features use to reach Oracle, always by connection
 /// name:
@@ -27,6 +30,8 @@ public sealed class OracleConnector(OracleConnectionRepository repo)
     {
         var info = repo.GetByName(name)
             ?? throw new KeyNotFoundException($"No Oracle connection named '{name}'.");
+        if (NotReady(info) is { } reason)
+            throw new ConnectionNotReadyException(reason);
         var conn = new OracleConnection(ConnectionStringOf(info));
         try
         {
@@ -43,6 +48,9 @@ public sealed class OracleConnector(OracleConnectionRepository repo)
     /// <summary>Tries to log in and reports the outcome for the user.</summary>
     public async Task<TestResult> TestAsync(OracleConnectionInfo info)
     {
+        if (NotReady(info) is { } reason)
+            return new TestResult(false, reason);
+
         var clock = Stopwatch.StartNew();
         try
         {
@@ -58,6 +66,16 @@ public sealed class OracleConnector(OracleConnectionRepository repo)
             // what the user needs to see; it never contains the password.
             return new TestResult(false, $"“{info.Name}”: {FirstLine(ex.Message)}");
         }
+    }
+
+    /// <summary>Why this connection cannot log in yet, or null when it can.</summary>
+    private static string? NotReady(OracleConnectionInfo info)
+    {
+        if (info.Username.Length == 0)
+            return $"“{info.Name}” has no schema yet: fill it in on the Oracle page.";
+        if (info.Password.Length == 0)
+            return $"“{info.Name}” has no password yet: fill it in on the Oracle page.";
+        return null;
     }
 
     private static string ConnectionStringOf(OracleConnectionInfo info) =>

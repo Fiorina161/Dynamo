@@ -99,6 +99,7 @@ public class RunModel(
         {
             case QueryException:
             case KeyNotFoundException:
+            case ConnectionNotReadyException:
                 return ex.Message;
             case OracleException:
                 // ORA-xxxxx: what the database says is what the user needs.
