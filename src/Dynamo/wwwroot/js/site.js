@@ -52,6 +52,47 @@
         toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 5000);
     });
 
+    // ---- Filter box: hides the rows (and empty groups) that do not match -----
+    document.addEventListener('input', function (e) {
+        var box = e.target.closest && e.target.closest('[data-filter]');
+        if (!box) return;
+        var root = document.querySelector(box.dataset.filter);
+        if (!root) return;
+        var q = box.value.trim().toLowerCase();
+        root.querySelectorAll('.item').forEach(function (li) {
+            li.hidden = q !== '' && li.textContent.toLowerCase().indexOf(q) < 0;
+        });
+        root.querySelectorAll('.group').forEach(function (g) {
+            g.hidden = q !== '' && !g.querySelector('.item:not([hidden])');
+        });
+    });
+
+    // ---- A button that posts its form natively (file downloads) ---------------
+    // htmx cannot save a response as a file: build a plain form with the same
+    // fields and the antiforgery token, and let the browser download the answer.
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('[data-post-form]');
+        if (!btn) return;
+        var src = btn.closest('form');
+        var form = document.createElement('form');
+        form.method = 'post';
+        form.action = btn.dataset.postForm;
+        function add(name, value) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value;
+            form.appendChild(input);
+        }
+        new FormData(src).forEach(function (value, name) { add(name, value); });
+        try {
+            add('__RequestVerificationToken',
+                JSON.parse(document.body.getAttribute('hx-headers')).RequestVerificationToken);
+        } catch (err) { }
+        document.body.appendChild(form);
+        form.submit();
+        form.remove();
+    });
     // ---- Drag and drop -----------------------------------------------------
     // Two kinds of drag: a bookmark (between and inside groups) and a group
     // (by its header, among the cards). The dragged element follows the

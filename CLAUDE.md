@@ -44,11 +44,29 @@ Then `git checkout master && git pull`, and delete the branch. Never force-push.
   `System.Security.Cryptography.Pkcs` is pinned directly because the
   driver's own dependency has known vulnerabilities (NU1902/NU1903).
 
+- Queries (done): `Modules/Queries`, pages `/Queries` (list) and
+  `/Queries/{id}` (run). A saved query = name, free-text category (panels, like
+  bookmark groups), default connection **by name** (renaming a connection
+  leaves its queries to be re-picked), SQL, notes, last bind values (JSON).
+  **Read-only by design**: `SqlScanner` (comments/literals/q-quotes aware)
+  accepts one SELECT/WITH only (a closing `;` is dropped) and finds the `:name`
+  binds; `QueryRunner` runs it after `SET TRANSACTION READ ONLY` and always
+  ROLLBACKs (pooled connection). Binds are always passed as text. Row limit 500
+  default, 10,000 max on screen, 100,000 for CSV (`QueryCsv`, UTF-8 BOM);
+  timeout 120 s; leaving the page cancels the statement. Pages depend on
+  `IQueryRunner` so tests use a fake. The CSV button posts natively through
+  `data-post-form` (site.js) because htmx cannot save a file.
+- Tests: `tests/Dynamo.Tests` (NUnit 5, `dotnet test`): scanner, CSV and the
+  queries pages end to end in memory (`WebApplicationFactory<Program>`; the
+  fake runner means **no test touches Oracle**). A real Oracle run has only
+  been tried by hand.
+
 ## Roadmap (user's list, in no fixed order)
 
-Bookmarks (done) → Oracle connections (done) → common database queries
-(next natural step: uses `OracleConnector`) → command-line tools → scripts →
-accessed links history / other.
+Bookmarks (done) → Oracle connections (done) → common database queries (done)
+→ command-line tools → scripts → accessed links history / other. Ideas noted
+for queries, not built: an ad-hoc SQL console, non-SELECT statements,
+a connection rename that updates the queries' default connection.
 
 ## Conventions
 
@@ -60,5 +78,5 @@ accessed links history / other.
 
 ## Known gaps
 
-- Groups cannot be reordered (only bookmarks drag). Dropping into a collapsed
-  group is not possible. No tests yet. No file logging (console/Event Log).
+- No file logging (console/Event Log). Bookmarks drag and drop is only checked
+  by hand (no browser test).

@@ -2,4 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Dynamo/Dynamo.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Dynamo.Tests/Dynamo.Tests.csproj" />
+  </Folder>
 </Solution>

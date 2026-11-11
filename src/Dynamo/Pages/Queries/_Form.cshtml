@@ -1,0 +1,65 @@
+@model Dynamo.Pages.Queries.QueryFormModel
+@{
+    var q = Model.Query;
+    string Handler(string name, object? values = null) =>
+        Url.Page("/Queries/Index", name, values)!;
+    var knownConnection = q.Connection.Length == 0 || Model.Connections.Contains(q.Connection);
+}
+<form class="wide" hx-post="@Handler("Save")" hx-target="#queries" hx-swap="outerHTML">
+    <h2>@(q.Id == 0 ? "New query" : "Edit query")</h2>
+    <input type="hidden" name="id" value="@q.Id" />
+    <input type="hidden" name="from" value="@Model.From" />
+
+    <div class="two">
+        <label>Name
+            <input name="name" value="@q.Name" autocomplete="off" autofocus />
+        </label>
+        <label>Category
+            <input name="category" value="@q.Category" list="query-categories" autocomplete="off" />
+            <datalist id="query-categories">
+                @foreach (var c in Model.Categories)
+                {
+                    <option value="@c"></option>
+                }
+            </datalist>
+        </label>
+    </div>
+    <label>Default connection
+        <select name="connection">
+            <option value="">(choose when running)</option>
+            @if (!knownConnection)
+            {
+                <option value="@q.Connection" selected>@q.Connection (not defined any more)</option>
+            }
+            @foreach (var c in Model.Connections)
+            {
+                <option value="@c" selected="@(c == q.Connection)">@c</option>
+            }
+        </select>
+    </label>
+    <label>SQL
+        <textarea name="sql" class="sql-edit" rows="12" spellcheck="false"
+                  placeholder="SELECT … FROM … WHERE col = :value">@q.Sql</textarea>
+    </label>
+    <p class="hint-text">One SELECT. Write <code>:name</code> for a value to fill in each time it runs.</p>
+    <label>Notes
+        <input name="notes" value="@q.Notes" autocomplete="off" placeholder="Optional, shown in the list" />
+    </label>
+
+    @if (Model.Error is not null)
+    {
+        <p class="error">@Model.Error</p>
+    }
+
+    <footer>
+        @if (q.Id != 0)
+        {
+            <button type="button" class="ghost danger"
+                    hx-post="@Handler("Delete", new { id = q.Id, from = Model.From })"
+                    hx-confirm="Delete the query “@q.Name”?">Delete</button>
+        }
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit">Save</button>
+    </footer>
+</form>

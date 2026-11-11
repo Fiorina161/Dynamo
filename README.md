@@ -74,6 +74,23 @@ in the local database and never shown again in the UI; leave the password
 blank when editing to keep it. Each row has a Test button, and the edit
 dialog can test unsaved values.
 
+## Queries
+
+Save the SELECTs you run often and run them on any Oracle connection.
+A query has a name, an optional category (queries are listed by category, with
+a filter box), a default connection and its SQL. Write `:name` for a value to
+fill in; the run page shows one box per bind variable and remembers what you
+typed. Results show in a table (default 500 rows, up to 10,000) and **Export
+CSV** downloads up to 100,000 rows.
+
+Queries are read-only: only a single `SELECT` or `WITH` is accepted, and it runs
+in a read-only transaction that is rolled back. Values are sent as text, so use
+`TO_DATE(:since, 'YYYY-MM-DD')` for dates.
+
+## Tests
+
+    dotnet test
+
 ### Importing from the old browser extension
 
     dotnet run --project src\Dynamo -- import-bookmarks C:\My\CustomTab\bookmarks.json

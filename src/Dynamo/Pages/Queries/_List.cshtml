@@ -1,0 +1,42 @@
+@model IReadOnlyList<Dynamo.Pages.Queries.QueryGroup>
+@{
+    string Handler(string name, object? values = null) =>
+        Url.Page("/Queries/Index", name, values)!;
+}
+
+@* Every action inside replaces the list; the Edit button overrides the target. *@
+<div id="queries" hx-target="#queries" hx-swap="outerHTML">
+    @if (Model.Count == 0)
+    {
+        <p class="empty">No queries yet. Use “New query” to save the first one.</p>
+    }
+    else
+    {
+        <div class="cards">
+            @foreach (var g in Model)
+            {
+                <section class="group">
+                    <header>
+                        <h2>@(g.Category.Length == 0 ? "Uncategorized" : g.Category)</h2>
+                        <span class="count">@g.Queries.Count</span>
+                    </header>
+                    <ul class="items plain">
+                        @foreach (var q in g.Queries)
+                        {
+                            <li class="item">
+                                <a class="link" href="@Url.Page("/Queries/Run", new { id = q.Id })">
+                                    <span class="title">@q.Name</span>
+                                    <span class="hint">@(q.Notes.Length > 0 ? q.Notes : q.Connection.Length > 0 ? q.Connection : "choose a connection when running")</span>
+                                </a>
+                                <button type="button" class="ghost small edit" title="Edit"
+                                        aria-label="Edit @q.Name"
+                                        hx-get="@Handler("Form", new { id = q.Id })"
+                                        hx-target="#dlg" hx-swap="innerHTML">Edit</button>
+                            </li>
+                        }
+                    </ul>
+                </section>
+            }
+        </div>
+    }
+</div>

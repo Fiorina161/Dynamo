@@ -1,0 +1,73 @@
+@page "/Queries/{id:long}"
+@model Dynamo.Pages.Queries.RunModel
+@{
+    var q = Model.Query;
+    ViewData["Title"] = q.Name;
+    var connectionKnown = q.Connection.Length > 0 && Model.Connections.Contains(q.Connection);
+}
+
+<header class="page-head">
+    <div class="greeting">
+        <p><a class="back" href="@Url.Page("/Queries/Index")">← Queries</a></p>
+        <h1>@q.Name</h1>
+        @if (q.Category.Length > 0 || q.Notes.Length > 0)
+        {
+            <p>@(string.Join(" · ", new[] { q.Category, q.Notes }.Where(s => s.Length > 0)))</p>
+        }
+    </div>
+    <div class="actions">
+        <button type="button" class="ghost"
+                hx-get="@Url.Page("/Queries/Index", "Form", new { id = q.Id, from = "run" })"
+                hx-target="#dlg">Edit</button>
+    </div>
+</header>
+
+<section class="group full">
+    @* Run is an htmx submit (so Enter runs it); the CSV button posts the same fields natively. *@
+    <form id="run" hx-post="@Url.Page("/Queries/Run", "Run", new { id = q.Id })"
+          hx-target="#results" hx-swap="innerHTML" hx-indicator="#run-button">
+        <div class="run-grid">
+            <label>Connection
+                <select name="connection">
+                    @if (!connectionKnown)
+                    {
+                        <option value="" selected disabled>(choose)</option>
+                    }
+                    @foreach (var c in Model.Connections)
+                    {
+                        <option value="@c" selected="@(connectionKnown && c == q.Connection)">@c</option>
+                    }
+                </select>
+            </label>
+            @foreach (var bind in Model.Binds)
+            {
+                <label>:@bind
+                    <input name="param.@bind" autocomplete="off" spellcheck="false"
+                           value="@(q.LastParams.TryGetValue(bind, out var last) ? last : "")" />
+                </label>
+            }
+            <label>Max rows
+                <input name="maxRows" type="number" min="1" max="10000" value="500" />
+            </label>
+        </div>
+
+        @if (Model.Connections.Count == 0)
+        {
+            <p class="hint-text">No Oracle connection is defined yet: add one on the <a href="/Oracle">Oracle</a> page.</p>
+        }
+
+        <footer class="run-actions">
+            <button type="submit" id="run-button">Run</button>
+            <button type="button" class="ghost"
+                    data-post-form="@Url.Page("/Queries/Run", "Csv", new { id = q.Id })"
+                    title="Run again and download every row (up to 100,000) as CSV">Export CSV</button>
+        </footer>
+    </form>
+
+    <details class="sql-view">
+        <summary>SQL</summary>
+        <pre class="sql">@q.Sql</pre>
+    </details>
+</section>
+
+<div id="results"></div>

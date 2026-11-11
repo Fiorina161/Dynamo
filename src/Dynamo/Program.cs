@@ -1,6 +1,7 @@
 using Dynamo.Core;
 using Dynamo.Modules.Bookmarks;
 using Dynamo.Modules.OracleConnections;
+using Dynamo.Modules.Queries;
 using Microsoft.Extensions.Hosting.WindowsServices;
 
 const string ServiceName = "Dynamo";
@@ -37,10 +38,13 @@ builder.Services.AddSingleton<BookmarkRepository>();
 builder.Services.AddSingleton<BookmarkImporter>();
 builder.Services.AddSingleton<OracleConnectionRepository>();
 builder.Services.AddSingleton<OracleConnector>();
+builder.Services.AddSingleton<QueryRepository>();
+builder.Services.AddSingleton<IQueryRunner, QueryRunner>();
 
 // Each use case registers its module here.
 builder.Services.AddSingleton<IModule, BookmarksModule>();
 builder.Services.AddSingleton<IModule, OracleConnectionsModule>();
+builder.Services.AddSingleton<IModule, QueriesModule>();
 
 builder.Services.AddRazorPages();
 
@@ -63,3 +67,6 @@ app.MapRazorPages();
 
 app.Logger.LogInformation("Dynamo home: {Home}", home.Path);
 app.Run();
+
+// Lets the tests start the whole application in memory.
+public partial class Program;
