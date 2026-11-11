@@ -59,6 +59,18 @@ Then `git checkout master && git pull`, and delete the branch. Never force-push.
   shows `schema@host:port/service` (`DataSourceSummary`), flags what is still to
   fill in, and has a filter box. 235 connections were imported; `LAVAL.TEST` is
   defined twice in the user's file with different targets (first kept).
+- Batch delete of connections (done, 11 Nov 2026): checkbox per row + select-all
+  on the Oracle page, a live "N selected" and a "Delete selected" button that
+  opens a confirmation listing exactly the connections to go (`ConfirmDelete`
+  deletes nothing; `DeleteMany` does, in one transaction, in slices of 500).
+  **Generic client side** (site.js): a list marked `data-selectable` with
+  `[data-select-item]`, `[data-select-all]`, `[data-select-count]`,
+  `[data-select-action]` gets it for free (shift-click ranges; "all" = the rows
+  shown, not the ones the filter hides; **the filter deselects what it hides**,
+  so nothing out of sight is ever acted on). Reusable for bookmarks/queries.
+  The JS was verified once with jsdom against the real rendered page (25
+  checks), not kept as a repeatable test; the server side is in
+  `OracleBatchDeleteTests`.
 - Queries (done): `Modules/Queries`, pages `/Queries` (list) and
   `/Queries/{id}` (run). A saved query = name, free-text category (panels, like
   bookmark groups), default connection **by name** (renaming a connection

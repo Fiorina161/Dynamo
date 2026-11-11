@@ -74,6 +74,13 @@ in the local database and never shown again in the UI; leave the password
 blank when editing to keep it. Each row has a Test button, and the edit
 dialog can test unsaved values.
 
+### Deleting several connections
+
+Tick the boxes (shift-click selects a range; the box in the header selects every
+connection currently shown, so filter first to select "everything matching"),
+then **Delete selected**. A confirmation lists exactly what will be deleted.
+Rows hidden by the filter are never selected.
+
 ### Importing from tnsnames.ora
 
     Dynamo.exe import-tnsnames [path\to\tnsnames.ora]

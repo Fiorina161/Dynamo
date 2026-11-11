@@ -245,6 +245,33 @@ body.dragging .ungrouped.empty-card { display: block; }
 .item .row-btn { margin-right: 10px; }
 /* What still has to be filled in: the one thing worth a colour. */
 .hint .todo { color: var(--accent); }
+/* ---- Selecting rows (batch actions) ------------------------------------ */
+
+input[type="checkbox"] { width: auto; padding: 0; accent-color: var(--accent); cursor: pointer; }
+.item .pick { margin: 0 0 0 12px; flex: none; }
+.group > header .pick { margin: 0; }
+.items.plain .item .pick + .link { padding-left: 10px; }
+.batch { display: flex; align-items: center; gap: 10px; }
+.selected-count { color: var(--muted); font-size: 13px; white-space: nowrap; }
+button:disabled { opacity: .4; pointer-events: none; }
+.btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* The list of what a batch action is about to touch. */
+.names {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+    max-height: 260px;
+    overflow: auto;
+    background: var(--bg);
+    border: 1px solid var(--line);
+}
+.names li {
+    padding: 5px 10px;
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+}
+.names li:last-child { border-bottom: none; }
+.hint-inline { margin-left: 8px; color: var(--muted); font-size: 12px; }
 /* A button waiting for an answer (htmx adds the class while it is in flight). */
 button.htmx-request { opacity: .5; pointer-events: none; }
 

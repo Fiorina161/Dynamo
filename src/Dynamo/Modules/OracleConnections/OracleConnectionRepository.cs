@@ -87,6 +87,35 @@ public sealed class OracleConnectionRepository(Db db)
         conn.Execute("DELETE FROM oracle_connection WHERE id = @id", new { id });
     }
 
+    /// <summary>The connections with these ids (unknown ids are ignored), by name.</summary>
+    public List<OracleConnectionInfo> GetMany(IEnumerable<long> ids)
+    {
+        var wanted = ids.Distinct().ToList();
+        if (wanted.Count == 0)
+            return [];
+        using var conn = db.Open();
+        return conn.Query<OracleConnectionInfo>(
+            $"SELECT {Columns} FROM oracle_connection WHERE id IN @wanted ORDER BY name",
+            new { wanted }).ToList();
+    }
+
+    /// <summary>Deletes these connections in one transaction; returns how many existed.</summary>
+    public int DeleteMany(IEnumerable<long> ids)
+    {
+        var wanted = ids.Distinct().ToList();
+        if (wanted.Count == 0)
+            return 0;
+        using var conn = db.Open();
+        using var tx = conn.BeginTransaction();
+        var deleted = 0;
+        // In slices, well under SQLite's limit on bound parameters.
+        foreach (var slice in wanted.Chunk(500))
+            deleted += conn.Execute(
+                "DELETE FROM oracle_connection WHERE id IN @slice", new { slice }, tx);
+        tx.Commit();
+        return deleted;
+    }
+
     /// <summary>True if another connection already has this name.</summary>
     public bool NameTaken(string name, long exceptId)
     {

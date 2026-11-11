@@ -8,6 +8,9 @@ namespace Dynamo.Pages.OracleConnections;
 /// <summary>Model of the connection dialog.</summary>
 public sealed record ConnectionFormModel(OracleConnectionInfo Connection, string? Error = null);
 
+/// <summary>Model of the confirmation of a batch delete.</summary>
+public sealed record DeleteManyModel(IReadOnlyList<OracleConnectionInfo> Connections);
+
 /// <summary>
 /// Rendered once; every other handler answers an htmx request with a
 /// fragment (the list, or the dialog form) or a toast.
@@ -62,6 +65,25 @@ public class IndexModel(OracleConnectionRepository repo, OracleConnector connect
     public IActionResult OnPostDelete(long id)
     {
         repo.Delete(id);
+        return ListAndClose();
+    }
+
+    /// <summary>
+    /// First step of a batch delete: shows exactly which connections are about to
+    /// go, and asks. Nothing is deleted here.
+    /// </summary>
+    public IActionResult OnPostConfirmDelete(List<long>? ids)
+    {
+        var connections = repo.GetMany(ids ?? []);
+        return connections.Count == 0
+            ? Toast("Nothing selected.")
+            : Partial("_DeleteMany", new DeleteManyModel(connections));
+    }
+
+    /// <summary>Second step: deletes the confirmed connections.</summary>
+    public IActionResult OnPostDeleteMany(List<long>? ids)
+    {
+        repo.DeleteMany(ids ?? []);
         return ListAndClose();
     }
 

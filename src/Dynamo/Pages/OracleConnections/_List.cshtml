@@ -12,8 +12,9 @@
         : "";
 }
 
-@* Every action inside replaces the list; dialog buttons override the target. *@
-<div id="connections" hx-target="#connections" hx-swap="outerHTML">
+@* Every action inside replaces the list; dialog buttons override the target.
+   data-selectable: the checkboxes, select-all and the count are driven by site.js. *@
+<div id="connections" hx-target="#connections" hx-swap="outerHTML" data-selectable>
     @if (Model.Count == 0)
     {
         <p class="empty">No connections yet. Use “New connection” to add the first one.</p>
@@ -22,14 +23,25 @@
     {
         <section class="group wide">
             <header>
+                <input type="checkbox" class="pick" data-select-all
+                       title="Select all the connections shown" aria-label="Select all shown" />
                 <h2>Connections</h2>
                 <span class="count">@Model.Count@(todo > 0 ? $" · {todo} to fill in" : "")</span>
+                <span class="batch">
+                    <span class="selected-count" data-select-count></span>
+                    <button type="button" class="ghost small danger" data-select-action disabled
+                            hx-post="@Handler("ConfirmDelete")"
+                            hx-include="#connections input[name=ids]:checked"
+                            hx-target="#dlg" hx-swap="innerHTML">Delete selected</button>
+                </span>
             </header>
             <ul class="items plain">
                 @foreach (var c in Model)
                 {
                     var missing = Missing(c);
                     <li class="item">
+                        <input type="checkbox" class="pick" name="ids" value="@c.Id" data-select-item
+                               aria-label="Select @c.Name" />
                         <a class="link" href="#"
                            hx-get="@Handler("Form", new { id = c.Id })"
                            hx-target="#dlg" hx-swap="innerHTML">

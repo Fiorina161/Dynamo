@@ -52,6 +52,59 @@
         toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 5000);
     });
 
+    // ---- Selecting rows: checkboxes, select-all, shift-click ---------------
+    // A list marked data-selectable has [data-select-item] checkboxes in its
+    // rows, one [data-select-all], a [data-select-count] and a
+    // [data-select-action] button that is enabled only while something is
+    // selected. "All" means all the rows currently shown (not hidden by the
+    // filter).
+    var lastPicked = null;
+
+    function shownBoxes(root) {
+        return Array.prototype.filter.call(root.querySelectorAll('[data-select-item]'),
+            function (b) { return !b.closest('.item').hidden; });
+    }
+
+    function refreshSelection(root) {
+        var shown = shownBoxes(root);
+        var n = shown.filter(function (b) { return b.checked; }).length;
+        var all = root.querySelector('[data-select-all]');
+        if (all) {
+            all.checked = n > 0 && n === shown.length;
+            all.indeterminate = n > 0 && n < shown.length;
+        }
+        var count = root.querySelector('[data-select-count]');
+        if (count) count.textContent = n > 0 ? n + ' selected' : '';
+        var action = root.querySelector('[data-select-action]');
+        if (action) action.disabled = n === 0;
+    }
+
+    document.addEventListener('click', function (e) {
+        var box = e.target.closest && e.target.closest('[data-select-item]');
+        if (!box) return;
+        var root = box.closest('[data-selectable]');
+        // Shift-click: every shown row between the last pick and this one
+        // takes the state this click just gave.
+        if (e.shiftKey && lastPicked && lastPicked !== box && root.contains(lastPicked)) {
+            var shown = shownBoxes(root);
+            var from = shown.indexOf(lastPicked);
+            var to = shown.indexOf(box);
+            if (from >= 0 && to >= 0) {
+                for (var i = Math.min(from, to); i <= Math.max(from, to); i++)
+                    shown[i].checked = box.checked;
+            }
+        }
+        lastPicked = box;
+        refreshSelection(root);
+    });
+
+    document.addEventListener('change', function (e) {
+        var all = e.target.closest && e.target.closest('[data-select-all]');
+        if (!all) return;
+        var root = all.closest('[data-selectable]');
+        shownBoxes(root).forEach(function (b) { b.checked = all.checked; });
+        refreshSelection(root);
+    });
     // ---- Filter box: hides the rows (and empty groups) that do not match -----
     document.addEventListener('input', function (e) {
         var box = e.target.closest && e.target.closest('[data-filter]');
@@ -65,6 +118,11 @@
         root.querySelectorAll('.group').forEach(function (g) {
             g.hidden = q !== '' && !g.querySelector('.item:not([hidden])');
         });
+        // What the filter hides is never selected: nothing out of sight is acted on.
+        root.querySelectorAll('[data-select-item]').forEach(function (b) {
+            if (b.closest('.item').hidden) b.checked = false;
+        });
+        refreshSelection(root);
     });
 
     // ---- A button that posts its form natively (file downloads) ---------------
