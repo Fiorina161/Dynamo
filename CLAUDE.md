@@ -6,14 +6,24 @@ Comments wrap at column 80. Commit and push only when the user asks.
 
 ## Git
 
-Solo repo: `master` is the main line and the user wants no pull requests.
-Claude's background sessions may not push to `master` themselves, so Claude
-commits on a working branch, pushes that branch, and gives the user the one
-command that fast-forwards `master`:
+Solo repo: `master` is the main line; no pull requests, no review branches.
+
+**In an interactive session Claude handles git itself**, as it does for the
+Bridge's documentation repo: `git fetch` first, check
+`git branch --show-current` before every commit or push, stage explicit paths,
+and when the user says "push" or "commit and push" run `git push origin master`.
+Commit subjects are short imperative English ("Add ...", "Fix ..."), with the
+Co-Authored-By trailer. Never force-push. `.claude/settings.json` (checked in)
+pre-approves these commands and denies force-pushes.
+
+**A background session** (a job started without a terminal) is forbidden by its
+harness from pushing to `master`, whatever the user asks. There Claude commits
+on a working branch, pushes that branch, and gives the user the one command that
+fast-forwards `master`:
 
     git push origin <branch>:master
 
-Then `git checkout master && git pull`, and delete the branch. Never force-push.
+Then `git checkout master && git pull`, and delete the branch.
 
 ## Decisions made with the user
 
