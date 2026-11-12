@@ -25,9 +25,21 @@ Then `git checkout master && git pull`, and delete the branch. Never force-push.
   need elevation); console when not launched by the service manager.
 - No authentication or authorization (local only). Antiforgery stays on on
   purpose: it stops a web page from making the browser launch bookmarks.
-- Local-file bookmarks are opened by the server (`Launcher`,
-  `UseShellExecute`). A Session-0 service cannot show windows on the desktop;
-  use the console for that.
+- Local-file bookmarks are opened by the server (`Launcher` -> `Core/
+  DesktopLauncher`). **A service runs in session 0 (no desktop): anything it
+  starts with Process.Start is invisible, which made bookmarks "do nothing"
+  (12 Nov 2026, found with the real service: SessionId 0 vs the user's 3).**
+  From a service, `DesktopLauncher` starts `cmd /c start "" "<target>"` in the
+  **active console session** with the user's own token (`WTSQueryUserToken` +
+  `DuplicateTokenEx` + `CreateEnvironmentBlock` + `CreateProcessAsUser`,
+  desktop `winsta0\default`, no console window, waits <= 10 s to report a
+  non-zero exit code); this needs **LocalSystem** (else a message, never a
+  silent nothing). As a console app it still uses `Process.Start`. Not
+  supported: a remote-desktop-only session (the active console is used); no
+  one signed in -> "No user is signed in". The token step can only be tested
+  as LocalSystem; the rest is tested with a copy of the test process's own
+  token (`DesktopLauncherTests`). Reuse `DesktopLauncher` for any future
+  "run a program for the user" feature (command-line tools module).
 - UI: sober, minimal color (one accent), light/dark/system theme.
 - Every setting is edited in the web UI and stored in Sqlite.
 - Oracle connections (done): `Modules/OracleConnections`, page `/Oracle`.

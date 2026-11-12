@@ -7,7 +7,7 @@ local Sqlite database.
 
 ## Run
 
-Console (development, or when you want launched files on your desktop):
+Console (development):
 
     dotnet run --project src\Dynamo
 
@@ -21,8 +21,17 @@ the password):
     .\scripts\uninstall-service.ps1
 
 The service and the console both use port 4040: stop one before starting the
-other. A service cannot show windows on your desktop, so use the console when
-a bookmark must open a file or folder visibly.
+other.
+
+**Opening local files from the service.** A service runs in session 0, which has
+no desktop, so a program it starts there is invisible. Dynamo therefore starts
+what a bookmark opens *in the signed-in user's session*, with that user's own
+rights (`DesktopLauncher`: `WTSQueryUserToken` + `CreateProcessAsUser`, then the
+shell's `start`). This needs the service to run as **LocalSystem**
+(`install-service.ps1 -LocalSystem`); under another account it says so instead
+of failing silently. It targets the **active console session** (the one on the
+physical screen); a remote-desktop-only session is not supported, and with no
+one signed in it answers "No user is signed in".
 
 The same executable is a console app when started by hand and a service when
 started by the service manager.

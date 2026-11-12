@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using Dynamo.Core;
 
 namespace Dynamo.Modules.Bookmarks;
 
@@ -6,7 +6,8 @@ namespace Dynamo.Modules.Bookmarks;
 /// Opens a bookmark's target on the machine running the service: a file or
 /// folder with its Windows default handler, or any other protocol handler
 /// (mailto:, vscode://...). The browser cannot do it itself: it refuses
-/// file:// links from an http page.
+/// file:// links from an http page. The program appears on the user's desktop
+/// even when Dynamo runs as a service (see <see cref="DesktopLauncher"/>).
 /// </summary>
 public static class Launcher
 {
@@ -22,16 +23,8 @@ public static class Launcher
         if (path is not null && !File.Exists(path) && !Directory.Exists(path))
             return $"Not found: {path}";
 
-        try
-        {
-            Process.Start(new ProcessStartInfo(path ?? target) { UseShellExecute = true })
-                ?.Dispose();
-            return null;
-        }
-        catch (Exception ex)
-        {
-            return ex.Message;
-        }
+        // On the user's desktop, also when the service itself has none.
+        return DesktopLauncher.Open(path ?? target);
     }
 
     /// <summary>The file system path the target designates, if it is one.</summary>

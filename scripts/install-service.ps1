@@ -11,10 +11,11 @@
     -LocalSystem it runs as LocalSystem instead: no password, and it has no
     user profile (no per-user environment, no per-user tnsnames).
 
-    A service never runs in your interactive session, so a bookmark that
-    opens a file or folder shows nothing on your desktop. For that, run the
-    console (dotnet run / Dynamo.exe) instead; stop the service first, both
-    use port 4040.
+    A service runs in session 0, which has no desktop. Dynamo opens bookmarked
+    files, folders and links in the signed-in user's own session (see
+    DesktopLauncher), which requires the right a LocalSystem service has:
+    prefer -LocalSystem if bookmarks must open on your screen. Under another
+    account the bookmark answers with a message instead of opening.
 
     If DYNAMO_HOME is defined as a *machine* environment variable the service
     uses it; otherwise its data lives in C:\dynamo.
