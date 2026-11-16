@@ -6,7 +6,7 @@
     <RootNamespace>Dynamo</RootNamespace>
     <AssemblyName>Dynamo</AssemblyName>
     <!-- The version of releases (tag v1.0.0): the update notice compares with it. -->
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Dynamo.Tests" />
