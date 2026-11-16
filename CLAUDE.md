@@ -266,6 +266,12 @@ Then `git checkout master && git pull`, and delete the branch.
   `THIRD-PARTY-NOTICES.md` added (Oracle's driver licence must be included with
   every distribution: `packaging/licenses/`, copied into the zip by
   `package.ps1`), README Security section, history squashed to one commit.
+- Install folder hygiene: `scripts/install-service.ps1` publishes a
+  framework-dependent build; if the folder still holds the self-contained
+  package's runtime files (`hostfxr.dll`...), the service fails with "No
+  frameworks were found" (found 16 Nov 2026), so the script now empties a folder
+  that already holds `Dynamo.exe` before publishing. The packaged installer
+  mirrors with robocopy, so it is already clean.
 - Packaging (done, 12 Nov 2026): `scripts/package.ps1` builds
   `Dynamo-<version>.zip` in Downloads: self-contained win-x64 publish (`app`,
   ~112 MB, zip ~50 MB) + `packaging/` (French guide `LISEZMOI.txt`,

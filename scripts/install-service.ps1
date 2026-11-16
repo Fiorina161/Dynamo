@@ -65,6 +65,15 @@ if (Get-Service $name -ErrorAction SilentlyContinue) {
     Start-Sleep 2
 }
 
+# Start from an empty folder when it already holds a Dynamo install: leftovers of
+# another kind of build (the self-contained package ships its own .NET runtime files)
+# would make the program look for .NET inside its own folder and fail to start
+# ("No frameworks were found"). The data is elsewhere (DYNAMO_HOME), never here.
+if (Test-Path (Join-Path $InstallDir 'Dynamo.exe')) {
+    Write-Host "Clearing the previous files in $InstallDir..."
+    Get-ChildItem $InstallDir -Force | Remove-Item -Recurse -Force
+}
+
 Write-Host "Publishing to $InstallDir..."
 dotnet publish $project -c Release -o $InstallDir --nologo -v q
 if ($LASTEXITCODE -ne 0) { throw 'Publish failed' }
