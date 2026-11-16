@@ -99,9 +99,13 @@ there and rebuild.
 **Versions.** The version is `<Version>` in `src\Dynamo\Dynamo.csproj`
 (1.0.0 to start; raise it for each release). Settings shows it.
 
-**Publishing a release.** Raise the version, commit, run `package.ps1`, then on
-GitHub create a release tagged `v<version>` (for example `v1.1.0`) and attach
-the zip. Put the checksum (`Get-FileHash`) in the release notes.
+**Publishing a release.** With the GitHub CLI (`gh`) signed in, one command does
+it all: `.\scripts\release.ps1 -Bump patch` (or `minor`, `major`, or
+`-Version X.Y.Z`; add `-DryRun` to preview). It checks the tree, raises the
+version, runs the tests, updates `CHANGELOG.md`, commits and pushes, builds the
+zip, creates the GitHub release `v<version>` with the zip, notes and SHA-256, and
+checks the published file. By hand: raise the version, run `package.ps1`, create
+the release on GitHub and attach the zip with its checksum.
 
 **Update notice.** Dynamo looks at the repository's public releases (GitHub's
 API, no token, nothing about the computer sent) a little after it starts and

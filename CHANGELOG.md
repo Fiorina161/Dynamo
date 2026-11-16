@@ -1,0 +1,5 @@
+# Changelog
+
+## 1.0.0 - 2026-11-16
+
+First public release: bookmarks, Oracle connections, saved read-only queries, workspaces, remote access with a password, https with a certificate Dynamo makes itself, a phone-friendly menu, and a notice when a newer release is published.

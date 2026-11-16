@@ -272,6 +272,21 @@ Then `git checkout master && git pull`, and delete the branch.
   frameworks were found" (found 16 Nov 2026), so the script now empties a folder
   that already holds `Dynamo.exe` before publishing. The packaged installer
   mirrors with robocopy, so it is already clean.
+- **Releases are handled by Claude** (decision of 16 Nov 2026), with
+  `scripts/release.ps1 -Bump patch|minor|major` (or `-Version X.Y.Z`, `-DryRun`
+  to preview). When the owner says "release": run the dry run, tell the owner
+  the version and the changes, then run it for real. It checks a clean `master`
+  in step with origin, `gh` signed in, bumps `<Version>`, runs `dotnet test`,
+  writes `CHANGELOG.md`, commits "Release X.Y.Z" and pushes, builds the zip,
+  creates the GitHub release `vX.Y.Z` (tag on that commit) with notes (commit
+  subjects since the last release) and the SHA-256, then **verifies from the
+  outside** (downloaded file's hash, public "latest release" tag). Semver: patch
+  for fixes, minor for features, major for a break. Commit subjects are release
+  notes: write them for users. The first release is tagged `1.0.0` (no `v`);
+  Dynamo's update check accepts both. **`gh` must be signed in**: an old
+  `GITHUB_TOKEN` environment variable overrides it and made `gh` fail with 401
+  (removed from the user's environment on 16 Nov 2026): if it fails again, check
+  that variable first. Needs internet; the token scopes are repo and workflow.
 - Packaging (done, 12 Nov 2026): `scripts/package.ps1` builds
   `Dynamo-<version>.zip` in Downloads: self-contained win-x64 publish (`app`,
   ~112 MB, zip ~50 MB) + `packaging/` (French guide `LISEZMOI.txt`,
