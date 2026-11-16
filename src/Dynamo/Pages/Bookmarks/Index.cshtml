@@ -1,0 +1,25 @@
+@page
+@model Dynamo.Pages.Bookmarks.IndexModel
+@{
+    ViewData["Title"] = "Bookmarks";
+}
+
+<header class="page-head">
+    <div class="greeting">
+        <h1 id="hello">Hello</h1>
+        <p id="today"></p>
+    </div>
+    <div class="page-tools">
+        <partial name="_Count" model="Model.Board" />
+        <div class="actions">
+            <button type="button" class="ghost"
+                    hx-get="@Url.Page("/Bookmarks/Index", "GroupForm")"
+                    hx-target="#dlg">New group</button>
+            <button type="button"
+                    hx-get="@Url.Page("/Bookmarks/Index", "BookmarkForm")"
+                    hx-target="#dlg">New bookmark</button>
+        </div>
+    </div>
+</header>
+
+<partial name="_Board" model="Model.Board" />

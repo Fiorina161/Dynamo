@@ -1,0 +1,59 @@
+@* Picks the tnsnames.ora aliases to import. Only the aliases that are not
+   connections yet are listed, none ticked: the user chooses. The form is the
+   data-selectable root, so the select-all box, the count, the filter and the
+   Import button's enabled state come from site.js. *@
+@model Dynamo.Pages.OracleConnections.ImportModel
+<form id="tns-pick" class="wide" data-selectable
+      hx-post="@Url.Page("/OracleConnections/Index", "Import")"
+      hx-target="#connections" hx-swap="outerHTML">
+    <h2>Import from tnsnames.ora</h2>
+    <p class="hint-text">
+        @Model.File<br />
+        @Model.Candidates.Count new @(Model.Candidates.Count == 1 ? "alias" : "aliases")@(Model.AlreadyThere > 0 ? $", {Model.AlreadyThere} already defined as connections (left alone)" : "").
+        Each import creates a connection with the alias as its name; the schema and the password stay empty for you to fill in.
+    </p>
+
+    @if (Model.Candidates.Count == 0)
+    {
+        <p class="empty">Nothing new to import.</p>
+    }
+    else
+    {
+        <div class="tns-tools">
+            <input type="checkbox" class="pick" data-select-all
+                   title="Select all the aliases shown" aria-label="Select all shown" />
+            <input type="search" class="filter" placeholder="Filter…" aria-label="Filter the aliases"
+                   data-filter="#tns-pick" autocomplete="off"
+                   onkeydown="if (event.key === 'Enter') event.preventDefault()" />
+            <span class="selected-count" data-select-count></span>
+        </div>
+        <ul class="items plain tns-list">
+            @foreach (var c in Model.Candidates)
+            {
+                <li class="item">
+                    <label class="tns-row">
+                        <input type="checkbox" class="pick" name="aliases" value="@c.Alias" data-select-item />
+                        <span class="title">@c.Alias</span>
+                        <span class="hint">
+                            @DataSourceSummary.Of(c.Descriptor)
+                            @if (c.Conflicting)
+                            {
+                                <text> · <span class="todo">defined @c.Definitions times with different targets: the first is used</span></text>
+                            }
+                            else if (c.Definitions > 1)
+                            {
+                                <text> · defined @c.Definitions times</text>
+                            }
+                        </span>
+                    </label>
+                </li>
+            }
+        </ul>
+    }
+
+    <footer>
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit" data-select-action disabled>Import selected</button>
+    </footer>
+</form>

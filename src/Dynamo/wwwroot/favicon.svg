@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- An abstract skull: a filled disc with two eyes over two crossed bars,
+       so it still reads as a skull at tab-icon size. The ink switches with
+       the browser's color scheme so the icon stays visible on light and
+       dark tab strips. -->
+  <style>
+    .ink  { fill: #1b1b1f; }
+    .bar  { stroke: #1b1b1f; }
+    .hole { fill: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .ink  { fill: #e7e9f4; }
+      .bar  { stroke: #e7e9f4; }
+      .hole { fill: #1b1e29; }
+    }
+  </style>
+  <defs>
+    <!-- A thin gap around the disc keeps it distinct from the bars. -->
+    <mask id="gap" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect width="64" height="64" fill="#fff"/>
+      <circle cx="32" cy="26" r="25" fill="#000"/>
+    </mask>
+  </defs>
+  <g mask="url(#gap)">
+    <line class="bar" x1="10" y1="45" x2="54" y2="60" stroke-width="7" stroke-linecap="round"/>
+    <line class="bar" x1="54" y1="45" x2="10" y2="60" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <circle class="ink" cx="32" cy="26" r="22"/>
+  <circle class="hole" cx="23.75" cy="27" r="6"/>
+  <circle class="hole" cx="40.25" cy="27" r="6"/>
+</svg>

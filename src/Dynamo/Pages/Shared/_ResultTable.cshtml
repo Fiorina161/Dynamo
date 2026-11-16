@@ -1,0 +1,49 @@
+@* The rows of a query result: the table, or why there is none. Shared by the
+   query run page and the panels of a workplace. *@
+@model Dynamo.Modules.Queries.QueryResult
+@{
+    var r = Model;
+}
+@if (r.Columns.Count == 0)
+{
+    <p class="empty">The query returned no columns.</p>
+}
+else
+{
+    <div class="results">
+        <table>
+            <thead>
+                <tr>
+                    @foreach (var c in r.Columns)
+                    {
+                        <th class="@(c.Numeric ? "num" : "")" tabindex="0"
+                            title="Click to sort, again to reverse (Shift-click: original order)">@c.Name</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in r.Rows)
+                {
+                    <tr>
+                        @for (var i = 0; i < row.Length; i++)
+                        {
+                            var cell = row[i];
+                            if (cell is null)
+                            {
+                                <td class="null">NULL</td>
+                            }
+                            else
+                            {
+                                <td class="@(r.Columns[i].Numeric ? "num" : "")" title="@(cell.Length > 120 ? cell : null)">@cell</td>
+                            }
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (r.Rows.Count == 0)
+    {
+        <p class="empty">No rows.</p>
+    }
+}

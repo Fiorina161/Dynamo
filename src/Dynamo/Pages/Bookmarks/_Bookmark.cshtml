@@ -1,0 +1,33 @@
+@model Bookmark
+<li class="item" draggable="true" data-id="@Model.Id">
+    @if (Model.IsWeb)
+    {
+        <a class="link" href="@Url.Page("/Bookmarks/Index", "Go", new { id = Model.Id })"
+           target="_blank" rel="noopener" draggable="false">
+            <span class="title">@Model.Label</span>
+            <span class="hint">@Model.Hint</span>
+        </a>
+    }
+    else if (!ClientAccess.IsLocal(Context))
+    {
+        @* Another computer: the file is not on it, so the bookmark is shown but off. *@
+        <span class="link off" draggable="false" aria-disabled="true"
+              title="Files, folders and programs can only be opened from the computer where Dynamo runs">
+            <span class="title">@Model.Label</span>
+            <span class="hint">@Model.Hint · this computer only</span>
+        </span>
+    }
+    else
+    {
+        @* Local targets are opened by the service, not by the browser. *@
+        <a class="link" href="#" draggable="false"
+           hx-post="@Url.Page("/Bookmarks/Index", "Open", new { id = Model.Id })"
+           hx-swap="none">
+            <span class="title">@Model.Label</span>
+            <span class="hint">@Model.Hint</span>
+        </a>
+    }
+    <button type="button" class="ghost small edit" title="Edit" aria-label="Edit @Model.Label"
+            hx-get="@Url.Page("/Bookmarks/Index", "BookmarkForm", new { id = Model.Id })"
+            hx-target="#dlg" hx-swap="innerHTML">Edit</button>
+</li>

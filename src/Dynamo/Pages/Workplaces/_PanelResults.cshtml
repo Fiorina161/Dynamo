@@ -1,0 +1,15 @@
+@* The results area of one workplace panel: a result, or why there is none. The
+   hidden .panel-meta carries the numbers the page script shows in the
+   panel's details. *@
+@model Dynamo.Pages.Queries.ResultsModel
+@if (Model.Error is not null)
+{
+    <div class="panel-meta" hidden data-failed="1"></div>
+    <pre class="error">@Model.Error</pre>
+}
+else if (Model.Result is { } r)
+{
+    <div class="panel-meta" hidden data-rows="@r.Rows.Count" data-ms="@r.ElapsedMs"
+         data-more="@(r.Truncated ? "1" : "0")"></div>
+    <partial name="_ResultTable" model="r" />
+}

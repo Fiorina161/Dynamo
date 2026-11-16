@@ -1,0 +1,23 @@
+@page
+@model Dynamo.Pages.Queries.IndexModel
+@{
+    ViewData["Title"] = "Queries";
+}
+
+<header class="page-head">
+    <div class="greeting">
+        <h1>Queries</h1>
+        <p>Saved read-only SELECTs, run on any Oracle connection.</p>
+    </div>
+    <div class="page-tools">
+        <input type="search" class="filter" placeholder="Filter…" aria-label="Filter queries"
+               data-filter="#queries" autocomplete="off" />
+        <div class="actions">
+            <button type="button"
+                    hx-get="@Url.Page("/Queries/Index", "Form")"
+                    hx-target="#dlg">New query</button>
+        </div>
+    </div>
+</header>
+
+<partial name="_List" model="Model.Groups" />

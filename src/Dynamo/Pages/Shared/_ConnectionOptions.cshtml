@@ -1,0 +1,30 @@
+@* The <option>s of a connection picker: pinned connections first, in their
+   own group when there are also others. *@
+@model Dynamo.Pages.ConnectionOptionsModel
+@{
+    var pinned = Model.Choices.Where(c => c.Pinned).ToList();
+    var others = Model.Choices.Where(c => !c.Pinned).ToList();
+    var grouped = pinned.Count > 0 && others.Count > 0;
+}
+@if (grouped)
+{
+    <optgroup label="★ Pinned">
+        @foreach (var c in pinned)
+        {
+            <option value="@c.Name" selected="@(c.Name == Model.Selected)">@c.Name</option>
+        }
+    </optgroup>
+    <optgroup label="Others">
+        @foreach (var c in others)
+        {
+            <option value="@c.Name" selected="@(c.Name == Model.Selected)">@c.Name</option>
+        }
+    </optgroup>
+}
+else
+{
+    @foreach (var c in Model.Choices)
+    {
+        <option value="@c.Name" selected="@(c.Name == Model.Selected)">@c.Name</option>
+    }
+}

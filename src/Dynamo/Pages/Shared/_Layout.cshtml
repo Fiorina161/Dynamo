@@ -1,0 +1,75 @@
+@inject IEnumerable<IModule> Modules
+@inject UpdateChecker Updates
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    var token = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+    var current = Context.Request.Path.Value ?? "/";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@(ViewData["Title"] is string t ? $"{t} · Dynamo" : "Dynamo")</title>
+    <script>
+        // Set the theme before first paint to avoid a flash.
+        try {
+            var saved = localStorage.getItem('theme');
+            if (saved) document.documentElement.dataset.theme = saved;
+        } catch (e) { }
+    </script>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body hx-headers='{"RequestVerificationToken": "@token"}'>
+    <div class="shell">
+        <nav class="side" id="side">
+            <a class="brand" href="/">Dynamo</a>
+            @* Only shown on a small screen, where the menu folds away. *@
+            <button type="button" class="ghost menu-toggle" id="menu-toggle"
+                    aria-expanded="false" aria-controls="side-menu" aria-label="Menu">☰</button>
+            <div class="side-menu" id="side-menu">
+            <ul>
+                @foreach (var m in Modules.OrderBy(m => m.Order))
+                {
+                    <li>
+                        <a href="@m.Href"
+                           class="@(current.StartsWith(m.Href, StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                            @if (m.Icon.Length > 0)
+                            {
+                                @* Drawn by the module itself (see IModule.Icon): our own markup, never user input. *@
+                                <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">@Html.Raw(m.Icon)</svg>
+                            }
+                            <span>@m.Title</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+            @if (Updates.Available && ClientAccess.IsLocal(Context))
+            {
+                @* A newer release exists: shown to whoever sits at this computer, who can install it. *@
+                <a class="update-note" href="/Settings#updates">Version @UpdateChecker.ToText(Updates.Status.Latest!) available</a>
+            }
+            <button type="button" class="ghost theme-toggle" id="theme-toggle"
+                    title="Switch between light, dark and system theme">Theme</button>
+            @if (!ClientAccess.IsLocal(Context))
+            {
+                @* Another computer, logged in: it can end its session. *@
+                <form method="post" asp-page="/Logout" class="logout">
+                    <button type="submit" class="ghost theme-toggle" title="End this session">Log out</button>
+                </form>
+            }
+            </div>
+        </nav>
+        <main>
+            @RenderBody()
+        </main>
+    </div>
+
+    <dialog id="dlg"></dialog>
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <script src="~/lib/htmx.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+</body>
+</html>

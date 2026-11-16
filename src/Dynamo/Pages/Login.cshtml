@@ -1,0 +1,47 @@
+@page "/Login"
+@model Dynamo.Pages.LoginModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dynamo · Log in</title>
+    <script>
+        try {
+            var saved = localStorage.getItem('theme');
+            if (saved) document.documentElement.dataset.theme = saved;
+        } catch (e) { }
+    </script>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <main class="login">
+        <h1>Dynamo</h1>
+        @if (Model.RemoteOff)
+        {
+            <p class="hint-text">Remote access is off: no password has been set. Open <b>Settings</b> on the computer where Dynamo runs and choose one.</p>
+        }
+        else
+        {
+            <p class="hint-text">You are using Dynamo from another computer: it asks for its password. The computer it runs on never asks.</p>
+            <form method="post">
+                <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                <label>Password
+                    <input type="password" name="password" autocomplete="current-password" autofocus />
+                </label>
+                @if (Model.Error is not null)
+                {
+                    <p class="error">@Model.Error</p>
+                }
+                <footer>
+                    <button type="submit">Log in</button>
+                </footer>
+            </form>
+        }
+    </main>
+</body>
+</html>

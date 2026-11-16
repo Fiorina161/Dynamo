@@ -1,0 +1,30 @@
+@page "/Oracle"
+@model Dynamo.Pages.OracleConnections.IndexModel
+@{
+    ViewData["Title"] = "Connections";
+}
+
+<header class="page-head">
+    <div class="greeting">
+        <h1>Connections</h1>
+        <p>Each name stands for a data source, a schema and its password. Other features pick a connection by name.</p>
+    </div>
+    <div class="page-tools">
+        <input type="search" class="filter" placeholder="Filter…" aria-label="Filter connections"
+               data-filter="#connections" autocomplete="off" />
+        <div class="actions">
+            @if (Model.TnsFile is not null)
+            {
+                @* Only when the user has a tnsnames.ora: pick which aliases to import. *@
+                <button type="button" class="ghost" title="@Model.TnsFile"
+                        hx-get="@Url.Page("/OracleConnections/Index", "ImportForm")"
+                        hx-target="#dlg">Import tnsnames.ora</button>
+            }
+            <button type="button"
+                    hx-get="@Url.Page("/OracleConnections/Index", "Form")"
+                    hx-target="#dlg">New connection</button>
+        </div>
+    </div>
+</header>
+
+<partial name="_List" model="Model.Connections" />

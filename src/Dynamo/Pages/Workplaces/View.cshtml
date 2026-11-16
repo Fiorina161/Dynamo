@@ -1,0 +1,125 @@
+@page "/Workplaces/{id:long}"
+@model Dynamo.Pages.Workplaces.ViewModel
+@{
+    var w = Model.Workplace;
+    ViewData["Title"] = w.Name;
+    var binds = w.SharedBinds();
+    string Handler(string name, object? values = null) =>
+        Url.Page("/Workplaces/View", name, values ?? new { id = w.Id })!;
+}
+
+<header class="page-head">
+    <div class="greeting">
+        <p><a class="back" href="@Url.Page("/Workplaces/Index")">← Workspaces</a></p>
+        <h1>@w.Name</h1>
+    </div>
+    <div class="actions">
+        <button type="button" class="ghost" data-workplace-pause
+                title="Stop every automatic refresh until resumed">Pause all</button>
+        <button type="button" class="ghost" data-workplace-run-all title="Run every panel now">Run all</button>
+        <button type="button" class="ghost"
+                hx-get="@Handler("RenameForm")" hx-target="#dlg">Rename</button>
+        <button type="button" class="ghost"
+                title="Make a copy of this workspace"
+                hx-get="@Handler("DuplicateForm")" hx-target="#dlg">Duplicate</button>
+        <button type="button" class="ghost danger"
+                hx-post="@Handler("Delete")" hx-swap="none"
+                hx-confirm="Delete the workspace “@w.Name”? The saved queries are not affected.">Delete</button>
+        <button type="button" class="ghost"
+                title="Copy saved queries into this workspace"
+                hx-get="@Handler("AddForm")" hx-target="#dlg">Add from saved</button>
+        <button type="button"
+                title="Write a new query here, without creating it in Queries first"
+                hx-get="@Handler("NewQueryForm")" hx-target="#dlg">New query</button>
+    </div>
+</header>
+
+@* The values shared by every panel: a bind name used by several queries is
+   typed once. Enter (or Apply) saves them and runs every panel. *@
+<form id="binds" class="workplace-binds" hx-post="@Handler("SaveBinds")" hx-swap="none"
+      hidden="@(binds.Count == 0)">
+    @foreach (var (name, value) in binds)
+    {
+        <label>:@name
+            <input name="param.@name" value="@value" autocomplete="off" spellcheck="false" />
+        </label>
+    }
+    <button type="submit" title="Save the values and run every panel">Apply</button>
+</form>
+
+@if (w.Panels.Count == 0)
+{
+    <p class="empty">Nothing here yet. Use “New query” to write one, or “Add from saved” to copy saved queries into this workspace.</p>
+}
+
+<div class="workplace-grid" data-workplace>
+    @for (var index = 0; index < w.Panels.Count; index++)
+    {
+        var p = w.Panels[index];
+        <section class="group panel" data-panel="@p.Id">
+            <header>
+                <h2><span class="dot" data-panel-dot aria-hidden="true"></span>@p.QueryName</h2>
+                <button type="button" class="ghost small gear" data-panel-toggle
+                        aria-expanded="false" title="Details and settings"
+                        aria-label="Details and settings of @p.QueryName">⚙</button>
+            </header>
+
+            @* Hidden until the gear is used: the page is for the results. Run now
+               and the interval act on this panel only. *@
+            <form class="panel-form" hidden
+                  hx-post="@Handler("RunPanel", new { id = w.Id, panel = p.Id })"
+                  hx-include="#binds" hx-target="#panel-out-@p.Id" hx-swap="innerHTML">
+                <div class="run-grid">
+                    <label>Connection
+                        <select name="connection"
+                                hx-post="@Handler("PanelSettings", new { id = w.Id, panel = p.Id })"
+                                hx-trigger="change" hx-swap="none">
+                            @if (p.Connection.Length == 0)
+                            {
+                                <option value="" selected disabled>(choose)</option>
+                            }
+                            <partial name="_ConnectionOptions"
+                                     model="new ConnectionOptionsModel(Model.Connections, p.Connection.Length > 0 ? p.Connection : null)" />
+                        </select>
+                    </label>
+                    <label>Max rows
+                        <input name="maxRows" type="number" min="1" max="10000" value="@p.MaxRows"
+                               inputmode="numeric"
+                               hx-post="@Handler("PanelSettings", new { id = w.Id, panel = p.Id })"
+                               hx-trigger="change" hx-swap="none" />
+                    </label>
+                    <label>Refresh every (s, 0 = off)
+                        <input name="seconds" type="number" min="0" max="3600" value="@p.RefreshSeconds"
+                               inputmode="numeric" data-panel-seconds
+                               hx-post="@Handler("PanelSettings", new { id = w.Id, panel = p.Id })"
+                               hx-trigger="change" hx-swap="none" />
+                    </label>
+                </div>
+                <footer class="run-actions">
+                    <button type="submit">Run now</button>
+                    <button type="button" class="ghost"
+                            title="Rename this panel or change its SQL. Only this workspace's copy changes."
+                            hx-get="@Handler("EditQueryForm", new { id = w.Id, panel = p.Id })"
+                            hx-target="#dlg" hx-swap="innerHTML" hx-include="this">Edit query</button>
+                    <button type="button" class="ghost" title="Move this panel earlier"
+                            aria-label="Move @p.QueryName earlier"
+                            disabled="@(index == 0)"
+                            hx-post="@Handler("MovePanel", new { id = w.Id, panel = p.Id, dir = -1 })"
+                            hx-swap="none" hx-include="this">←</button>
+                    <button type="button" class="ghost" title="Move this panel later"
+                            aria-label="Move @p.QueryName later"
+                            disabled="@(index == w.Panels.Count - 1)"
+                            hx-post="@Handler("MovePanel", new { id = w.Id, panel = p.Id, dir = 1 })"
+                            hx-swap="none" hx-include="this">→</button>
+                    <button type="button" class="ghost danger"
+                            hx-post="@Handler("RemovePanel", new { id = w.Id, panel = p.Id })"
+                            hx-swap="none" hx-include="this"
+                            hx-confirm="Remove “@p.QueryName” from this workspace?">Remove</button>
+                    <span class="refresh-status" data-panel-status role="status"></span>
+                </footer>
+            </form>
+
+            <div class="panel-results" id="panel-out-@p.Id"><p class="empty">Loading…</p></div>
+        </section>
+    }
+</div>

@@ -1,0 +1,38 @@
+@* Picks the saved queries to copy into a workspace. The saved queries are
+   templates: each ticked one becomes the workspace's own copy, which can be
+   renamed and changed without touching the original or any other workspace.
+   A query may be copied again (say, for another connection). *@
+@model Dynamo.Pages.Workplaces.AddQueriesModel
+<form hx-post="@Url.Page("/Workplaces/View", "Add", new { id = Model.Workplace.Id })" hx-swap="none">
+    <h2>Add saved queries to “@Model.Workplace.Name”</h2>
+    <p class="hint-text">
+        Each one is <b>copied</b> into this workspace, under the same name. Change or rename the copy
+        from its panel (⚙, Edit query): the saved query and the other workspaces stay as they are.
+    </p>
+
+    @if (Model.Queries.Count == 0)
+    {
+        <p class="hint-text">There is no saved query yet: write one with “New query”, or create one on the <a href="/Queries">Queries</a> page.</p>
+    }
+    else
+    {
+        <div class="names">
+            @foreach (var g in Model.Queries.GroupBy(q => q.Category).OrderBy(g => g.Key.Length == 0).ThenBy(g => g.Key))
+            {
+                <p class="hint-text">@(g.Key.Length == 0 ? "Uncategorized" : g.Key)</p>
+                @foreach (var q in g.OrderBy(q => q.Name))
+                {
+                    <label class="check">
+                        <input type="checkbox" name="ids" value="@q.Id" /> @q.Name
+                    </label>
+                }
+            }
+        </div>
+    }
+
+    <footer>
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit" @(Model.Queries.Count == 0 ? "disabled" : null)>Add copies</button>
+    </footer>
+</form>
