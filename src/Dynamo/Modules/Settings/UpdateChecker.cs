@@ -40,6 +40,7 @@ public sealed class UpdateChecker
 {
     public const string Repository = "Fiorina161/Dynamo";
     public const string ApiUrl = $"https://api.github.com/repos/{Repository}/releases/latest";
+    public const string RepositoryUrl = $"https://github.com/{Repository}";
     public const string ReleasesPage = $"https://github.com/{Repository}/releases";
     public const string ClientName = "github";
 
@@ -191,7 +192,8 @@ public sealed class UpdateChecker
         Uri.TryCreate(url, UriKind.Absolute, out var uri)
         && uri.Scheme == Uri.UriSchemeHttps
         && uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase)
-        && uri.AbsolutePath.StartsWith($"/{Repository}/", StringComparison.OrdinalIgnoreCase)
+        && (uri.AbsolutePath.Equals($"/{Repository}", StringComparison.OrdinalIgnoreCase)
+            || uri.AbsolutePath.StartsWith($"/{Repository}/", StringComparison.OrdinalIgnoreCase))
             ? uri.AbsoluteUri
             : null;
 }

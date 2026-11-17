@@ -159,6 +159,12 @@
             }
         </p>
 
+        <p class="hint-text">
+            Project:
+            <a href="@UpdateChecker.RepositoryUrl" target="_blank" rel="noopener">github.com/@UpdateChecker.Repository</a>
+            · <a href="@UpdateChecker.ReleasesPage" target="_blank" rel="noopener">All releases</a>
+        </p>
+
         @if (Model.UpdateStatus.Error is not null)
         {
             <p class="error">@Model.UpdateStatus.Error</p>

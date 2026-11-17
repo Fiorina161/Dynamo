@@ -137,6 +137,8 @@ public class UpdateTests
         Assert.That(UpdateChecker.Trusted("http://github.com/Fiorina161/Dynamo/releases"), Is.Null, "https only");
         Assert.That(UpdateChecker.Trusted("https://github.com.evil.example/Fiorina161/Dynamo/"), Is.Null);
         Assert.That(UpdateChecker.Trusted("https://github.com/Fiorina161/Dynamo-fake/x"), Is.Null);
+        Assert.That(UpdateChecker.Trusted("https://github.com/Fiorina161/Dynamo-fake"), Is.Null, "a look-alike repository name");
+        Assert.That(UpdateChecker.Trusted("https://github.com/Fiorina161/Dynamo"), Is.Not.Null, "the repository itself");
         Assert.That(UpdateChecker.Trusted("javascript:alert(1)"), Is.Null);
         Assert.That(UpdateChecker.Trusted("https://github.com/fiorina161/dynamo/releases/tag/v1"), Is.Not.Null, "github names are not case sensitive");
     }
@@ -259,6 +261,24 @@ public class UpdateTests
         var menu = await client.GetStringAsync("/Queries");
         Assert.That(menu, Does.Contain("class=\"update-note\" href=\"/Settings#updates\">Version 1.4.0 available"));
         Assert.That(checker.Available, Is.True);
+    }
+
+    [Test]
+    public async Task TheUpdatesSection_AlwaysLinksToTheRepositoryAndItsReleases()
+    {
+        var (factory, client, _) = await Site("1.0.0");
+        using var _ = factory; using var __ = client;
+
+        // Before anything was checked, and with nothing newer: the links are there either way.
+        var before = await client.GetStringAsync("/Settings");
+        Assert.That(before, Does.Contain("href=\"https://github.com/Fiorina161/Dynamo\"").And.Contain("github.com/Fiorina161/Dynamo</a>"));
+        Assert.That(before, Does.Contain("href=\"https://github.com/Fiorina161/Dynamo/releases\"").And.Contain(">All releases</a>"));
+
+        _github.Respond = _ => throw new HttpRequestException("offline");
+        var failed = await PostSettings(client, "CheckUpdates");
+        Assert.That(failed, Does.Contain("Could not reach GitHub").And.Contain("href=\"https://github.com/Fiorina161/Dynamo\""),
+            "a failed check still leaves the way to the project");
+        Assert.That(UpdateChecker.Trusted(UpdateChecker.RepositoryUrl), Is.Not.Null);
     }
 
     [Test]
