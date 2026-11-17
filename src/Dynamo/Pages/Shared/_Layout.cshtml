@@ -30,7 +30,23 @@
                     aria-expanded="false" aria-controls="side-menu" aria-label="Menu">☰</button>
             <div class="side-menu" id="side-menu">
             <ul>
-                @foreach (var m in Modules.OrderBy(m => m.Order))
+                @foreach (var m in Modules.Where(m => m.Id != "settings").OrderBy(m => m.Order))
+                {
+                    <li>
+                        <a href="@m.Href"
+                           class="@(current.StartsWith(m.Href, StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                            @if (m.Icon.Length > 0)
+                            {
+                                @* Drawn by the module itself (see IModule.Icon): our own markup, never user input. *@
+                                <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">@Html.Raw(m.Icon)</svg>
+                            }
+                            <span>@m.Title</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+            <ul class="side-bottom">
+                @foreach (var m in Modules.Where(m => m.Id == "settings"))
                 {
                     <li>
                         <a href="@m.Href"
