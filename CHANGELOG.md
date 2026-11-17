@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2 - 2026-11-16
+
+- Link the new-version notice in Settings to the release page on GitHub
+
 ## 1.0.1 - 2026-11-16
 
 - Add the release script and the release routine
