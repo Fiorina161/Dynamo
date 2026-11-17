@@ -6,16 +6,16 @@
 .DESCRIPTION
     Run it from any PowerShell: it asks for elevation itself (UAC prompt).
 
-    The service runs under the account you give (an administrator account, so
-    tools it launches can be elevated). A prompt asks for the password. With
-    -LocalSystem it runs as LocalSystem instead: no password, and it has no
-    user profile (no per-user environment, no per-user tnsnames).
+    The service runs as LocalSystem by default: no password, and it has no user
+    profile (no per-user environment, no per-user tnsnames). With -RunAsUser it
+    runs under an account you give instead (an administrator account, so tools
+    it launches can be elevated): a prompt asks for the password.
 
     A service runs in session 0, which has no desktop. Dynamo opens bookmarked
     files, folders and links in the signed-in user's own session (see
-    DesktopLauncher), which requires the right a LocalSystem service has:
-    prefer -LocalSystem if bookmarks must open on your screen. Under another
-    account the bookmark answers with a message instead of opening.
+    DesktopLauncher), which requires the right a LocalSystem service has.
+    Under another account the bookmark answers with a message instead of
+    opening. (-LocalSystem is still accepted; it is now the default.)
 
     If DYNAMO_HOME is defined as a *machine* environment variable the service
     uses it; otherwise its data lives in C:\dynamo.
@@ -23,7 +23,8 @@
 [CmdletBinding()]
 param(
     [string] $InstallDir = 'C:\Program Files\Dynamo',
-    [switch] $LocalSystem,
+    [switch] $LocalSystem,   # the default, kept so older command lines still work
+    [switch] $RunAsUser,     # run under an account of your choice (asks for its password)
     # Let other computers reach the site: opens the port in the Windows Firewall.
     # Without it only this computer can connect, whatever the password setting.
     [switch] $OpenFirewall,
@@ -38,7 +39,7 @@ $principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIde
 # Re-launch elevated when needed, keeping the window open to show the result.
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     $self = @('-NoProfile', '-NoExit', '-File', "`"$PSCommandPath`"", '-InstallDir', "`"$InstallDir`"")
-    if ($LocalSystem) { $self += '-LocalSystem' }
+    if ($RunAsUser) { $self += '-RunAsUser' }
     if ($OpenFirewall) {
         $self += '-OpenFirewall'
         $self += '-FirewallProfile'
@@ -53,7 +54,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 $project = Join-Path $PSScriptRoot '..\src\Dynamo\Dynamo.csproj'
 
 $credential = $null
-if (-not $LocalSystem) {
+if ($RunAsUser) {
     $credential = Get-Credential -UserName "$env:USERDOMAIN\$env:USERNAME" `
         -Message 'Administrator account the Dynamo service runs as'
 }

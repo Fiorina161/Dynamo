@@ -13,9 +13,9 @@ Console (development):
 
 Then open <http://localhost:4040>.
 
-Windows service, started automatically with Windows (asks for elevation, then
-for the password of the administrator account to run as; `-LocalSystem` skips
-the password):
+Windows service, started automatically with Windows (asks for elevation; runs
+as LocalSystem, so no password; `-RunAsUser` asks for an account and its
+password instead):
 
     .\scripts\install-service.ps1
     .\scripts\uninstall-service.ps1
@@ -28,7 +28,7 @@ no desktop, so a program it starts there is invisible. Dynamo therefore starts
 what a bookmark opens *in the signed-in user's session*, with that user's own
 rights (`DesktopLauncher`: `WTSQueryUserToken` + `CreateProcessAsUser`, then the
 shell's `start`). This needs the service to run as **LocalSystem**
-(`install-service.ps1 -LocalSystem`); under another account it says so instead
+(the default of `install-service.ps1`); under another account it says so instead
 of failing silently. It targets the **active console session** (the one on the
 physical screen); a remote-desktop-only session is not supported, and with no
 one signed in it answers "No user is signed in".
@@ -56,7 +56,7 @@ from the browser of your own computer; queries then run on that machine.
   would start a program on the server's desktop. Bookmarks to web addresses
   work everywhere.
 - The service listens on every network interface; **the Windows Firewall stays
-  closed** unless you say so: `.\scripts\install-service.ps1 -LocalSystem
+  closed** unless you say so: `.\scripts\install-service.ps1
   -OpenFirewall` adds an inbound rule for the port, by default to the local
   subnet on the Domain and Private profiles (`-FirewallRemoteAddress` takes the
   laptop's address or a range, `-FirewallProfile Any` if the network is
