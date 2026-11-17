@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3 - 2026-11-16
+
+- Add links to the GitHub repository and all releases in Settings, Updates
+
 ## 1.0.2 - 2026-11-16
 
 - Link the new-version notice in Settings to the release page on GitHub
