@@ -250,6 +250,8 @@ public class UpdateTests
 
         var answer = await PostSettings(client, "CheckUpdates");
         Assert.That(answer, Does.Contain("A new version is available").And.Contain("Dynamo 1.4"));
+        // The sentence itself links to the release page, so the user can jump straight there.
+        Assert.That(answer, Does.Match("A new version is available:\\s*<a href=\"https://github.com/Fiorina161/Dynamo/releases/tag/v1.4.0\"[^>]*target=\"_blank\"[^>]*rel=\"noopener\"[^>]*><b>Dynamo 1.4</b></a>"));
         Assert.That(answer, Does.Contain("href=\"https://github.com/Fiorina161/Dynamo/releases/download/v1.4.0/Dynamo-x.zip\""));
         Assert.That(answer, Does.Contain("Release notes").And.Contain("Installer.cmd"));
         Assert.That(answer, Does.Contain("Installed version: <b>1.0.0</b>"));

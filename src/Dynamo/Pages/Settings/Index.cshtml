@@ -166,7 +166,8 @@
 
         @if (Model.UpdateAvailable && Model.UpdateStatus.Latest is { } update)
         {
-            <p class="notice">A new version is available: <b>@update.Name</b>.</p>
+            <p class="notice">A new version is available:
+                <a href="@update.PageUrl" target="_blank" rel="noopener" title="Open the release page on GitHub"><b>@update.Name</b></a>.</p>
             <p class="hint-text">
                 <a href="@(update.DownloadUrl ?? update.PageUrl)" rel="noopener">Download @UpdateChecker.ToText(update)</a>
                 · <a href="@update.PageUrl" rel="noopener" target="_blank">Release notes</a>

@@ -599,3 +599,7 @@ dialog label.tns-row { display: flex; flex: 1; align-items: center; gap: 12px;
 /* A newer release exists (shown to whoever is at this computer). */
 .update-note { display: block; padding: 6px 8px; border-radius: var(--radius); color: var(--accent); font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .update-note:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+
+/* The new-version sentence in Settings is a link to the release page. */
+.notice a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.notice a:hover { opacity: .8; }
