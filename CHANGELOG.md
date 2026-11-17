@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4 - 2026-11-17
+
+- Install the service as LocalSystem by default; -RunAsUser asks for an account
+- Move Settings to the bottom of the sidebar, above the theme selector
+
 ## 1.0.3 - 2026-11-16
 
 - Add links to the GitHub repository and all releases in Settings, Updates
