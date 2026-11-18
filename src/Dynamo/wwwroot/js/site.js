@@ -636,9 +636,11 @@
                     if (meta) {
                         var n = parseInt(meta.dataset.rows, 10);
                         // In the title, so it shows even with the details folded.
+                        // Same wording as the Queries page: time · rows · ms.
                         if (countBadge)
-                            countBadge.textContent = n + (meta.dataset.more === '1' ? '+' : '') +
-                                (n === 1 && meta.dataset.more !== '1' ? ' row' : ' rows');
+                            countBadge.textContent = clock(lastRun) + ' · ' +
+                                n + (n === 1 ? ' row' : ' rows') + ' · ' + meta.dataset.ms + ' ms' +
+                                (meta.dataset.more === '1' ? ' · more rows exist' : '');
                         lastText = n + (n === 1 ? ' row' : ' rows') +
                             (delta ? ' (' + (delta > 0 ? '+' : '') + delta + ')' : '') +
                             ' · ' + meta.dataset.ms + ' ms' +

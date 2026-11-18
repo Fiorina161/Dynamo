@@ -178,10 +178,7 @@ input:focus, select:focus, button:focus-visible, a:focus-visible {
 .toggle:hover { color: var(--fg); opacity: 1; }
 .chev { display: inline-block; width: 12px; font-size: 11px; transition: transform .12s; }
 .group.collapsed .chev { transform: rotate(-90deg); }
-.group .count { margin-left: auto; font-size: 13px; }
-/* A workspace panel's row count sits right after the title, not at the far end. */
-.group h2 .count { margin-left: 8px; font-weight: 400; white-space: nowrap; }
-/* Add/Edit appear over the count, on the right, when the header is hovered. */
+.group .count { margin-left: auto; font-size: 13px; }/* Add/Edit appear over the count, on the right, when the header is hovered. */
 .row-actions {
     position: absolute;
     right: 0;
@@ -378,7 +375,7 @@ dialog .two { display: flex; gap: 12px; }
 dialog .two label { flex: 1; }
 dialog textarea { margin-top: 4px; }
 
-.results-panel .count { white-space: nowrap; }
+.results-panel .count, .panel > header .count { white-space: nowrap; }
 .results { overflow: auto; max-height: 70vh; margin: 0 -10px; }
 .results table { border-collapse: collapse; width: 100%; font-size: 13px; }
 .results th, .results td {
