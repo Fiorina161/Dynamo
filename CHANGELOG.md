@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.6 - 2026-11-18
+
+- Show the run time, row count and duration in workspace panel titles, like the Queries page
+
 ## 1.0.5 - 2026-11-18
 
 - Show the row count in the title of each workspace panel
