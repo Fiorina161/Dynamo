@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.5 - 2026-11-18
+
+- Show the row count in the title of each workspace panel
+
 ## 1.0.4 - 2026-11-17
 
 - Install the service as LocalSystem by default; -RunAsUser asks for an account
