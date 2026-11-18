@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.8 - 2026-11-18
+
+- Share the query result code between the Queries page and workspace panels
+
 ## 1.0.7 - 2026-11-18
 
 - Add an Export CSV button to workspace panels, like the Queries page
