@@ -282,6 +282,11 @@
             form.appendChild(input);
         }
         new FormData(src).forEach(function (value, name) { add(name, value); });
+        // Fields that live outside the button's form (a workspace's shared binds).
+        if (btn.dataset.postInclude) {
+            var extra = document.querySelector(btn.dataset.postInclude);
+            if (extra) new FormData(extra).forEach(function (value, name) { add(name, value); });
+        }
         try {
             add('__RequestVerificationToken',
                 JSON.parse(document.body.getAttribute('hx-headers')).RequestVerificationToken);

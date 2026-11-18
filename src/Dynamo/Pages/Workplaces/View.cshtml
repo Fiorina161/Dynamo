@@ -99,6 +99,11 @@
                 </div>
                 <footer class="run-actions">
                     <button type="submit">Run now</button>
+                    @* Posts this panel's connection plus the workspace's shared bind values. *@
+                    <button type="button" class="ghost"
+                            data-post-form="@Handler("CsvPanel", new { id = w.Id, panel = p.Id })"
+                            data-post-include="#binds"
+                            title="Run again and download every row (up to 100,000) as CSV">Export CSV</button>
                     <button type="button" class="ghost"
                             title="Rename this panel or change its SQL. Only this workspace's copy changes."
                             hx-get="@Handler("EditQueryForm", new { id = w.Id, panel = p.Id })"

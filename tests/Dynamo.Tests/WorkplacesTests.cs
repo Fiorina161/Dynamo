@@ -190,6 +190,40 @@ public class WorkplacesTests
     }
 
     [Test]
+    public async Task ExportingAPanel_DownloadsEveryRow_WithTheSharedValues()
+    {
+        var w = NewWorkplace("Export");
+        var q = NewQuery("Orders", "select id, name from t where k = :k", connection: "PROD");
+        _workplaces.AddCopies(w, [q]);
+        var panel = _workplaces.Get(w)!.Panels[0];
+
+        var response = await Post($"/Workplaces/{w}?handler=CsvPanel&panel={panel.Id}",
+            ("connection", ""), ("param.k", " 9 "));
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(response.Content.Headers.ContentType!.MediaType, Is.EqualTo("text/csv"));
+        Assert.That(response.Content.Headers.ContentDisposition!.FileNameStar
+            ?? response.Content.Headers.ContentDisposition.FileName, Does.Contain("Orders"));
+        Assert.That(System.Text.Encoding.UTF8.GetString(bytes), Does.Contain("ID,NAME\r\n1,alpha\r\n"));
+        Assert.That(_runner.LastConnection, Is.EqualTo("PROD"));
+        Assert.That(_runner.LastValues["k"], Is.EqualTo("9"));
+        Assert.That(_runner.LastMaxRows, Is.EqualTo(QueryRunner.ExportLimit));
+    }
+
+    [Test]
+    public async Task ExportingAPanelOfAnotherWorkspace_IsRefused()
+    {
+        var a = NewWorkplace("A");
+        var b = NewWorkplace("B");
+        _workplaces.AddCopies(b, [NewQuery("X", "select 1 from dual")]);
+        var foreign = _workplaces.Get(b)!.Panels[0];
+
+        Assert.That((await Post($"/Workplaces/{a}?handler=CsvPanel&panel={foreign.Id}", ("connection", ""))).StatusCode,
+            Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
     public async Task APanelStartsOnTheQuerysConnection_AndCanBeGivenAnother()
     {
         var w = NewWorkplace("Conn");

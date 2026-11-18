@@ -261,6 +261,35 @@ public class ViewModel(
         }
     }
 
+    /// <summary>
+    /// Runs the panel's query again and sends the whole result (up to the export
+    /// limit) as a CSV file, like the Queries page does.
+    /// </summary>
+    public async Task<IActionResult> OnPostCsvPanelAsync(
+        long id, long panel, string? connection, CancellationToken ct)
+    {
+        if (repo.GetPanel(panel) is not { } p || p.WorkplaceId != id)
+            return NotFound();
+
+        var name = string.IsNullOrWhiteSpace(connection) ? p.Connection : connection.Trim();
+        try
+        {
+            var result = await runner.RunAsync(
+                name, p.Sql, ParamsOf(Request.Form), QueryRunner.ExportLimit, ct);
+            return File(QueryCsv.Write(result), "text/csv; charset=utf-8", QueryCsv.FileName(p.QueryName));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // A download has nowhere to show an error: say it as plain text.
+            return new ContentResult
+            {
+                Content = $"Export failed: {QueryErrorText.Of(ex, log)}",
+                ContentType = "text/plain; charset=utf-8",
+                StatusCode = StatusCodes.Status422UnprocessableEntity,
+            };
+        }
+    }
+
     /// <summary>The bind values of the form (fields named param.NAME).</summary>
     private static Dictionary<string, string> ParamsOf(IFormCollection form) =>
         form.Keys
