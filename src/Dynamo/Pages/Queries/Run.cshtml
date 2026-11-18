@@ -3,6 +3,7 @@
 @{
     var q = Model.Query;
     ViewData["Title"] = q.Name;
+    var csvButton = new ExportButtonModel(Url.Page("/Queries/Run", "Csv", new { id = q.Id })!);
     var connectionKnown = q.Connection.Length > 0 && Model.Connections.Any(c => c.Name == q.Connection);
 }
 
@@ -56,9 +57,7 @@
 
         <footer class="run-actions">
             <button type="submit" id="run-button">Run</button>
-            <button type="button" class="ghost"
-                    data-post-form="@Url.Page("/Queries/Run", "Csv", new { id = q.Id })"
-                    title="Run again and download every row (up to 100,000) as CSV">Export CSV</button>
+            <partial name="_ExportButton" model="csvButton" />
 
             @* Re-runs the form every N seconds until stopped (see site.js). The
                number has no name: it is not part of what is sent to the server. *@

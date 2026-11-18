@@ -190,6 +190,50 @@ public class WorkplacesTests
     }
 
     [Test]
+    public async Task APanelAndTheQueriesPage_ShowTheSameSummary_AndTheSameExportButton()
+    {
+        var w = NewWorkplace("Same");
+        var q = NewQuery("Twin", "select id, name from t", connection: "PROD");
+        _workplaces.AddCopies(w, [q]);
+        var panel = _workplaces.Get(w)!.Panels[0];
+
+        var onPage = await (await Post($"/Queries/{q}?handler=Run", ("connection", "PROD")))
+            .Content.ReadAsStringAsync();
+        var inPanel = await (await Post($"/Workplaces/{w}?handler=RunPanel&panel={panel.Id}", ("connection", "")))
+            .Content.ReadAsStringAsync();
+
+        // The summary line (time · rows · duration) is one partial: same text, sans the clock.
+        static string Summary(string html) =>
+            System.Text.RegularExpressions.Regex.Match(
+                html, "class=\"ran-at\"[^>]*>\\d{2}:\\d{2}:\\d{2}</span>\\s*·\\s*([^<]+)<").Groups[1].Value.Trim();
+        Assert.That(Summary(onPage), Is.EqualTo("2 rows · 7 ms"));
+        Assert.That(Summary(inPanel), Is.EqualTo(Summary(onPage)));
+
+        // In the panel it goes to the title bar (an out-of-band swap), not the body.
+        Assert.That(inPanel, Does.Contain($"id=\"panel-count-{panel.Id}\"").And.Contain("hx-swap-oob"));
+
+        // The export button is one partial too: it is in the page's form on both.
+        var page = await _client.GetStringAsync($"/Workplaces/{w}");
+        var run = await _client.GetStringAsync($"/Queries/{q}");
+        foreach (var html in new[] { page, run })
+            Assert.That(html, Does.Contain("data-post-form=").And.Contain(">Export CSV</button>"));
+    }
+
+    [Test]
+    public async Task APanelThatFails_EmptiesItsTitleSummary()
+    {
+        var w = NewWorkplace("Title summary on failure");
+        _workplaces.AddCopies(w, [NewQuery("Broken", "select 1 from dual")]);
+        var panel = _workplaces.Get(w)!.Panels[0];
+
+        var html = await (await Post($"/Workplaces/{w}?handler=RunPanel&panel={panel.Id}", ("connection", "")))
+            .Content.ReadAsStringAsync();
+
+        Assert.That(html, Does.Match($"id=\"panel-count-{panel.Id}\"[^>]*>\\s*</span>"));
+        Assert.That(html, Does.Contain("data-failed=\"1\""));
+    }
+
+    [Test]
     public async Task ExportingAPanel_DownloadsEveryRow_WithTheSharedValues()
     {
         var w = NewWorkplace("Export");

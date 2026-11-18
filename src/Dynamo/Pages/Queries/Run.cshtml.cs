@@ -6,15 +6,10 @@ using Oracle.ManagedDataAccess.Client;
 
 namespace Dynamo.Pages.Queries;
 
-/// <summary>What the results area shows: a result, or why there is none.</summary>
-public sealed record ResultsModel(QueryResult? Result, string? Error);
-
 public class RunModel(
     QueryRepository repo, OracleConnector connector, IQueryRunner runner,
     ILogger<RunModel> log) : PageModel
 {
-    private const string ParamPrefix = "param.";
-
     public SavedQuery Query { get; private set; } = new();
     public IReadOnlyList<string> Binds { get; private set; } = [];
     public IReadOnlyList<ConnectionChoice> Connections { get; private set; } = [];
@@ -34,19 +29,13 @@ public class RunModel(
         if (query is null)
             return NotFound();
 
-        var values = ParamsOf(Request.Form);
-        try
-        {
-            var result = await runner.RunAsync(
-                connection ?? "", query.Sql, values,
-                Math.Clamp(maxRows ?? QueryRunner.DefaultMaxRows, 1, QueryRunner.MaxRowsLimit), ct);
+        var values = QueryActions.ParamsOf(Request.Form);
+        var results = await QueryActions.RunAsync(
+            runner, log, connection ?? "", query.Sql, values,
+            Math.Clamp(maxRows ?? QueryRunner.DefaultMaxRows, 1, QueryRunner.MaxRowsLimit), ct);
+        if (results.Result is not null)
             repo.SaveLastParams(id, values);
-            return Partial("_Results", new ResultsModel(result, null));
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            return Partial("_Results", new ResultsModel(null, ErrorText(ex)));
-        }
+        return Partial("_Results", results);
     }
 
     /// <summary>Runs the query again and sends the whole result as a CSV file.</summary>
@@ -57,22 +46,8 @@ public class RunModel(
         if (query is null)
             return NotFound();
 
-        try
-        {
-            var result = await runner.RunAsync(
-                connection ?? "", query.Sql, ParamsOf(Request.Form), QueryRunner.ExportLimit, ct);
-            return File(QueryCsv.Write(result), "text/csv; charset=utf-8", QueryCsv.FileName(query.Name));
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            // A download has nowhere to show an error: say it as plain text.
-            return new ContentResult
-            {
-                Content = $"Export failed: {ErrorText(ex)}",
-                ContentType = "text/plain; charset=utf-8",
-                StatusCode = StatusCodes.Status422UnprocessableEntity,
-            };
-        }
+        return await QueryActions.CsvAsync(
+            runner, log, connection ?? "", query.Sql, QueryActions.ParamsOf(Request.Form), query.Name, ct);
     }
 
     private bool Load(long id)
@@ -85,13 +60,4 @@ public class RunModel(
         Connections = connector.Choices();
         return true;
     }
-
-    /// <summary>The bind values of the form (fields named param.NAME).</summary>
-    private static Dictionary<string, string> ParamsOf(IFormCollection form) =>
-        form.Keys
-            .Where(k => k.StartsWith(ParamPrefix, StringComparison.Ordinal))
-            .ToDictionary(k => k[ParamPrefix.Length..], k => form[k].ToString().Trim(),
-                StringComparer.OrdinalIgnoreCase);
-
-    private string ErrorText(Exception ex) => QueryErrorText.Of(ex, log);
 }

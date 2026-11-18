@@ -56,11 +56,13 @@
     @for (var index = 0; index < w.Panels.Count; index++)
     {
         var p = w.Panels[index];
+        var csvButton = new Dynamo.Pages.Queries.ExportButtonModel(
+            Handler("CsvPanel", new { id = w.Id, panel = p.Id }), "#binds");
         <section class="group panel" data-panel="@p.Id">
             <header>
                 <h2><span class="dot" data-panel-dot aria-hidden="true"></span>@p.QueryName</h2>
-                @* Same as the Queries page: time, rows, duration (filled by the page script). *@
-                <span class="count" data-panel-count title="When this result was fetched · rows · duration"></span>
+                @* Time, rows, duration: the same summary as the Queries page, filled by each run (_PanelResults). *@
+                <span class="count" id="panel-count-@p.Id"></span>
                 <button type="button" class="ghost small gear" data-panel-toggle
                         aria-expanded="false" title="Details and settings"
                         aria-label="Details and settings of @p.QueryName">⚙</button>
@@ -99,11 +101,7 @@
                 </div>
                 <footer class="run-actions">
                     <button type="submit">Run now</button>
-                    @* Posts this panel's connection plus the workspace's shared bind values. *@
-                    <button type="button" class="ghost"
-                            data-post-form="@Handler("CsvPanel", new { id = w.Id, panel = p.Id })"
-                            data-post-include="#binds"
-                            title="Run again and download every row (up to 100,000) as CSV">Export CSV</button>
+                    <partial name="_ExportButton" model="csvButton" />
                     <button type="button" class="ghost"
                             title="Rename this panel or change its SQL. Only this workspace's copy changes."
                             hx-get="@Handler("EditQueryForm", new { id = w.Id, panel = p.Id })"

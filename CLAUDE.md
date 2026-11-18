@@ -318,6 +318,17 @@ connection.
 - One folder per use case: `Modules/<Name>` (IModule, migrations, repository)
   and `Pages/<Name>` (Razor pages, htmx fragments).
 - Migrations are append-only per module; never edit a shipped one.
+- **Query results look and behave the same on the Queries run page and in the
+  workspace panels (decided 18 Nov 2026): one code path.** Running and CSV
+  export go through `Pages/Queries/QueryActions` (run -> `ResultsModel`, CSV,
+  bind parsing); the summary line (time · rows · ms) is the partial
+  `Shared/_ResultSummary`, the table `Shared/_ResultTable`, the button
+  `Shared/_ExportButton`. A panel shows the summary in its title bar through an
+  htmx out-of-band swap (`_PanelResults`, `#panel-count-<id>`). A change to how
+  results are shown or exported goes there, never into one page only. Still
+  separate on purpose: the refresh timers (`initAutoRefresh` for one query,
+  `initWorkplace` for many panels) and the panel-only change flash. Checked
+  with jsdom + the real htmx (scratch dir `oob.js`), not kept in the repo.
 - A page handler answers htmx requests with a fragment; errors re-show the
   dialog (`HX-Retarget: #dlg`), notices use the `toast` HX-Trigger event.
 

@@ -531,7 +531,6 @@
             var secondsInput = el.querySelector('[data-panel-seconds]');
             var status = el.querySelector('[data-panel-status]');
             var dot = el.querySelector('[data-panel-dot]');
-            var countBadge = el.querySelector('[data-panel-count]');
             var gear = el.querySelector('[data-panel-toggle]');
             if (!form || !out || !secondsInput || !status) return null;
 
@@ -634,18 +633,11 @@
                 if (failed) {
                     previous = null;
                     lastText = '';
-                    if (countBadge) countBadge.textContent = '';
                 } else {
                     applyStoredSort(out);
                     delta = markChanges(snapshot(out));
                     if (meta) {
                         var n = parseInt(meta.dataset.rows, 10);
-                        // In the title, so it shows even with the details folded.
-                        // Same wording as the Queries page: time · rows · ms.
-                        if (countBadge)
-                            countBadge.textContent = clock(lastRun) + ' · ' +
-                                n + (n === 1 ? ' row' : ' rows') + ' · ' + meta.dataset.ms + ' ms' +
-                                (meta.dataset.more === '1' ? ' · more rows exist' : '');
                         lastText = n + (n === 1 ? ' row' : ' rows') +
                             (delta ? ' (' + (delta > 0 ? '+' : '') + delta + ')' : '') +
                             ' · ' + meta.dataset.ms + ' ms' +

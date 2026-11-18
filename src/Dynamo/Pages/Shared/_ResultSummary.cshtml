@@ -1,0 +1,5 @@
+@* The line that says what a run returned: time, rows, duration. One partial for
+   the Queries page and the workspace panels, so they always read the same. *@
+@model Dynamo.Modules.Queries.QueryResult
+<span class="ran-at" title="When this result was fetched">@DateTime.Now.ToString("HH:mm:ss")</span> ·
+@Model.Rows.Count @(Model.Rows.Count == 1 ? "row" : "rows") · @Model.ElapsedMs ms@(Model.Truncated ? " · more rows exist, raise Max rows or export" : "")

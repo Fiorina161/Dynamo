@@ -1,13 +1,24 @@
-@* The results area of one workplace panel: a result, or why there is none. The
-   hidden .panel-meta carries the numbers the page script shows in the
-   panel's details. *@
-@model Dynamo.Pages.Queries.ResultsModel
-@if (Model.Error is not null)
+@* The results area of one workspace panel: a result, or why there is none. It
+   is the Queries page's result (same summary line, same table), with the
+   summary shown in the panel's title bar through an out-of-band swap. The
+   hidden .panel-meta carries the numbers the page script shows in the panel's
+   details. *@
+@model Dynamo.Pages.Queries.PanelResultsModel
+@{
+    var results = Model.Results;
+}
+<span id="panel-count-@Model.PanelId" class="count" hx-swap-oob="outerHTML">
+    @if (results.Result is { } summary)
+    {
+        <partial name="_ResultSummary" model="summary" />
+    }
+</span>
+@if (results.Error is not null)
 {
     <div class="panel-meta" hidden data-failed="1"></div>
-    <pre class="error">@Model.Error</pre>
+    <pre class="error">@results.Error</pre>
 }
-else if (Model.Result is { } r)
+else if (results.Result is { } r)
 {
     <div class="panel-meta" hidden data-rows="@r.Rows.Count" data-ms="@r.ElapsedMs"
          data-more="@(r.Truncated ? "1" : "0")"></div>

@@ -28,7 +28,6 @@ public class ViewModel(
     WorkplaceRepository repo, QueryRepository queries, OracleConnector connector,
     IQueryRunner runner, ILogger<ViewModel> log) : PageModel
 {
-    private const string ParamPrefix = "param.";
 
     public Workplace Workplace { get; private set; } = new();
     public IReadOnlyList<ConnectionChoice> Connections { get; private set; } = [];
@@ -229,7 +228,7 @@ public class ViewModel(
     {
         if (repo.Get(id) is null)
             return NotFound();
-        repo.SaveBinds(id, ParamsOf(Request.Form));
+        repo.SaveBinds(id, QueryActions.ParamsOf(Request.Form));
         Response.Headers["HX-Trigger"] = "runAll";
         return new NoContentResult();
     }
@@ -245,20 +244,11 @@ public class ViewModel(
         var rows = (int)Math.Clamp(maxRows ?? p.MaxRows, 1, WorkplaceRepository.MaxRowsLimit);
 
         var name = string.IsNullOrWhiteSpace(connection) ? p.Connection : connection.Trim();
-        if (name.Length == 0)
-            return Partial("_PanelResults", new ResultsModel(
-                null, "No connection chosen: open the panel's settings (⚙) and pick one."));
-
-        try
-        {
-            var result = await runner.RunAsync(
-                name, p.Sql, ParamsOf(Request.Form), rows, ct);
-            return Partial("_PanelResults", new ResultsModel(result, null));
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            return Partial("_PanelResults", new ResultsModel(null, QueryErrorText.Of(ex, log)));
-        }
+        var results = name.Length == 0
+            ? new ResultsModel(null, "No connection chosen: open the panel's settings (⚙) and pick one.")
+            : await QueryActions.RunAsync(
+                runner, log, name, p.Sql, QueryActions.ParamsOf(Request.Form), rows, ct);
+        return Partial("_PanelResults", new PanelResultsModel(results, panel));
     }
 
     /// <summary>
@@ -272,30 +262,9 @@ public class ViewModel(
             return NotFound();
 
         var name = string.IsNullOrWhiteSpace(connection) ? p.Connection : connection.Trim();
-        try
-        {
-            var result = await runner.RunAsync(
-                name, p.Sql, ParamsOf(Request.Form), QueryRunner.ExportLimit, ct);
-            return File(QueryCsv.Write(result), "text/csv; charset=utf-8", QueryCsv.FileName(p.QueryName));
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            // A download has nowhere to show an error: say it as plain text.
-            return new ContentResult
-            {
-                Content = $"Export failed: {QueryErrorText.Of(ex, log)}",
-                ContentType = "text/plain; charset=utf-8",
-                StatusCode = StatusCodes.Status422UnprocessableEntity,
-            };
-        }
+        return await QueryActions.CsvAsync(
+            runner, log, name, p.Sql, QueryActions.ParamsOf(Request.Form), p.QueryName, ct);
     }
-
-    /// <summary>The bind values of the form (fields named param.NAME).</summary>
-    private static Dictionary<string, string> ParamsOf(IFormCollection form) =>
-        form.Keys
-            .Where(k => k.StartsWith(ParamPrefix, StringComparison.Ordinal))
-            .ToDictionary(k => k[ParamPrefix.Length..], k => form[k].ToString().Trim(),
-                StringComparer.OrdinalIgnoreCase);
 
     /// <summary>"X copy", then "X copy 2"...: the first name not taken.</summary>
     private string UniqueCopyName(string name)

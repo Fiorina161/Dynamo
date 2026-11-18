@@ -10,10 +10,7 @@ else if (Model.Result is { } r)
     <section class="group full results-panel">
         <header>
             <h2>Results</h2>
-            <span class="count">
-                <span class="ran-at" title="When this result was fetched">@DateTime.Now.ToString("HH:mm:ss")</span> ·
-                @r.Rows.Count @(r.Rows.Count == 1 ? "row" : "rows") · @r.ElapsedMs ms@(r.Truncated ? " · more rows exist, raise Max rows or export" : "")
-            </span>
+            <span class="count"><partial name="_ResultSummary" model="r" /></span>
         </header>
 
         <partial name="_ResultTable" model="r" />
