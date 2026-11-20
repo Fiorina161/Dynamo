@@ -22,21 +22,16 @@
 }
 else
 {
-    <section class="group wide">
-        <header>
-            <h2>Saved workspaces</h2>
-            <span class="count">@Model.Workplaces.Count</span>
-        </header>
-        <ul class="items plain">
-            @foreach (var w in Model.Workplaces)
-            {
-                <li class="item">
-                    <a class="link" href="@Url.Page("/Workplaces/View", new { id = w.Id })">
-                        <span class="title">@w.Name</span>
-                        <span class="hint">@w.PanelCount @(w.PanelCount == 1 ? "query" : "queries")</span>
-                    </a>
-                </li>
-            }
-        </ul>
-    </section>
+    @* The workspaces are listed on the page itself, not inside a panel. *@
+    <ul class="items plain workplace-list">
+        @foreach (var w in Model.Workplaces)
+        {
+            <li class="item">
+                <a class="link" href="@Url.Page("/Workplaces/View", new { id = w.Id })">
+                    <span class="title">@w.Name</span>
+                    <span class="hint">@w.PanelCount @(w.PanelCount == 1 ? "query" : "queries")</span>
+                </a>
+            </li>
+        }
+    </ul>
 }
