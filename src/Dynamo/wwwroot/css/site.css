@@ -392,7 +392,10 @@ dialog textarea { margin-top: 4px; }
     overflow: hidden;
     text-overflow: ellipsis;
     border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+    /* A grid, not just row lines: a faint line between the columns too. */
+    border-right: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
 }
+.results th:last-child, .results td:last-child { border-right: none; }
 .results th {
     position: sticky;
     top: 0;
@@ -429,6 +432,7 @@ mark.hl3 { background: color-mix(in srgb, var(--hl3) 60%, transparent); }
 .results tbody tr.pinned:hover td { background: color-mix(in srgb, var(--fg) 72%, var(--bg)); color: var(--bg); }
 .results tbody tr.pinned td.null { color: color-mix(in srgb, var(--bg) 60%, transparent); }
 .results tbody tr.pinned td.rownum { color: var(--bg); font-weight: 700; }
+.results tbody tr.pinned td { border-color: color-mix(in srgb, var(--bg) 30%, transparent); }
 /* Highlights keep their colour on it, with dark text so they stay readable. */
 .results tbody tr.pinned mark.hl { color: #1d2033; }
 .results tbody tr.pinned mark.hl1 { background: var(--hl1); }
