@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.7 - 2026-11-20
+
+- Center the column titles of query results
+
 ## 1.5.6 - 2026-11-20
 
 - Draw query results as a grid, with faint lines between the columns too
