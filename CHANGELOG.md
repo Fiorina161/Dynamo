@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.10 - 2026-11-20
+
+- List the queries flat on the page with link-style names
+
 ## 1.5.9 - 2026-11-20
 
 - Make the workspace names on the Workspaces page look like links
