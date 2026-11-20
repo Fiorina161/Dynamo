@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0 - 2026-11-20
+
+- Add an Update now button in Settings that downloads, installs and restarts
+
 ## 1.2.0 - 2026-11-20
 
 - Pin result rows to the top by clicking them
