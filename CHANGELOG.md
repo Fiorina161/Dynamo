@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0 - 2026-11-20
+
+- Add a highlight box for result text and an option to hide Bookmarks from the menu
+
 ## 1.3.0 - 2026-11-20
 
 - Add an Update now button in Settings that downloads, installs and restarts
