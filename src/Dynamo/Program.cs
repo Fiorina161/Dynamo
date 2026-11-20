@@ -72,6 +72,7 @@ builder.Services.AddSingleton<QueryRepository>();
 builder.Services.AddSingleton<IQueryRunner, QueryRunner>();
 builder.Services.AddSingleton<WorkplaceRepository>();
 builder.Services.AddSingleton<SettingsRepository>();
+builder.Services.AddSingleton<MenuOptions>();
 builder.Services.AddSingleton<PasswordService>();
 builder.Services.AddSingleton<SessionStore>();
 builder.Services.AddSingleton<LoginThrottle>();

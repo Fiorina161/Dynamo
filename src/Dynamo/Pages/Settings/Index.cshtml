@@ -11,6 +11,39 @@
     </div>
 </header>
 
+@* What the last action said, for every section below. *@
+@if (Model.Message is not null)
+{
+    <p class="notice">@Model.Message</p>
+}
+@if (Model.Error is not null)
+{
+    <p class="error">@Model.Error</p>
+}
+
+<section class="group wide settings">
+    <header>
+        <h2>Menu</h2>
+        <span class="count">@(Model.ShowBookmarks ? "all sections shown" : "Bookmarks hidden")</span>
+    </header>
+
+    <div class="settings-body">
+        <form method="post" asp-page-handler="MenuOptions" class="settings-form">
+            <label class="check">
+                <input type="checkbox" name="showBookmarks" value="on" checked="@Model.ShowBookmarks" />
+                Show Bookmarks in the menu
+            </label>
+            <p class="hint-text">
+                Hiding it only removes the menu entry (and the landing page then opens the next section);
+                the Bookmarks page still opens at /Bookmarks and nothing in it is lost.
+            </p>
+            <footer>
+                <button type="submit">Save</button>
+            </footer>
+        </form>
+    </div>
+</section>
+
 <section class="group wide settings">
     <header>
         <h2>Remote access</h2>
@@ -23,15 +56,6 @@
             this password, and remembers it until the browser is closed. Without a password, other computers
             are refused.
         </p>
-
-        @if (Model.Message is not null)
-        {
-            <p class="notice">@Model.Message</p>
-        }
-        @if (Model.Error is not null)
-        {
-            <p class="error">@Model.Error</p>
-        }
 
         <form method="post" asp-page-handler="SetPassword" class="settings-form">
             <h3>@(Model.HasPassword ? "Change the password" : "Set a password")</h3>

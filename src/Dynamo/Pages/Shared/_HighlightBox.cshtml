@@ -1,0 +1,10 @@
+@* A box to highlight a piece of text in the results below it: the same on the
+   Queries page and in a workspace (site.js, "Highlighting"). The model is the
+   selector of the element that holds the results to mark. *@
+@model string
+<div class="highlight-box">
+    <input type="text" data-highlight-scope="@Model" placeholder="Highlight text in the results…"
+           autocomplete="off" spellcheck="false" aria-label="Text to highlight in the results" />
+    <button type="button" class="ghost small" data-highlight-clear hidden title="Clear the highlight (Escape)">×</button>
+    <span class="count" data-highlight-count role="status"></span>
+</div>

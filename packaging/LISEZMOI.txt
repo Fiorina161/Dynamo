@@ -152,6 +152,12 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     numérotées de 1 à n dans la première colonne (la numérotation suit l'ordre
     affiché après un tri). Le réglage est retenu par ce navigateur, pour
     chaque requête.
+  - Surligner du texte : la zone « Highlight text in the results… », au-dessus
+    des résultats, surligne le texte tapé (sans tenir compte des majuscules)
+    dans toutes les cellules, avec le nombre d'occurrences trouvées. Touche
+    Échap ou « × » pour effacer. Le surlignage est refait à chaque
+    rafraîchissement et retenu par ce navigateur. Dans un espace de travail, la
+    zone s'applique à tous les panneaux à la fois.
   - Épingler des lignes : cliquez sur une ligne du tableau pour l'épingler
     (elle reste en haut, surlignée, quel que soit le tri); cliquez de nouveau
     pour la désépingler, ou sur « # » pour tout désépingler. Une ligne est
@@ -212,6 +218,11 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     l'onglet du navigateur est caché.
   - « Rename », « Duplicate » (copie complète d'un espace) et « Delete »
     permettent de gérer vos espaces. Ils sont conservés d'une fois à l'autre.
+
+Menu. Si vous n'utilisez pas les signets, « Settings » (section « Menu »)
+permet de retirer « Bookmarks » du menu; la page d'accueil ouvre alors la
+section suivante. La page reste accessible à l'adresse /Bookmarks et rien n'est
+perdu: il suffit de recocher l'option pour la remettre dans le menu.
 
 
 4. VOS DONNÉES ET LA SÉCURITÉ

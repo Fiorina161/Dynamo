@@ -398,12 +398,23 @@ dialog textarea { margin-top: 4px; }
     border-bottom: 1px solid var(--line);
 }
 .results tbody tr { cursor: pointer; }
+/* Highlighted text (the highlight box above the results). */
+mark.hl {
+    background: color-mix(in srgb, #ffc933 55%, transparent);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+.highlight-box { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
+.highlight-box input { max-width: 320px; }
+.highlight-box .count { white-space: nowrap; }
 /* A pinned row: tinted, with an accent bar on its number. */
 .results tbody tr.pinned td { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
 .results tbody tr.pinned td.rownum { box-shadow: inset 3px 0 0 var(--accent); color: var(--fg); font-weight: 700; }
 .results tbody tr:hover td { background: color-mix(in srgb, var(--fg) 6%, transparent); }
 .results .num { text-align: right; font-variant-numeric: tabular-nums; }
-.results td.null { color: var(--muted); font-style: italic; }
+/* NULL: the text colour, faded (so it follows the theme), in italics. */
+.results td.null { color: color-mix(in srgb, var(--fg) 45%, transparent); font-style: italic; }
 /* Row numbers 1..n: a counter, so they follow the order on screen after a sort
    and are not part of the text a user copies. */
 .results tbody { counter-reset: rownum; }

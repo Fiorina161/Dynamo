@@ -268,6 +268,22 @@ public class WorkplacesTests
     }
 
     [Test]
+    public async Task TheHighlightBox_IsOnTheQueriesPageAndOnAWorkspaceWithPanels()
+    {
+        var empty = NewWorkplace("Highlight empty");
+        var w = NewWorkplace("Highlight panels");
+        var q = NewQuery("Hl", "select 1 from dual");
+        _workplaces.AddCopies(w, [q]);
+
+        Assert.That(await _client.GetStringAsync($"/Workplaces/{w}"),
+            Does.Contain("data-highlight-scope=\"[data-workplace]\"").And.Contain("data-highlight-count"));
+        Assert.That(await _client.GetStringAsync($"/Queries/{q}"),
+            Does.Contain("data-highlight-scope=\"#results\""));
+        Assert.That(await _client.GetStringAsync($"/Workplaces/{empty}"),
+            Does.Not.Contain("data-highlight-scope"), "nothing to highlight in an empty workspace");
+    }
+
+    [Test]
     public async Task APanelStartsOnTheQuerysConnection_AndCanBeGivenAnother()
     {
         var w = NewWorkplace("Conn");

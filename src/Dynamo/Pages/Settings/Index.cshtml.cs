@@ -12,7 +12,7 @@ namespace Dynamo.Pages.Settings;
 public class IndexModel(
     PasswordService passwords, SessionStore sessions, LoginThrottle throttle,
     CertificateService certificates, HttpsOptions https, UpdateChecker updates,
-    UpdateInstaller installer) : PageModel
+    UpdateInstaller installer, MenuOptions menu) : PageModel
 {
     public string CurrentVersion => AppVersion.Format(updates.Current);
     public UpdateStatus UpdateStatus => updates.Status;
@@ -32,6 +32,8 @@ public class IndexModel(
 
     /// <summary>The update was handed over: the service is about to restart.</summary>
     public string? Installing { get; private set; }
+
+    public bool ShowBookmarks => menu.IsVisible("bookmarks");
 
     public bool HasPassword { get; private set; }
     public bool IsRemote { get; private set; }
@@ -79,6 +81,17 @@ public class IndexModel(
         passwords.Clear();
         Fill();
         Message = "Password removed. Other computers are refused again.";
+        return Page();
+    }
+
+    /// <summary>The checkbox: show Bookmarks in the menu.</summary>
+    public IActionResult OnPostMenuOptions(string? showBookmarks)
+    {
+        Fill();
+        menu.SetVisible("bookmarks", showBookmarks == "on");
+        Message = menu.IsVisible("bookmarks")
+            ? "Bookmarks is shown in the menu."
+            : "Bookmarks is hidden from the menu. Its page still opens at /Bookmarks.";
         return Page();
     }
 

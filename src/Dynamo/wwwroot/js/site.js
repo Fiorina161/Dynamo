@@ -596,6 +596,89 @@
         if (e.target && e.target.id === 'results') applyStoredSort(e.target);
     });
 
+    // ---- Highlighting ------------------------------------------------------------
+    // <input data-highlight-scope="<selector>">: whatever is typed is marked (case
+    // does not matter) in every result cell inside the scope: the query page's
+    // #results, or all the panels of a workspace. Marks are applied again after
+    // each refresh, the text is remembered per page, and the count says how many
+    // places matched. Only the cells' own text is touched, so sorting, pinning and
+    // the change flash (all of which read text) are unaffected.
+    function clearMarks(scope) {
+        scope.querySelectorAll('mark.hl').forEach(function (m) {
+            var parent = m.parentNode;
+            parent.replaceChild(document.createTextNode(m.textContent), m);
+            parent.normalize();
+        });
+    }
+
+    function markCell(td, needle) {
+        var node = td.firstChild;
+        if (!node || node.nodeType !== 3 || td.classList.contains('null')) return 0;
+        var text = node.nodeValue, lower = text.toLowerCase();
+        var at = lower.indexOf(needle);
+        if (at < 0) return 0;
+        var fragment = document.createDocumentFragment(), from = 0, found = 0;
+        while (at >= 0) {
+            if (at > from) fragment.appendChild(document.createTextNode(text.slice(from, at)));
+            var mark = document.createElement('mark');
+            mark.className = 'hl';
+            mark.textContent = text.slice(at, at + needle.length);
+            fragment.appendChild(mark);
+            found++;
+            from = at + needle.length;
+            at = lower.indexOf(needle, from);
+        }
+        if (from < text.length) fragment.appendChild(document.createTextNode(text.slice(from)));
+        td.replaceChild(fragment, node);
+        return found;
+    }
+
+    function highlightIn(scope, term) {
+        clearMarks(scope);
+        var needle = term.toLowerCase();
+        if (!needle) return 0;
+        var total = 0;
+        scope.querySelectorAll('.results tbody td').forEach(function (td) { total += markCell(td, needle); });
+        return total;
+    }
+
+    function initHighlight(input) {
+        var box = input.closest('.highlight-box');
+        var counter = box && box.querySelector('[data-highlight-count]');
+        var clear = box && box.querySelector('[data-highlight-clear]');
+        var key = 'highlight:' + location.pathname;
+        var timer = null;
+
+        function apply() {
+            var scope = document.querySelector(input.dataset.highlightScope);
+            var term = input.value.trim();
+            var n = scope ? highlightIn(scope, term) : 0;
+            if (counter) counter.textContent = term ? (n === 1 ? '1 match' : n + ' matches') : '';
+            if (clear) clear.hidden = !input.value;
+            try {
+                if (term) localStorage.setItem(key, input.value);
+                else localStorage.removeItem(key);
+            } catch (err) { }
+        }
+        function soon(ms) { clearTimeout(timer); timer = setTimeout(apply, ms); }
+
+        try { var saved = localStorage.getItem(key); if (saved) input.value = saved; } catch (err) { }
+        input.addEventListener('input', function () { soon(120); });
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && input.value) { input.value = ''; apply(); }
+        });
+        if (clear) clear.addEventListener('click', function () { input.value = ''; apply(); input.focus(); });
+        // New results arrive (a run or an auto-refresh): mark them too.
+        document.body.addEventListener('htmx:afterSwap', function (e) {
+            var scope = document.querySelector(input.dataset.highlightScope);
+            if (input.value.trim() && scope && e.target && scope.contains(e.target)) soon(30);
+            else if (input.value.trim() && scope && e.target === scope) soon(30);
+        });
+        apply();
+    }
+
+    document.querySelectorAll('[data-highlight-scope]').forEach(initHighlight);
+
     // ---- A form that takes a while: say so ------------------------------------
     // data-busy-text on a form: its button shows that text and is disabled once
     // the browser has started sending the form.

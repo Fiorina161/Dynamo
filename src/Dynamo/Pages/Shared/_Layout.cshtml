@@ -1,5 +1,6 @@
 @inject IEnumerable<IModule> Modules
 @inject UpdateChecker Updates
+@inject MenuOptions Menu
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @{
     var token = Antiforgery.GetAndStoreTokens(Context).RequestToken;
@@ -30,7 +31,7 @@
                     aria-expanded="false" aria-controls="side-menu" aria-label="Menu">☰</button>
             <div class="side-menu" id="side-menu">
             <ul>
-                @foreach (var m in Modules.Where(m => m.Id != "settings").OrderBy(m => m.Order))
+                @foreach (var m in Modules.Where(m => m.Id != "settings" && Menu.IsVisible(m)).OrderBy(m => m.Order))
                 {
                     <li>
                         <a href="@m.Href"

@@ -52,6 +52,11 @@
     <p class="empty">Nothing here yet. Use “New query” to write one, or “Add from saved” to copy saved queries into this workspace.</p>
 }
 
+@if (w.Panels.Count > 0)
+{
+    <partial name="_HighlightBox" model="@("[data-workplace]")" />
+}
+
 <div class="workplace-grid" data-workplace>
     @for (var index = 0; index < w.Panels.Count; index++)
     {

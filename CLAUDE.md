@@ -311,6 +311,13 @@ Then `git checkout master && git pull`, and delete the branch.
   `GITHUB_TOKEN` environment variable overrides it and made `gh` fail with 401
   (removed from the user's environment on 16 Nov 2026): if it fails again, check
   that variable first. Needs internet; the token scopes are repo and workflow.
+- Menu option (done, 20 Nov 2026): Settings > Menu has a checkbox "Show
+  Bookmarks in the menu" (`MenuOptions`, key `menu.hidden.<module id>` in the
+  `setting` table; Settings can never be hidden). **It only hides the menu entry
+  and makes `/` open the first visible section: the Bookmarks page itself still
+  answers at `/Bookmarks`**, on purpose: the update script and the installers
+  use `/Bookmarks` as their health check, and nothing that links there breaks.
+  The page's notice/error now show at the top of Settings for every section.
 - Packaging (done, 12 Nov 2026): `scripts/package.ps1` builds
   `Dynamo-<version>.zip` in Downloads: self-contained win-x64 publish (`app`,
   ~112 MB, zip ~50 MB) + `packaging/` (French guide `LISEZMOI.txt`,
@@ -359,7 +366,17 @@ connection.
   "Visible rows", not posted, remembered in localStorage per query; panels:
   `watch_panel.view_rows` (migration 4), saved with the other panel settings and
   copied by Duplicate. Checked with jsdom and a faked `offsetHeight` (no layout
-  there), so the real pixel height has not been seen. **Pinned rows (20 Nov
+  there), so the real pixel height has not been seen. **Highlight box (20 Nov
+  2026):** the partial `Shared/_HighlightBox` above the results (Queries run
+  page: scope `#results`; workspace with panels: scope `[data-workplace]`, so
+  every panel at once). Typing marks the text, case-insensitive, with
+  `<mark class="hl">` in every cell (not NULL cells) and shows a match count;
+  Escape or × clears; re-applied after each swap (refreshes); the text is kept
+  per page in localStorage. Client side only (site.js "Highlighting"); marks
+  only wrap the cell's own text node, so sort/pin/change-flash, which read
+  `textContent`, are unaffected. jsdom check (15 checks) in the scratch dir.
+  Not built: "show only matching rows" (a filter, not a highlight), several
+  terms, regular expressions. **Pinned rows (20 Nov
   2026):** click a row to pin it to the top (again to unpin; the `#` header
   unpins all); pinned rows stay first whatever the sort and keep the sort's
   order among themselves, tinted with an accent bar (`tr.pinned`). Client side
