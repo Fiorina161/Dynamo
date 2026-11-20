@@ -396,6 +396,8 @@ dialog textarea { margin-top: 4px; }
     border-right: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
 }
 .results th:last-child, .results td:last-child { border-right: none; }
+/* Column titles are centred, whatever the alignment of their content. */
+.results th, .results th.num, .results th.rownum { text-align: center; }
 .results th {
     position: sticky;
     top: 0;
