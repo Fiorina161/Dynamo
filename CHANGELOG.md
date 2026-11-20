@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.0 - 2026-11-20
+
+- Choose how many highlight boxes show above the results (0 to 3, one by default)
+- Filter the rows of a result by a column's values, like in a spreadsheet
+
 ## 1.5.10 - 2026-11-20
 
 - List the queries flat on the page with link-style names
