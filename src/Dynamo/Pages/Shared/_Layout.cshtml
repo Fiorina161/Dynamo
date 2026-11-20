@@ -25,7 +25,7 @@
 <body hx-headers='{"RequestVerificationToken": "@token"}'>
     <div class="shell">
         <nav class="side" id="side">
-            <a class="brand" href="/">Dynamo</a>
+            <a class="brand" href="/">Dynamo <span class="version" title="Installed version">@AppVersion.Format(Updates.Current)</span></a>
             @* Only shown on a small screen, where the menu folds away. *@
             <button type="button" class="ghost menu-toggle" id="menu-toggle"
                     aria-expanded="false" aria-controls="side-menu" aria-label="Menu">☰</button>

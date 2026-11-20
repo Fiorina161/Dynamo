@@ -7,6 +7,29 @@ namespace Dynamo.Tests;
 public class LayoutTests
 {
     [Test]
+    public async Task TheMenuTitle_ShowsTheInstalledVersion()
+    {
+        var home = Path.Combine(Path.GetTempPath(), "dynamo-layout-" + Guid.NewGuid().ToString("N"));
+        var previous = Environment.GetEnvironmentVariable("DYNAMO_HOME");
+        Environment.SetEnvironmentVariable("DYNAMO_HOME", home);
+        try
+        {
+            using var factory = new WebApplicationFactory<Program>();
+            using var client = factory.CreateClient();
+            var expected = Dynamo.Modules.Settings.AppVersion.Format(Dynamo.Modules.Settings.AppVersion.Current);
+            foreach (var path in new[] { "/Bookmarks", "/Settings" })
+                Assert.That(await client.GetStringAsync(path),
+                    Does.Contain($"Dynamo <span class=\"version\" title=\"Installed version\">{expected}</span>"), path);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("DYNAMO_HOME", previous);
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            try { Directory.Delete(home, true); } catch { /* best effort */ }
+        }
+    }
+
+    [Test]
     public async Task EveryPage_HasTheHamburgerButton_AndTheMenuInOneFoldableBlock()
     {
         var home = Path.Combine(Path.GetTempPath(), "dynamo-layout-" + Guid.NewGuid().ToString("N"));
