@@ -12,6 +12,10 @@
     <InternalsVisibleTo Include="Dynamo.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The script that swaps the program's files during "Update now". -->
+    <EmbeddedResource Include="Modules/Settings/apply-update.ps1" LogicalName="apply-update.ps1" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.89" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="11.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="11.0.0" />

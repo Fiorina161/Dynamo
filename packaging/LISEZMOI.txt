@@ -315,18 +315,36 @@ propre ordinateur : les requêtes s'exécutent alors sur cette machine.
 5. MISE À JOUR
 --------------
 
-Extrayez la nouvelle version dans un nouveau dossier, puis double-cliquez sur
-« Installer.cmd » : le service est remplacé par la nouvelle version, et vos
-données sont conservées.
-
 Dynamo vous prévient lui-même : une fois par jour (et quand vous cliquez
 « Check now » dans « Settings »), il consulte les versions publiées sur la page
 GitHub du projet. S'il en existe une plus récente, le menu affiche « Version X
-available » et « Settings » donne le lien pour télécharger le fichier .zip
-ainsi que les notes de version. Rien n'est téléchargé ni installé tout seul.
-Cette consultation ne transmet rien sur votre ordinateur ni sur vous; elle
-demande un accès à Internet (sans accès, « Settings » indique simplement qu'il
-n'a pas pu joindre GitHub). On peut la désactiver dans « Settings ».
+available ». Cette consultation ne transmet rien sur votre ordinateur ni sur
+vous; elle demande un accès à Internet (sans accès, « Settings » indique
+simplement qu'il n'a pas pu joindre GitHub). On peut la désactiver dans
+« Settings ».
+
+Mise à jour en un clic. Dans « Settings », section « Updates », cliquez
+« Update now to X » (depuis l'ordinateur où Dynamo fonctionne): Dynamo télécharge
+la nouvelle version depuis la page GitHub du projet, la vérifie, remplace ses
+fichiers et redémarre le service. Cela prend quelques secondes; la page se
+rafraîchit d'elle-même. Vos données sont conservées. Précautions:
+  - le fichier n'est installé que si sa somme de contrôle SHA-256, publiée avec
+    la version, correspond, et que la version est plus récente que la vôtre;
+  - une copie de l'ancienne version est gardée pendant la mise à jour: si la
+    nouvelle ne démarre pas, l'ancienne est remise en place automatiquement et
+    « Settings » l'indique; le déroulement est noté dans le fichier update.log
+    du dossier de données (C:\dynamo par défaut);
+  - le bouton n'existe que sur l'ordinateur où Dynamo fonctionne (pas depuis un
+    autre ordinateur), et seulement si Dynamo est installé comme service.
+Remarque: les versions publiées ne sont pas signées numériquement; la somme de
+contrôle protège contre un fichier corrompu ou modifié en route, pas contre un
+compte GitHub compromis. La première version qui offre ce bouton doit être
+installée à la main.
+
+Mise à jour à la main (au besoin): extrayez la nouvelle version dans un nouveau
+dossier, puis double-cliquez sur « Installer.cmd » : le service est remplacé par
+la nouvelle version, et vos données sont conservées. Le lien vers le fichier
+.zip, les notes de version et le dépôt GitHub restent dans « Settings ».
 
 
 6. DÉSINSTALLATION

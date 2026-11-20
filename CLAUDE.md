@@ -256,11 +256,35 @@ Then `git checkout master && git pull`, and delete the branch.
   the background service, the tests set it). Strictly newer than the running
   version = update (tags `v1.2.3`, `1.2`, `2` all parse). It only **informs**
   (menu note "Version X available" for this computer only, Settings link to the
-  zip and the notes); **no download or install, by design**: self-updating a
-  LocalSystem service needs signed releases and a swap with rollback, not built.
-  Only https links into `github.com/Fiorina161/Dynamo/` are ever shown (anything
+  zip and the notes). Only https links into `github.com/Fiorina161/Dynamo/` are ever shown (anything
   else falls back to the releases page). Failures are messages, never errors.
   Tested with a fake GitHub (`UpdateTests`).
+- **Update now (done, 20 Nov 2026; reverses the earlier "inform only, no
+  install, by design"; the owner asked for a one-click upgrade).** Settings >
+  Updates > button, `UpdateInstaller` (Modules/Settings) + the embedded script
+  `apply-update.ps1`. **Only from this computer** (a remote browser gets 403
+  and no button: whatever is installed runs as LocalSystem) and **only when
+  running as a Windows service**. It re-asks GitHub, then accepts only the
+  exact asset `https://github.com/Fiorina161/Dynamo/releases/download/<tag>/
+  Dynamo-<version>.zip`, only a strictly newer version, **only with a SHA-256**
+  (the asset's `digest`, else the line release.ps1 writes in the release
+  notes: keep that format) matching the download, and the staged `app\Dynamo.exe`
+  must report that version. Then PowerShell 5.1 runs the script detached: backup
+  of the install folder to `<home>\update\backup`, stop the service, copy
+  `dynamo.db` aside, robocopy /MIR the new files over `AppContext.BaseDirectory`,
+  start, wait for `http://localhost:<port>/Bookmarks`; on any failure the old
+  files and database copy are restored (`last-result.txt` says `failed...`,
+  shown in Settings; log `<home>\update.log`). **The service registration is
+  never touched** (name, account, env, firewall), unlike `Installer.cmd`.
+  The page waits for the restart with `[data-wait-restart]` (site.js). **Limits
+  to remember:** the checksum comes from the same GitHub account as the file and
+  releases are not signed, so a stolen account would still get code onto the
+  machine; the script is embedded in the running version, so the *first*
+  version with the button is installed by hand; a service stopped from the script
+  must not take the script down with it (children of a service survive its stop,
+  **not verified on a real update yet**). Tests: `UpdateInstallerTests`
+  (refusals, hand-over, Settings page, the script on temp folders incl.
+  rollback).
 - Going public (16 Nov 2026): history and files scanned (no secrets, identity or
   machine names), personal references scrubbed from these notes and the README,
   `THIRD-PARTY-NOTICES.md` added (Oracle's driver licence must be included with

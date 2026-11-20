@@ -85,6 +85,17 @@ builder.Services.AddHttpClient(UpdateChecker.ClientName, client =>
     client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
 });
 builder.Services.AddSingleton<UpdateChecker>();
+// "Update now": the download is big, so its own client with a long timeout; it
+// is only used for the one release address UpdateInstaller accepts.
+builder.Services.AddHttpClient(UpdateInstaller.DownloadClientName, client =>
+{
+    client.Timeout = TimeSpan.FromMinutes(10);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("Dynamo-update");
+});
+builder.Services.AddSingleton(new UpdateInstallerOptions(
+    Microsoft.Extensions.Hosting.WindowsServices.WindowsServiceHelpers.IsWindowsService(), port));
+builder.Services.AddSingleton<IUpdateLauncher, PowerShellUpdateLauncher>();
+builder.Services.AddSingleton<UpdateInstaller>();
 if (Environment.GetEnvironmentVariable("DYNAMO_UPDATE_CHECK") != "off")
     builder.Services.AddHostedService<UpdateCheckService>();builder.Services.AddHostedService<CertificateRenewalService>();
 

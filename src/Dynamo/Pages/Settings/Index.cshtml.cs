@@ -11,7 +11,8 @@ namespace Dynamo.Pages.Settings;
 /// </summary>
 public class IndexModel(
     PasswordService passwords, SessionStore sessions, LoginThrottle throttle,
-    CertificateService certificates, HttpsOptions https, UpdateChecker updates) : PageModel
+    CertificateService certificates, HttpsOptions https, UpdateChecker updates,
+    UpdateInstaller installer) : PageModel
 {
     public string CurrentVersion => AppVersion.Format(updates.Current);
     public UpdateStatus UpdateStatus => updates.Status;
@@ -23,6 +24,14 @@ public class IndexModel(
     public DateTimeOffset? CertificateExpires => certificates.Expires;
     public string? Fingerprint => certificates.AuthorityFingerprint;
     public IReadOnlyList<string> CertificateNames => certificates.IssuedFor;
+
+    /// <summary>This computer, running as a service: the "Update now" button can work.</summary>
+    public bool CanInstallUpdate => installer.Supported && !IsRemote;
+    public bool UpdateSupported => installer.Supported;
+    public string? LastUpdateFailure => installer.LastFailure;
+
+    /// <summary>The update was handed over: the service is about to restart.</summary>
+    public string? Installing { get; private set; }
 
     public bool HasPassword { get; private set; }
     public bool IsRemote { get; private set; }
@@ -106,6 +115,31 @@ public class IndexModel(
         var status = await updates.CheckAsync(ct);
         if (status.Error is null && !updates.Available)
             Message = "Dynamo is up to date.";
+        return Page();
+    }
+
+    /// <summary>
+    /// "Update now": downloads the new version, checks it and has the service
+    /// replace itself. Only from the computer Dynamo runs on: what is installed
+    /// runs with the service's rights, so a browser elsewhere cannot ask for it.
+    /// </summary>
+    public async Task<IActionResult> OnPostInstallUpdateAsync(CancellationToken ct)
+    {
+        Fill();
+        if (IsRemote)
+        {
+            Response.StatusCode = StatusCodes.Status403Forbidden;
+            Error = "Updating is done from the computer where Dynamo runs, not from another one.";
+            return Page();
+        }
+
+        var outcome = await installer.InstallAsync(ct);
+        if (!outcome.Started)
+        {
+            Error = outcome.Error;
+            return Page();
+        }
+        Installing = outcome.Version;
         return Page();
     }
 

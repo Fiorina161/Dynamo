@@ -596,6 +596,50 @@
         if (e.target && e.target.id === 'results') applyStoredSort(e.target);
     });
 
+    // ---- A form that takes a while: say so ------------------------------------
+    // data-busy-text on a form: its button shows that text and is disabled once
+    // the browser has started sending the form.
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        var text = form.dataset && form.dataset.busyText;
+        if (!text) return;
+        var button = form.querySelector('button[type=submit]');
+        if (!button) return;
+        setTimeout(function () { button.textContent = text; button.disabled = true; }, 0);
+    });
+
+    // ---- Waiting for the service to restart after an update ---------------------
+    // [data-wait-restart="<address>"]: polls the site; once it has been seen down
+    // and then up again, goes to the address (the page of the new version). If it
+    // never goes down, or never comes back, says where to look.
+    (function () {
+        var marker = document.querySelector('[data-wait-restart]');
+        if (!marker) return;
+        var status = document.querySelector('[data-wait-status]');
+        var target = marker.dataset.waitRestart;
+        var started = Date.now();
+        var wasDown = false;
+        function say(text) { if (status) status.textContent = text; }
+        function poll() {
+            var seconds = Math.round((Date.now() - started) / 1000);
+            fetch('/Settings', { cache: 'no-store' }).then(function (r) {
+                if (r.ok && wasDown) { location.href = target; location.reload(); return; }
+                if (!r.ok) wasDown = true;
+                next(seconds);
+            }).catch(function () { wasDown = true; next(seconds); });
+        }
+        function next(seconds) {
+            if (seconds > 240) {
+                say('Dynamo has not come back after ' + seconds + ' s. Look at update.log in the data folder ' +
+                    '(C:\\dynamo by default), or at the service in the Windows Services list.');
+                return;
+            }
+            say(wasDown ? 'Restarting… ' + seconds + ' s' : 'Starting the update… ' + seconds + ' s');
+            setTimeout(poll, 2000);
+        }
+        setTimeout(poll, 4000);
+    })();
+
     // ---- Height of the results, in rows ------------------------------------------
     // An input marked data-view-rows-for="<selector>" says how many rows of the
     // result show before it scrolls (default 10). The same script serves the

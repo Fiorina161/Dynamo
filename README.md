@@ -112,12 +112,29 @@ API, no token, nothing about the computer sent) a little after it starts and
 once a day, and when you press *Check now* in Settings. If the latest release is
 newer than the running version, the menu shows "Version X available" (to
 whoever sits at that computer) and Settings links to the zip and the release
-notes. It only **informs**: nothing is downloaded or installed by itself; you
-download the zip, extract it and run `Installer.cmd`, which updates in place and
-keeps the data. Only links into this project's GitHub pages are ever shown. The
+notes. Only links into this project's GitHub pages are ever shown. The
 daily look can be turned off in Settings (`DYNAMO_UPDATE_CHECK=off` removes it
 entirely); the computer needs internet access for it, and without it Settings
 just says it could not reach GitHub.
+
+**Update now.** When a newer release exists, Settings shows an *Update now*
+button (only on the computer where Dynamo runs, and only when it runs as a
+Windows service). It downloads the release zip from this project's GitHub
+page, checks it, and starts a script that stops the service, replaces the
+program files in place (the service itself, its settings, the data and the
+firewall rule are untouched), starts it and waits for the site to answer; if
+the new version does not come up, the old files and a copy of the database file
+taken before the swap are put back. The log is `update.log` in the data folder.
+The service runs as LocalSystem, so the limits matter: only the exact release
+asset of this project is fetched
+(`https://github.com/Fiorina161/Dynamo/releases/download/<tag>/Dynamo-<version>.zip`),
+only a **strictly newer** version, only if the release publishes a **SHA-256**
+(GitHub's asset digest, else the one in the release notes) that the file matches
+and the program inside reports that version. The checksum travels through the
+same GitHub account as the file, and releases are not code-signed: it protects
+against a corrupted or altered download, not against a compromised account. The
+manual route (zip + `Installer.cmd`) remains, and the first version that has the
+button must be installed by hand.
 The pages adapt to a phone: below 760 px the menu on the left folds behind a ☰
 button in a top bar.
 

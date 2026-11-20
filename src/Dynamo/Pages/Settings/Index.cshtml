@@ -165,23 +165,59 @@
             · <a href="@UpdateChecker.ReleasesPage" target="_blank" rel="noopener">All releases</a>
         </p>
 
+        @if (Model.Installing is not null)
+        {
+            <p class="notice" data-wait-restart="/Settings#updates">
+                Installing Dynamo @Model.Installing… the service is restarting. This page comes back by itself.
+            </p>
+            <p class="hint-text" data-wait-status></p>
+        }
+        @if (Model.LastUpdateFailure is not null)
+        {
+            <p class="error">The last update did not go through: @Model.LastUpdateFailure</p>
+        }
+
         @if (Model.UpdateStatus.Error is not null)
         {
             <p class="error">@Model.UpdateStatus.Error</p>
         }
 
-        @if (Model.UpdateAvailable && Model.UpdateStatus.Latest is { } update)
+        @if (Model.UpdateAvailable && Model.Installing is null && Model.UpdateStatus.Latest is { } update)
         {
             <p class="notice">A new version is available:
                 <a href="@update.PageUrl" target="_blank" rel="noopener" title="Open the release page on GitHub"><b>@update.Name</b></a>.</p>
+
+            @if (Model.CanInstallUpdate)
+            {
+                <form method="post" asp-page-handler="InstallUpdate" class="settings-form"
+                      data-busy-text="Downloading and installing…">
+                    <p class="hint-text">
+                        Downloads the new version from GitHub, checks it, replaces Dynamo's files and restarts
+                        the service. It takes a few seconds and this page comes back by itself. Your data is kept,
+                        and if the new version does not start, the old one is put back.
+                    </p>
+                    <footer>
+                        <button type="submit"
+                                onclick="return confirm('Download and install Dynamo @UpdateChecker.ToText(update) now? The service restarts for a few seconds.')">Update now to @UpdateChecker.ToText(update)</button>
+                    </footer>
+                </form>
+            }
+            else if (Model.UpdateSupported)
+            {
+                <p class="hint-text">Updating is done from the computer where Dynamo runs, not from another one.</p>
+            }
+            else
+            {
+                <p class="hint-text">
+                    Dynamo is running as a console program here, not as a Windows service, so it cannot replace
+                    itself: download the new version and install it by hand.
+                </p>
+            }
+
             <p class="hint-text">
-                <a href="@(update.DownloadUrl ?? update.PageUrl)" rel="noopener">Download @UpdateChecker.ToText(update)</a>
+                By hand instead: <a href="@(update.DownloadUrl ?? update.PageUrl)" rel="noopener">Download @UpdateChecker.ToText(update)</a>,
+                extract the zip and run <code>Installer.cmd</code> (it keeps your data).
                 · <a href="@update.PageUrl" rel="noopener" target="_blank">Release notes</a>
-            </p>
-            <p class="hint-text">
-                To update: extract the zip on the computer where Dynamo runs and run <code>Installer.cmd</code>
-                (or <code>.\scripts\install-service.ps1</code> from a clone). It replaces the program in place
-                and keeps your data.
             </p>
         }
 

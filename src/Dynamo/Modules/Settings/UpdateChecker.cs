@@ -25,7 +25,8 @@ public static class AppVersion
 
 /// <summary>A release published on GitHub.</summary>
 public sealed record UpdateInfo(
-    Version Version, string Tag, string Name, string PageUrl, string? DownloadUrl, DateTimeOffset? PublishedAt);
+    Version Version, string Tag, string Name, string PageUrl, string? DownloadUrl, DateTimeOffset? PublishedAt,
+    string? Sha256 = null);
 
 /// <summary>What the last look at GitHub found: a release, or why not.</summary>
 public sealed record UpdateStatus(DateTimeOffset? CheckedAt, UpdateInfo? Latest, string? Error);
@@ -149,7 +150,7 @@ public sealed class UpdateChecker
             var name = root.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String
                 && !string.IsNullOrWhiteSpace(n.GetString()) ? n.GetString()! : tag;
             var page = Trusted(root.TryGetProperty("html_url", out var h) ? h.GetString() : null) ?? ReleasesPage;
-            string? download = null;
+            string? download = null, sha256 = null;
             if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array)
                 foreach (var asset in assets.EnumerateArray())
                 {
@@ -158,18 +159,39 @@ public sealed class UpdateChecker
                         && Trusted(asset.TryGetProperty("browser_download_url", out var u) ? u.GetString() : null) is { } url)
                     {
                         download = url;
+                        // The checksum GitHub itself computed for the file ("sha256:..."), else
+                        // the one the release notes give for this file.
+                        var digest = asset.TryGetProperty("digest", out var d) && d.ValueKind == JsonValueKind.String
+                            ? d.GetString() : null;
+                        sha256 = digest is not null && digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase)
+                            ? digest[7..]
+                            : ChecksumInNotes(root.TryGetProperty("body", out var b) && b.ValueKind == JsonValueKind.String
+                                ? b.GetString() : null, assetName);
                         break;
                     }
                 }
 
             DateTimeOffset? published = root.TryGetProperty("published_at", out var p) && p.TryGetDateTimeOffset(out var when)
                 ? when : null;
-            return Result(new UpdateInfo(version, tag, name, page, download, published), null);
+            return Result(new UpdateInfo(version, tag, name, page, download, published, sha256), null);
         }
         catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)
         {
             return Result(null, "GitHub's answer could not be read.");
         }
+    }
+
+    /// <summary>
+    /// The SHA-256 the release notes give for a file ("`hash`  `Dynamo-1.2.3.zip`",
+    /// as release.ps1 writes it); null when there is none.
+    /// </summary>
+    public static string? ChecksumInNotes(string? notes, string fileName)
+    {
+        if (string.IsNullOrEmpty(notes))
+            return null;
+        var match = System.Text.RegularExpressions.Regex.Match(
+            notes, @"(?<hash>(?<![0-9a-fA-F])[0-9a-fA-F]{64}(?![0-9a-fA-F]))[`'\s]*" + System.Text.RegularExpressions.Regex.Escape(fileName));
+        return match.Success ? match.Groups["hash"].Value.ToLowerInvariant() : null;
     }
 
     /// <summary>The release's version as text, for the pages ("1.2.3").</summary>
