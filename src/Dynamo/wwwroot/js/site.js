@@ -480,6 +480,250 @@
         root.dispatchEvent(new CustomEvent('resultsorted', { bubbles: true }));
     }
 
+    // ---- Filtering rows by a column's values (like a spreadsheet) -------------------
+    // The arrow in each header opens a list of that column's distinct values
+    // (with counts, a search box, "Select all" and "Clear this filter"). Unticked
+    // values are hidden. A filter is stored as the values left out, not the ones
+    // kept, so a new value that shows up in a refresh is visible rather than
+    // silently hidden. Several columns combine (a row must pass them all). The
+    // filters live on the results container like the sort and the pins, are
+    // applied again after every refresh, are kept per page in localStorage, and a
+    // filter is dropped when its column is gone or renamed. Rows are hidden with
+    // the hidden attribute, so the row numbers (a CSS counter) count what is shown.
+    function filterStoreKey(root) { return 'filters:' + location.pathname + '#' + (root.id || ''); }
+
+    function filtersOf(root) {
+        if (root.dataset.filters === undefined) {
+            var stored = null;
+            try { stored = localStorage.getItem(filterStoreKey(root)); } catch (err) { }
+            root.dataset.filters = stored || '{}';
+        }
+        try { return JSON.parse(root.dataset.filters) || {}; } catch (err) { return {}; }
+    }
+
+    function saveFilters(root, filters) {
+        var json = JSON.stringify(filters);
+        root.dataset.filters = json;
+        try {
+            if (Object.keys(filters).length) localStorage.setItem(filterStoreKey(root), json);
+            else localStorage.removeItem(filterStoreKey(root));
+        } catch (err) { }
+    }
+
+    // A cell's value as a key: NULL, the empty text and "x" are three different things.
+    function cellKey(td) { return td.classList.contains('null') ? 'n:' : 'v:' + td.textContent; }
+    function keyLabel(key) { return key === 'n:' ? '(NULL)' : (key.length === 2 ? '(empty)' : key.slice(2)); }
+
+    function showFilterStatus(table, active, shown, total) {
+        var box = table.closest('.results');
+        if (!box || !box.parentNode) return;
+        Array.prototype.slice.call(box.parentNode.children).forEach(function (child) {
+            if (child.classList.contains('filter-status')) child.remove();
+        });
+        if (!active) return;
+        var bar = document.createElement('div');
+        bar.className = 'filter-status';
+        var text = document.createElement('span');
+        text.textContent = 'Showing ' + shown + ' of ' + total + (total === 1 ? ' row' : ' rows');
+        var clear = document.createElement('button');
+        clear.type = 'button';
+        clear.className = 'ghost small';
+        clear.setAttribute('data-clear-filters', '');
+        clear.textContent = 'Clear filters';
+        bar.appendChild(text);
+        bar.appendChild(clear);
+        box.parentNode.insertBefore(bar, box);
+    }
+
+    // Hides the rows that fail the container's filters.
+    function applyFilters(root, table) {
+        var head = table.tHead && table.tHead.rows[0];
+        var body = table.tBodies[0];
+        if (!head || !body) return;
+        var filters = filtersOf(root), changed = false;
+        Object.keys(filters).forEach(function (col) {
+            var th = head.cells[col];
+            if (!th || th.textContent.trim() !== filters[col].name) { delete filters[col]; changed = true; }
+        });
+        if (changed) saveFilters(root, filters);
+        var cols = Object.keys(filters).map(function (col) {
+            return { col: parseInt(col, 10), out: new Set(filters[col].out) };
+        });
+        var rows = Array.prototype.slice.call(body.rows), shown = 0;
+        rows.forEach(function (tr) {
+            var hide = cols.some(function (f) { return f.out.has(cellKey(tr.cells[f.col])); });
+            tr.hidden = hide;
+            if (!hide) shown++;
+        });
+        Array.prototype.forEach.call(head.cells, function (th, i) {
+            th.classList.toggle('filtered', filters[i] !== undefined);
+        });
+        showFilterStatus(table, cols.length, shown, rows.length);
+    }
+
+    // The filters changed: hide the rows, and tell the page (heights, highlights...).
+    function refilter(root) {
+        var table = root.querySelector('.results table');
+        if (table) applyFilters(root, table);
+        root.dispatchEvent(new CustomEvent('resultsorted', { bubbles: true }));
+    }
+
+    var filterMenu = null;
+    var filterMenuState = null;     // { root, col, name, search }
+
+    function closeFilterMenu() {
+        if (filterMenu) filterMenu.hidden = true;
+        filterMenuState = null;
+    }
+
+    // The distinct values of a column, with how many rows have each, in a sensible order.
+    function columnValues(table, col) {
+        var numeric = table.tHead.rows[0].cells[col].classList.contains('num');
+        var counts = new Map();
+        Array.prototype.forEach.call(table.tBodies[0].rows, function (tr) {
+            var key = cellKey(tr.cells[col]);
+            counts.set(key, (counts.get(key) || 0) + 1);
+        });
+        var keys = Array.from(counts.keys());
+        keys.sort(function (a, b) {
+            if (a === 'n:' || b === 'n:') return a === b ? 0 : (a === 'n:' ? 1 : -1);
+            var x = a.slice(2), y = b.slice(2);
+            if (numeric && x !== '' && y !== '' && isFinite(Number(x)) && isFinite(Number(y))) return Number(x) - Number(y);
+            return x.localeCompare(y, undefined, { numeric: true, sensitivity: 'base' });
+        });
+        return keys.map(function (key) { return { key: key, count: counts.get(key) }; });
+    }
+
+    function renderFilterMenu() {
+        var st = filterMenuState;
+        if (!st || !filterMenu) return;
+        var table = st.root.querySelector('.results table');
+        var th = table && table.tHead && table.tHead.rows[0].cells[st.col];
+        if (!th || th.textContent.trim() !== st.name) { closeFilterMenu(); return; }
+        var filters = filtersOf(st.root);
+        var out = new Set(filters[st.col] ? filters[st.col].out : []);
+        var needle = st.search.toLowerCase();
+        var values = columnValues(table, st.col).filter(function (v) {
+            return !needle || keyLabel(v.key).toLowerCase().indexOf(needle) >= 0;
+        });
+        var listed = values.slice(0, 1000);
+        var list = filterMenu.querySelector('.fm-list');
+        var scrolled = list.scrollTop;
+        list.textContent = '';
+        listed.forEach(function (v) {
+            var label = document.createElement('label');
+            var box = document.createElement('input');
+            box.type = 'checkbox';
+            box.checked = !out.has(v.key);
+            box.dataset.key = v.key;
+            var text = document.createElement('span');
+            text.className = 'fm-text';
+            text.textContent = keyLabel(v.key);
+            text.title = keyLabel(v.key);
+            var count = document.createElement('span');
+            count.className = 'count';
+            count.textContent = String(v.count);
+            label.appendChild(box);
+            label.appendChild(text);
+            label.appendChild(count);
+            list.appendChild(label);
+        });
+        if (!values.length || values.length > listed.length) {
+            var note = document.createElement('p');
+            note.className = 'fm-note';
+            note.textContent = values.length ? 'Showing the first 1000 values: search to narrow them.' : 'No matching value.';
+            list.appendChild(note);
+        }
+        list.scrollTop = scrolled;
+        var all = filterMenu.querySelector('.fm-all input');
+        var kept = listed.filter(function (v) { return !out.has(v.key); }).length;
+        all.checked = listed.length > 0 && kept === listed.length;
+        all.indeterminate = kept > 0 && kept < listed.length;
+    }
+
+    function ensureFilterMenu() {
+        if (filterMenu) return filterMenu;
+        filterMenu = document.createElement('div');
+        filterMenu.className = 'filter-menu';
+        filterMenu.hidden = true;
+        filterMenu.innerHTML =
+            '<input type="search" class="fm-search" placeholder="Search values…" autocomplete="off" ' +
+            'aria-label="Search the values of this column">' +
+            '<label class="fm-all"><input type="checkbox"><span>(Select all)</span></label>' +
+            '<div class="fm-list"></div>' +
+            '<div class="fm-foot"><button type="button" class="ghost small fm-clear">Clear this filter</button></div>';
+        document.body.appendChild(filterMenu);
+
+        filterMenu.querySelector('.fm-search').addEventListener('input', function (e) {
+            if (!filterMenuState) return;
+            filterMenuState.search = e.target.value;
+            renderFilterMenu();
+        });
+        filterMenu.addEventListener('change', function (e) {
+            var st = filterMenuState;
+            if (!st) return;
+            var filters = filtersOf(st.root);
+            var out = new Set(filters[st.col] ? filters[st.col].out : []);
+            if (e.target.closest('.fm-all')) {
+                // All the values listed (the search narrows them), as in a spreadsheet.
+                filterMenu.querySelectorAll('.fm-list input').forEach(function (box) {
+                    if (e.target.checked) out.delete(box.dataset.key); else out.add(box.dataset.key);
+                });
+            } else if (e.target.dataset.key !== undefined) {
+                if (e.target.checked) out.delete(e.target.dataset.key); else out.add(e.target.dataset.key);
+            } else return;
+            if (out.size) filters[st.col] = { name: st.name, out: Array.from(out) };
+            else delete filters[st.col];
+            saveFilters(st.root, filters);
+            refilter(st.root);
+            renderFilterMenu();
+        });
+        filterMenu.querySelector('.fm-clear').addEventListener('click', function () {
+            var st = filterMenuState;
+            if (!st) return;
+            var filters = filtersOf(st.root);
+            delete filters[st.col];
+            saveFilters(st.root, filters);
+            refilter(st.root);
+            renderFilterMenu();
+        });
+        return filterMenu;
+    }
+
+    function openFilterMenu(button) {
+        var th = button.closest('th');
+        var root = th && th.closest(SORT_ROOT);
+        if (!th || !root) return;
+        var col = th.cellIndex;
+        if (filterMenuState && filterMenuState.root === root && filterMenuState.col === col) {
+            closeFilterMenu();
+            return;
+        }
+        ensureFilterMenu();
+        filterMenuState = { root: root, col: col, name: th.textContent.trim(), search: '' };
+        filterMenu.querySelector('.fm-search').value = '';
+        renderFilterMenu();
+        filterMenu.hidden = false;
+        var rect = button.getBoundingClientRect();
+        var left = rect.left + window.scrollX;
+        var most = window.scrollX + document.documentElement.clientWidth - filterMenu.offsetWidth - 8;
+        filterMenu.style.left = Math.max(8, Math.min(left, most)) + 'px';
+        filterMenu.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+        filterMenu.querySelector('.fm-search').focus();
+    }
+
+    function clearAllFilters(button) {
+        var root = button.closest(SORT_ROOT);
+        if (!root) return;
+        saveFilters(root, {});
+        refilter(root);
+        if (filterMenuState && filterMenuState.root === root) renderFilterMenu();
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && filterMenu && !filterMenu.hidden) closeFilterMenu();
+    });
+
     function sortTable(root, table, col, dir) {
         var body = table.tBodies[0];
         var head = table.tHead && table.tHead.rows[0];
@@ -514,6 +758,8 @@
             body.appendChild(tr);
             tr.classList.toggle('pinned', pins.has(tr.dataset.pinKey));
         });
+        applyFilters(root, table);
+        if (filterMenuState && filterMenuState.root === root) renderFilterMenu();
         Array.prototype.forEach.call(head.cells, function (th, i) {
             if (col !== null && i === col) th.setAttribute('aria-sort', dir === 'desc' ? 'descending' : 'ascending');
             else th.removeAttribute('aria-sort');
@@ -565,6 +811,15 @@
     }
 
     document.addEventListener('click', function (e) {
+        var filterButton = e.target.closest && e.target.closest('.col-filter');
+        if (filterButton) { openFilterMenu(filterButton); return; }
+        var clearFilters = e.target.closest && e.target.closest('[data-clear-filters]');
+        if (clearFilters) { clearAllFilters(clearFilters); return; }
+        // A click outside the open filter list only closes it.
+        if (filterMenu && !filterMenu.hidden) {
+            if (!filterMenu.contains(e.target)) closeFilterMenu();
+            return;
+        }
         var th = e.target.closest && e.target.closest('.results th');
         if (th && th.classList.contains('rownum')) {
             var head = th.closest(SORT_ROOT), headTable = th.closest('table');
@@ -587,7 +842,7 @@
     });
     document.addEventListener('keydown', function (e) {
         var th = e.target.closest && e.target.closest('.results th');
-        if (!th) return;
+        if (!th || e.target.closest('.col-filter')) return;
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort(th, e.shiftKey); }
         else if (e.key === 'Escape') toggleSort(th, true);
     });
@@ -657,7 +912,9 @@
         var needles = terms.map(function (t) { return t.toLowerCase(); });
         var counts = needles.map(function () { return 0; });
         if (needles.some(Boolean))
-            scope.querySelectorAll('.results tbody td').forEach(function (td) { markCell(td, needles, counts); });
+            scope.querySelectorAll('.results tbody td').forEach(function (td) {
+                if (!td.parentNode.hidden) markCell(td, needles, counts);
+            });
         return counts;
     }
 
@@ -698,6 +955,12 @@
                 if (e.key === 'Escape' && f.input.value) { f.input.value = ''; apply(); }
             });
             if (f.clear) f.clear.addEventListener('click', function () { f.input.value = ''; apply(); f.input.focus(); });
+        });
+        // Rows shown or hidden by a filter, or moved: count what is on screen.
+        document.body.addEventListener('resultsorted', function (e) {
+            var scope = document.querySelector(selector);
+            if (scope && e.target && scope.contains(e.target) &&
+                fields.some(function (f) { return f.input.value.trim(); })) soon(30);
         });
         // New results arrive (a run or an auto-refresh): mark them too.
         document.body.addEventListener('htmx:afterSwap', function (e) {
@@ -773,7 +1036,7 @@
         var box = target && target.querySelector('.results');
         var table = box && box.querySelector('table');
         if (!table || !table.tBodies[0]) return;
-        var rows = table.tBodies[0].rows;
+        var rows = Array.prototype.filter.call(table.tBodies[0].rows, function (tr) { return !tr.hidden; });
         var n = viewRowsOf(target);
         if (rows.length <= n) { box.style.maxHeight = ''; return; }
         var height = table.tHead ? table.tHead.offsetHeight : 0;

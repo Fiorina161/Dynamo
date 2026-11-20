@@ -102,8 +102,10 @@ public class QueriesPagesTests
         Assert.That(html, Does.Contain("42 ms"));
         Assert.That(html, Does.Contain("<td class=\"null\">NULL</td>"));
         // Headers are the sort buttons: focusable, numeric columns marked, with a hint.
-        Assert.That(html, Does.Match("<th class=\"num\" tabindex=\"0\"\\s+title=\"Click to sort[^\"]*\">ID</th>"));
-        Assert.That(html, Does.Match("<th class=\"\" tabindex=\"0\"[^>]*>NAME</th>"));
+        Assert.That(html, Does.Match("<th class=\"num\" tabindex=\"0\"\\s+title=\"Click to sort[^\"]*\">ID<button[^>]*></button></th>"));
+        Assert.That(html, Does.Match("<th class=\"\" tabindex=\"0\"[^>]*>NAME<button[^>]*></button></th>"));
+        // Each column (not the row number) has the arrow that opens its list of values.
+        Assert.That(System.Text.RegularExpressions.Regex.Matches(html, "class=\"ghost col-filter\"").Count, Is.EqualTo(2));
         Assert.That(html, Does.Contain("<td class=\"num\" title=\"\">1</td>").Or.Contain("<td class=\"num\">1</td>"));
         Assert.That(html, Does.Not.Contain("<script>alert(1)</script>"));
         Assert.That(html, Does.Contain("&lt;script&gt;"));

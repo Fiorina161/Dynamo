@@ -20,7 +20,7 @@ else
                     @foreach (var c in r.Columns)
                     {
                         <th class="@(c.Numeric ? "num" : "")" tabindex="0"
-                            title="Click to sort, again to reverse (Shift-click: original order)">@c.Name</th>
+                            title="Click to sort, again to reverse (Shift-click: original order)">@c.Name<button type="button" class="ghost col-filter" aria-label="Filter @c.Name" title="Filter the rows by the values of this column"></button></th>
                     }
                 </tr>
             </thead>
