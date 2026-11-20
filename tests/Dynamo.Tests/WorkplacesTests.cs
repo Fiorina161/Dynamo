@@ -277,6 +277,11 @@ public class WorkplacesTests
 
         Assert.That(await _client.GetStringAsync($"/Workplaces/{w}"),
             Does.Contain("data-highlight-scope=\"[data-workplace]\"").And.Contain("data-highlight-count"));
+        var panelPage = await _client.GetStringAsync($"/Workplaces/{w}");
+        Assert.That(System.Text.RegularExpressions.Regex.Matches(panelPage, "data-highlight-scope=").Count, Is.EqualTo(3),
+            "three boxes, three colours");
+        Assert.That(panelPage, Does.Contain("Highlight in yellow").And.Contain("Highlight in sky blue")
+            .And.Contain("Highlight in green-yellow"));
         Assert.That(await _client.GetStringAsync($"/Queries/{q}"),
             Does.Contain("data-highlight-scope=\"#results\""));
         Assert.That(await _client.GetStringAsync($"/Workplaces/{empty}"),

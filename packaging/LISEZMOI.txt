@@ -152,14 +152,17 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     numérotées de 1 à n dans la première colonne (la numérotation suit l'ordre
     affiché après un tri). Le réglage est retenu par ce navigateur, pour
     chaque requête.
-  - Surligner du texte : la zone « Highlight text in the results… », au-dessus
-    des résultats, surligne le texte tapé (sans tenir compte des majuscules)
-    dans toutes les cellules, avec le nombre d'occurrences trouvées. Touche
-    Échap ou « × » pour effacer. Le surlignage est refait à chaque
-    rafraîchissement et retenu par ce navigateur. Dans un espace de travail, la
-    zone s'applique à tous les panneaux à la fois.
+  - Surligner du texte : les trois zones « Highlight in … », au-dessus des
+    résultats, surlignent le texte tapé (sans tenir compte des majuscules)
+    dans toutes les cellules, chacune de sa couleur (jaune, bleu ciel, vert
+    jaune), pour suivre jusqu'à trois choses à la fois; le nombre
+    d'occurrences trouvées est indiqué à côté de chaque zone. Touche Échap ou
+    « × » pour effacer une zone. Le surlignage est refait à chaque
+    rafraîchissement et retenu par ce navigateur. Dans un espace de travail,
+    les zones s'appliquent à tous les panneaux à la fois. Si deux textes se
+    chevauchent, la première zone l'emporte.
   - Épingler des lignes : cliquez sur une ligne du tableau pour l'épingler
-    (elle reste en haut, surlignée, quel que soit le tri); cliquez de nouveau
+    (elle reste en haut, en vidéo inversée, quel que soit le tri); cliquez de nouveau
     pour la désépingler, ou sur « # » pour tout désépingler. Une ligne est
     reconnue par la valeur de sa première colonne: l'épingle suit la ligne
     d'un rafraîchissement à l'autre même si les autres valeurs changent.

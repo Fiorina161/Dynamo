@@ -597,12 +597,16 @@
     });
 
     // ---- Highlighting ------------------------------------------------------------
-    // <input data-highlight-scope="<selector>">: whatever is typed is marked (case
-    // does not matter) in every result cell inside the scope: the query page's
-    // #results, or all the panels of a workspace. Marks are applied again after
-    // each refresh, the text is remembered per page, and the count says how many
-    // places matched. Only the cells' own text is touched, so sorting, pinning and
-    // the change flash (all of which read text) are unaffected.
+    // A .highlight-box holds up to three fields (data-slot 1..3, three colours),
+    // each an <input data-highlight-scope="<selector>">: what is typed is marked
+    // (case does not matter) in every result cell inside the scope: the query
+    // page's #results, or all the panels of a workspace. The fields work
+    // together: each cell is cut up once, from its plain text, so the colours
+    // never nest; where two matches overlap, the lower slot wins. Marks are
+    // applied again after each refresh, each text is remembered per page, and
+    // each count says how many places matched. Only the cells' own text is
+    // touched, so sorting, pinning and the change flash (all of which read
+    // text) are unaffected.
     function clearMarks(scope) {
         scope.querySelectorAll('mark.hl').forEach(function (m) {
             var parent = m.parentNode;
@@ -611,73 +615,100 @@
         });
     }
 
-    function markCell(td, needle) {
-        var node = td.firstChild;
-        if (!node || node.nodeType !== 3 || td.classList.contains('null')) return 0;
-        var text = node.nodeValue, lower = text.toLowerCase();
-        var at = lower.indexOf(needle);
-        if (at < 0) return 0;
-        var fragment = document.createDocumentFragment(), from = 0, found = 0;
-        while (at >= 0) {
-            if (at > from) fragment.appendChild(document.createTextNode(text.slice(from, at)));
-            var mark = document.createElement('mark');
-            mark.className = 'hl';
-            mark.textContent = text.slice(at, at + needle.length);
-            fragment.appendChild(mark);
-            found++;
-            from = at + needle.length;
-            at = lower.indexOf(needle, from);
+    // Marks one cell (its marks were cleared first): adds to counts, one per term.
+    function markCell(td, needles, counts) {
+        if (td.classList.contains('null')) return;
+        var text = td.textContent;
+        var lower = text.toLowerCase();
+        if (!text || lower.length !== text.length) return;
+        var owner = [], any = false;
+        needles.forEach(function (needle, k) {
+            if (!needle) return;
+            var at = lower.indexOf(needle);
+            while (at >= 0) {
+                counts[k]++;
+                any = true;
+                for (var i = at; i < at + needle.length; i++) if (owner[i] === undefined) owner[i] = k;
+                at = lower.indexOf(needle, at + needle.length);
+            }
+        });
+        if (!any) return;
+        var fragment = document.createDocumentFragment();
+        var start = 0;
+        for (var i = 1; i <= text.length; i++) {
+            if (i < text.length && owner[i] === owner[start]) continue;
+            var piece = text.slice(start, i);
+            if (owner[start] === undefined) fragment.appendChild(document.createTextNode(piece));
+            else {
+                var mark = document.createElement('mark');
+                mark.className = 'hl hl' + (owner[start] + 1);
+                mark.textContent = piece;
+                fragment.appendChild(mark);
+            }
+            start = i;
         }
-        if (from < text.length) fragment.appendChild(document.createTextNode(text.slice(from)));
-        td.replaceChild(fragment, node);
-        return found;
+        td.textContent = '';
+        td.appendChild(fragment);
     }
 
-    function highlightIn(scope, term) {
+    // Returns how many matches each term found.
+    function highlightIn(scope, terms) {
         clearMarks(scope);
-        var needle = term.toLowerCase();
-        if (!needle) return 0;
-        var total = 0;
-        scope.querySelectorAll('.results tbody td').forEach(function (td) { total += markCell(td, needle); });
-        return total;
+        var needles = terms.map(function (t) { return t.toLowerCase(); });
+        var counts = needles.map(function () { return 0; });
+        if (needles.some(Boolean))
+            scope.querySelectorAll('.results tbody td').forEach(function (td) { markCell(td, needles, counts); });
+        return counts;
     }
 
-    function initHighlight(input) {
-        var box = input.closest('.highlight-box');
-        var counter = box && box.querySelector('[data-highlight-count]');
-        var clear = box && box.querySelector('[data-highlight-clear]');
-        var key = 'highlight:' + location.pathname;
+    function initHighlightBox(box) {
+        var fields = Array.prototype.slice.call(box.querySelectorAll('[data-highlight-scope]')).map(function (input) {
+            var holder = input.closest('.highlight-field') || box;
+            var slot = parseInt(input.dataset.slot || '1', 10);
+            return {
+                input: input,
+                counter: holder.querySelector('[data-highlight-count]'),
+                clear: holder.querySelector('[data-highlight-clear]'),
+                key: 'highlight:' + location.pathname + (slot === 1 ? '' : ':' + slot),
+            };
+        });
+        if (!fields.length) return;
+        var selector = fields[0].input.dataset.highlightScope;
         var timer = null;
 
         function apply() {
-            var scope = document.querySelector(input.dataset.highlightScope);
-            var term = input.value.trim();
-            var n = scope ? highlightIn(scope, term) : 0;
-            if (counter) counter.textContent = term ? (n === 1 ? '1 match' : n + ' matches') : '';
-            if (clear) clear.hidden = !input.value;
-            try {
-                if (term) localStorage.setItem(key, input.value);
-                else localStorage.removeItem(key);
-            } catch (err) { }
+            var scope = document.querySelector(selector);
+            var terms = fields.map(function (f) { return f.input.value.trim(); });
+            var counts = scope ? highlightIn(scope, terms) : terms.map(function () { return 0; });
+            fields.forEach(function (f, k) {
+                if (f.counter) f.counter.textContent = terms[k] ? (counts[k] === 1 ? '1 match' : counts[k] + ' matches') : '';
+                if (f.clear) f.clear.hidden = !f.input.value;
+                try {
+                    if (terms[k]) localStorage.setItem(f.key, f.input.value);
+                    else localStorage.removeItem(f.key);
+                } catch (err) { }
+            });
         }
         function soon(ms) { clearTimeout(timer); timer = setTimeout(apply, ms); }
 
-        try { var saved = localStorage.getItem(key); if (saved) input.value = saved; } catch (err) { }
-        input.addEventListener('input', function () { soon(120); });
-        input.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && input.value) { input.value = ''; apply(); }
+        fields.forEach(function (f) {
+            try { var saved = localStorage.getItem(f.key); if (saved) f.input.value = saved; } catch (err) { }
+            f.input.addEventListener('input', function () { soon(120); });
+            f.input.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && f.input.value) { f.input.value = ''; apply(); }
+            });
+            if (f.clear) f.clear.addEventListener('click', function () { f.input.value = ''; apply(); f.input.focus(); });
         });
-        if (clear) clear.addEventListener('click', function () { input.value = ''; apply(); input.focus(); });
         // New results arrive (a run or an auto-refresh): mark them too.
         document.body.addEventListener('htmx:afterSwap', function (e) {
-            var scope = document.querySelector(input.dataset.highlightScope);
-            if (input.value.trim() && scope && e.target && scope.contains(e.target)) soon(30);
-            else if (input.value.trim() && scope && e.target === scope) soon(30);
+            var scope = document.querySelector(selector);
+            if (scope && e.target && scope.contains(e.target) &&
+                fields.some(function (f) { return f.input.value.trim(); })) soon(30);
         });
         apply();
     }
 
-    document.querySelectorAll('[data-highlight-scope]').forEach(initHighlight);
+    document.querySelectorAll('.highlight-box').forEach(initHighlightBox);
 
     // ---- A form that takes a while: say so ------------------------------------
     // data-busy-text on a form: its button shows that text and is disabled once

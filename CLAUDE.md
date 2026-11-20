@@ -366,20 +366,25 @@ connection.
   "Visible rows", not posted, remembered in localStorage per query; panels:
   `watch_panel.view_rows` (migration 4), saved with the other panel settings and
   copied by Duplicate. Checked with jsdom and a faked `offsetHeight` (no layout
-  there), so the real pixel height has not been seen. **Highlight box (20 Nov
-  2026):** the partial `Shared/_HighlightBox` above the results (Queries run
+  there), so the real pixel height has not been seen. **Highlight boxes (20 Nov
+  2026; three of them since the same day: yellow, sky blue, green-yellow, so
+  three things can be followed at once):** the partial `Shared/_HighlightBox`
+  above the results (Queries run
   page: scope `#results`; workspace with panels: scope `[data-workplace]`, so
   every panel at once). Typing marks the text, case-insensitive, with
-  `<mark class="hl">` in every cell (not NULL cells) and shows a match count;
+  `<mark class="hl hl1|hl2|hl3">` in every cell (not NULL cells; each cell is
+  cut up once from its plain text, so marks never nest, and where two terms
+  overlap the lower box wins) and shows a match count per box;
   Escape or × clears; re-applied after each swap (refreshes); the text is kept
   per page in localStorage. Client side only (site.js "Highlighting"); marks
   only wrap the cell's own text node, so sort/pin/change-flash, which read
-  `textContent`, are unaffected. jsdom check (15 checks) in the scratch dir.
-  Not built: "show only matching rows" (a filter, not a highlight), several
-  terms, regular expressions. **Pinned rows (20 Nov
+  `textContent`, are unaffected. jsdom check (13 checks, three boxes) in the
+  scratch dir. Not built: "show only matching rows" (a filter, not a
+  highlight), more than three terms, regular expressions. **Pinned rows (20 Nov
   2026):** click a row to pin it to the top (again to unpin; the `#` header
   unpins all); pinned rows stay first whatever the sort and keep the sort's
-  order among themselves, tinted with an accent bar (`tr.pinned`). Client side
+  order among themselves, in **reverse video** (text colour as background, page
+  colour as text; highlights keep their colour with dark text) (`tr.pinned`). Client side
   only, in site.js next to the sort (`sortTable` applies them, so every
   re-sort and refresh keeps them). **A row is its first column's value plus its
   rank among rows with that value**, so a pin survives a refresh even when the

@@ -398,19 +398,35 @@ dialog textarea { margin-top: 4px; }
     border-bottom: 1px solid var(--line);
 }
 .results tbody tr { cursor: pointer; }
-/* Highlighted text (the highlight box above the results). */
+/* Highlighted text: three colours, one per box above the results. */
+:root { --hl1: #ffc933; --hl2: #7fd0f5; --hl3: #c9e55b; }
 mark.hl {
-    background: color-mix(in srgb, #ffc933 55%, transparent);
     color: inherit;
     border-radius: 2px;
     padding: 0 1px;
 }
-.highlight-box { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
-.highlight-box input { max-width: 320px; }
+mark.hl1 { background: color-mix(in srgb, var(--hl1) 55%, transparent); }
+mark.hl2 { background: color-mix(in srgb, var(--hl2) 60%, transparent); }
+mark.hl3 { background: color-mix(in srgb, var(--hl3) 60%, transparent); }
+.highlight-box { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0 0 12px; }
+.highlight-field { display: flex; align-items: center; gap: 8px; flex: 1 1 240px; max-width: 360px; }
+.highlight-field input { min-width: 0; }
+/* The colour of each box, on the left edge of its field. */
+.hl-input.hl1 { box-shadow: inset 5px 0 0 var(--hl1); padding-left: 14px; }
+.hl-input.hl2 { box-shadow: inset 5px 0 0 var(--hl2); padding-left: 14px; }
+.hl-input.hl3 { box-shadow: inset 5px 0 0 var(--hl3); padding-left: 14px; }
 .highlight-box .count { white-space: nowrap; }
-/* A pinned row: tinted, with an accent bar on its number. */
-.results tbody tr.pinned td { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
-.results tbody tr.pinned td.rownum { box-shadow: inset 3px 0 0 var(--accent); color: var(--fg); font-weight: 700; }
+/* A pinned row: reverse video (the text colour as the background, the page
+   colour as the text), so it stands out in the light and the dark theme. */
+.results tbody tr.pinned td,
+.results tbody tr.pinned:hover td { background: var(--fg); color: var(--bg); }
+.results tbody tr.pinned td.null { color: color-mix(in srgb, var(--bg) 60%, transparent); }
+.results tbody tr.pinned td.rownum { color: var(--bg); font-weight: 700; }
+/* Highlights keep their colour on it, with dark text so they stay readable. */
+.results tbody tr.pinned mark.hl { color: #1d2033; }
+.results tbody tr.pinned mark.hl1 { background: var(--hl1); }
+.results tbody tr.pinned mark.hl2 { background: var(--hl2); }
+.results tbody tr.pinned mark.hl3 { background: var(--hl3); }
 .results tbody tr:hover td { background: color-mix(in srgb, var(--fg) 6%, transparent); }
 .results .num { text-align: right; font-variant-numeric: tabular-nums; }
 /* NULL: the text colour, faded (so it follows the theme), in italics. */

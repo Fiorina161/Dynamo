@@ -1,10 +1,23 @@
-@* A box to highlight a piece of text in the results below it: the same on the
-   Queries page and in a workspace (site.js, "Highlighting"). The model is the
-   selector of the element that holds the results to mark. *@
+@* Three boxes to highlight pieces of text in the results below them, each in its
+   own colour (yellow, sky blue, green-yellow), so up to three different things
+   can be followed at once. The same on the Queries page and in a workspace
+   (site.js, "Highlighting"). The model is the selector of the element that
+   holds the results to mark. *@
 @model string
+@{
+    var colours = new[] { "yellow", "sky blue", "green-yellow" };
+}
 <div class="highlight-box">
-    <input type="text" data-highlight-scope="@Model" placeholder="Highlight text in the results…"
-           autocomplete="off" spellcheck="false" aria-label="Text to highlight in the results" />
-    <button type="button" class="ghost small" data-highlight-clear hidden title="Clear the highlight (Escape)">×</button>
-    <span class="count" data-highlight-count role="status"></span>
+    @for (var slot = 1; slot <= 3; slot++)
+    {
+        <div class="highlight-field">
+            <input type="text" class="hl-input hl@(slot)" data-slot="@slot" data-highlight-scope="@Model"
+                   placeholder="Highlight in @colours[slot - 1]…"
+                   autocomplete="off" spellcheck="false"
+                   aria-label="Text to highlight in @colours[slot - 1]" />
+            <button type="button" class="ghost small" data-highlight-clear hidden
+                    title="Clear this highlight (Escape)">×</button>
+            <span class="count" data-highlight-count role="status"></span>
+        </div>
+    }
 </div>
