@@ -147,6 +147,11 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
   - « Run » exécute. Le nombre de lignes affichées est de 500 par défaut
     (jusqu'à 10 000). « Export CSV » télécharge jusqu'à 100 000 lignes (un
     fichier qui s'ouvre directement dans Excel).
+  - « Visible rows » règle la hauteur du tableau de résultats, en nombre de
+    lignes (10 par défaut); au-delà, le tableau défile. Les lignes sont
+    numérotées de 1 à n dans la première colonne (la numérotation suit l'ordre
+    affiché après un tri). Le réglage est retenu par ce navigateur, pour
+    chaque requête.
   - Tri : cliquez sur l'en-tête d'une colonne du tableau de résultats pour
     trier selon cette colonne, cliquez de nouveau pour inverser l'ordre (▲ ou
     ▼ indique la colonne triée). Les colonnes numériques sont triées comme des
@@ -183,7 +188,8 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     place aux données.
   - L'engrenage (⚙) du titre d'un panneau ouvre ses détails : connexion,
     intervalle de rafraîchissement en secondes (0 = aucun), nombre maximal de
-    lignes, « Run now », « Edit query » (modifier le nom et le SQL de la
+    lignes, nombre de lignes visibles (« Visible rows », 10 par défaut: la
+    hauteur du tableau), « Run now », « Export CSV », « Edit query » (modifier le nom et le SQL de la
     requête de ce panneau), les flèches ← → (déplacer le panneau avant ou
     après) et « Remove ».
   - Les valeurs des variables (:nom) sont saisies une seule fois, en haut de

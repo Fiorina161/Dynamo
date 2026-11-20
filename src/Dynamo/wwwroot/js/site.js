@@ -479,6 +479,7 @@
     }
 
     function toggleSort(th, restore) {
+        if (th.classList.contains('rownum')) return;      // the row numbers
         var root = th.closest(SORT_ROOT);
         var table = th.closest('table');
         if (!root || !table) return;
@@ -511,6 +512,72 @@
     document.body.addEventListener('htmx:afterSwap', function (e) {
         if (e.target && e.target.id === 'results') applyStoredSort(e.target);
     });
+
+    // ---- Height of the results, in rows ------------------------------------------
+    // An input marked data-view-rows-for="<selector>" says how many rows of the
+    // result show before it scrolls (default 10). The same script serves the
+    // query page (remembered in this browser, per query) and every workspace
+    // panel (the input is saved on the server by its own hx-post). The height is
+    // measured from the real rows: the header plus the first N rows, so wrapped
+    // or tall rows still count as one row each.
+    var DEFAULT_VIEW_ROWS = 10;
+    var MAX_VIEW_ROWS = 1000;
+
+    function viewRowsOf(target) {
+        var n = parseInt(target.dataset.viewRows, 10);
+        return n >= 1 ? Math.min(n, MAX_VIEW_ROWS) : DEFAULT_VIEW_ROWS;
+    }
+
+    function fitResults(target) {
+        var box = target && target.querySelector('.results');
+        var table = box && box.querySelector('table');
+        if (!table || !table.tBodies[0]) return;
+        var rows = table.tBodies[0].rows;
+        var n = viewRowsOf(target);
+        if (rows.length <= n) { box.style.maxHeight = ''; return; }
+        var height = table.tHead ? table.tHead.offsetHeight : 0;
+        for (var i = 0; i < n; i++) height += rows[i].offsetHeight;
+        if (height > 0) box.style.maxHeight = (height + 1) + 'px';
+    }
+
+    function fitAllResults() {
+        document.querySelectorAll('[data-view-rows-for]').forEach(function (input) {
+            var target = document.querySelector(input.dataset.viewRowsFor);
+            if (target) fitResults(target);
+        });
+    }
+
+    function initViewRows() {
+        document.querySelectorAll('[data-view-rows-for]').forEach(function (input) {
+            var target = document.querySelector(input.dataset.viewRowsFor);
+            if (!target) return;
+            var key = input.dataset.viewRowsKey ? 'viewRows:' + input.dataset.viewRowsKey : null;
+            if (key) {
+                try { var saved = localStorage.getItem(key); if (saved) input.value = saved; } catch (err) { }
+            }
+            target.dataset.viewRows = input.value;
+            input.addEventListener('input', function () {
+                target.dataset.viewRows = input.value;
+                if (key) { try { localStorage.setItem(key, input.value); } catch (err) { } }
+                fitResults(target);
+            });
+        });
+    }
+
+    // A new result arrives in a results container, or its rows are re-sorted.
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+        if (e.target && e.target.dataset && e.target.dataset.viewRows !== undefined) fitResults(e.target);
+    });
+    document.body.addEventListener('resultsorted', function (e) {
+        var target = e.target.closest && e.target.closest('[data-view-rows]');
+        if (target) fitResults(target);
+    });
+    var fitTimer = null;
+    window.addEventListener('resize', function () {
+        clearTimeout(fitTimer);
+        fitTimer = setTimeout(fitAllResults, 200);
+    });
+    initViewRows();
 
     // ---- Workplaces: several queries refreshing side by side -------------------
     // [data-workplace] holds .panel sections. Each has a form (.panel-form, an

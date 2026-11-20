@@ -76,5 +76,7 @@ public sealed class WorkplacesModule : IModule
         ALTER TABLE watch_panel_v2 RENAME TO watch_panel;
         CREATE INDEX ix_watch_panel ON watch_panel(watch_id, position);
         """,
+        // How many rows of the result a panel shows before it scrolls.
+        "ALTER TABLE watch_panel ADD COLUMN view_rows INTEGER NOT NULL DEFAULT 10;",
     ];
 }

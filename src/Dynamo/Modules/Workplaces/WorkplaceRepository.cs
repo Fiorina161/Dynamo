@@ -30,6 +30,9 @@ public sealed class WorkplacePanel
     /// <summary>The most rows this panel fetches.</summary>
     public long MaxRows { get; set; } = WorkplaceRepository.DefaultMaxRows;
 
+    /// <summary>How many rows of the result show before it scrolls (its height).</summary>
+    public long ViewRows { get; set; } = WorkplaceRepository.DefaultViewRows;
+
     public long Position { get; set; }
 
     /// <summary>Values the saved query had last been run with, when it was copied.</summary>
@@ -112,12 +115,14 @@ public sealed class WorkplaceRepository(Db db)
     public const int MaxSeconds = 3600;
     public const int DefaultMaxRows = QueryRunner.DefaultMaxRows;
     public const int MaxRowsLimit = QueryRunner.MaxRowsLimit;
+    public const int DefaultViewRows = 10;
+    public const int MaxViewRows = 1000;
 
     private const string PanelSelect = """
         SELECT p.id AS Id, p.watch_id AS WorkplaceId, p.name AS QueryName,
                p.sql_text AS Sql, p.last_params AS LastParamsJson,
                p.connection_name AS Connection, p.refresh_seconds AS RefreshSeconds,
-               p.max_rows AS MaxRows, p.position AS Position
+               p.max_rows AS MaxRows, p.view_rows AS ViewRows, p.position AS Position
           FROM watch_panel p
         """;
 
@@ -232,23 +237,26 @@ public sealed class WorkplaceRepository(Db db)
 
     /// <summary>
     /// Saves a panel's refresh interval (0..3600 s) and, when given, its
-    /// connection and row limit (1..10,000); a null connection or limit leaves
-    /// it as it is.
+    /// connection, row limit (1..10,000) and visible rows (1..1,000); a null
+    /// connection or number leaves it as it is.
     /// </summary>
-    public void SetPanel(long id, string? connection, long seconds, long? maxRows = null)
+    public void SetPanel(
+        long id, string? connection, long seconds, long? maxRows = null, long? viewRows = null)
     {
         using var conn = db.Open();
         conn.Execute("""
             UPDATE watch_panel
                SET connection_name = COALESCE(@connection, connection_name),
                    refresh_seconds = @seconds,
-                   max_rows = COALESCE(@maxRows, max_rows)
+                   max_rows = COALESCE(@maxRows, max_rows),
+                   view_rows = COALESCE(@viewRows, view_rows)
              WHERE id = @id
             """, new
         {
             id, connection,
             seconds = Math.Clamp(seconds, 0, MaxSeconds),
             maxRows = maxRows is { } m ? Math.Clamp(m, 1, MaxRowsLimit) : (long?)null,
+            viewRows = viewRows is { } v ? Math.Clamp(v, 1, MaxViewRows) : (long?)null,
         });
     }
 
@@ -298,9 +306,9 @@ public sealed class WorkplaceRepository(Db db)
         conn.Execute("""
             INSERT INTO watch_panel
                 (watch_id, name, sql_text, last_params, connection_name,
-                 refresh_seconds, max_rows, position)
+                 refresh_seconds, max_rows, view_rows, position)
             SELECT @copy, name, sql_text, last_params, connection_name,
-                   refresh_seconds, max_rows, position
+                   refresh_seconds, max_rows, view_rows, position
               FROM watch_panel WHERE watch_id = @id
             """, new { copy, id }, tx);
         tx.Commit();

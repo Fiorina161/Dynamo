@@ -326,6 +326,16 @@ connection.
   `Shared/_ExportButton`. A panel shows the summary in its title bar through an
   htmx out-of-band swap (`_PanelResults`, `#panel-count-<id>`). A change to how
   results are shown or exported goes there, never into one page only. Still
+  **Height and row numbers (20 Nov 2026):** the shared `_ResultTable` has a
+  `#` column (`.rownum`, numbers are a CSS counter, so they follow the order
+  after a sort and are not copied; the header is not sortable). The height is a
+  number of rows (default 10, 1..1000) set by an input marked
+  `data-view-rows-for="<results container>"` (site.js `fitResults`: header + the
+  first N rows measured, so no per-row height is assumed). Queries page: input
+  "Visible rows", not posted, remembered in localStorage per query; panels:
+  `watch_panel.view_rows` (migration 4), saved with the other panel settings and
+  copied by Duplicate. Checked with jsdom and a faked `offsetHeight` (no layout
+  there), so the real pixel height has not been seen. Still
   separate on purpose: the refresh timers (`initAutoRefresh` for one query,
   `initWorkplace` for many panels) and the panel-only change flash. Checked
   with jsdom + the real htmx (scratch dir `oob.js`), not kept in the repo.

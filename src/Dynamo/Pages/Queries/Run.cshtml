@@ -48,6 +48,12 @@
             <label>Max rows
                 <input name="maxRows" type="number" min="1" max="10000" value="500" />
             </label>
+            @* The height of the results, in rows. Not sent to the server (no name):
+               the page script applies it and remembers it (site.js). *@
+            <label>Visible rows
+                <input type="number" min="1" max="1000" value="10" inputmode="numeric"
+                       data-view-rows-for="#results" data-view-rows-key="query-@q.Id" />
+            </label>
         </div>
 
         @if (Model.Connections.Count == 0)

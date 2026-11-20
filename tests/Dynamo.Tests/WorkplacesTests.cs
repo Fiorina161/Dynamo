@@ -446,6 +446,55 @@ public class WorkplacesTests
     }
 
     [Test]
+    public async Task APanelShows10RowsByDefault_AndTheNumberCanBeChanged_AndIsCopied()
+    {
+        var w = NewWorkplace("Height");
+        _workplaces.AddCopies(w, [NewQuery("H", "select 1 from dual")]);
+        var panel = _workplaces.Get(w)!.Panels[0];
+        Assert.That(panel.ViewRows, Is.EqualTo(10), "the default height");
+        Assert.That(await _client.GetStringAsync($"/Workplaces/{w}"),
+            Does.Match("name=\"viewRows\"[^>]*value=\"10\"").Or.Match("value=\"10\"[^>]*name=\"viewRows\""));
+
+        await Post($"/Workplaces/{w}?handler=PanelSettings&panel={panel.Id}",
+            ("connection", ""), ("seconds", "5"), ("maxRows", "40"), ("viewRows", "25"));
+        Assert.That(_workplaces.GetPanel(panel.Id)!.ViewRows, Is.EqualTo(25));
+
+        // Without the field (another setting changed) it is left as it is; out of range is clamped.
+        await Post($"/Workplaces/{w}?handler=PanelSettings&panel={panel.Id}", ("connection", ""), ("seconds", "5"));
+        Assert.That(_workplaces.GetPanel(panel.Id)!.ViewRows, Is.EqualTo(25));
+        _workplaces.SetPanel(panel.Id, null, 5, viewRows: 0);
+        Assert.That(_workplaces.GetPanel(panel.Id)!.ViewRows, Is.EqualTo(1));
+        _workplaces.SetPanel(panel.Id, null, 5, viewRows: 99999);
+        Assert.That(_workplaces.GetPanel(panel.Id)!.ViewRows, Is.EqualTo(WorkplaceRepository.MaxViewRows));
+
+        _workplaces.SetPanel(panel.Id, null, 5, viewRows: 17);
+        var copy = _workplaces.Duplicate(w, "Height copy");
+        Assert.That(_workplaces.Get(copy)!.Panels[0].ViewRows, Is.EqualTo(17), "a duplicate keeps the height");
+    }
+
+    [Test]
+    public async Task ResultsHaveARowNumberColumn_OnBothPages_AndTheQueriesPageHasTheHeightInput()
+    {
+        var w = NewWorkplace("Numbers");
+        var q = NewQuery("N", "select id, name from t", connection: "PROD");
+        _workplaces.AddCopies(w, [q]);
+        var panel = _workplaces.Get(w)!.Panels[0];
+
+        var onPage = await (await Post($"/Queries/{q}?handler=Run", ("connection", "PROD"))).Content.ReadAsStringAsync();
+        var inPanel = await (await Post($"/Workplaces/{w}?handler=RunPanel&panel={panel.Id}", ("connection", "")))
+            .Content.ReadAsStringAsync();
+
+        foreach (var html in new[] { onPage, inPanel })
+        {
+            Assert.That(html, Does.Contain("<th class=\"rownum\""));
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(html, "<td class=\"rownum\"></td>").Count,
+                Is.EqualTo(2), "one number cell per row (the numbers themselves are a CSS counter)");
+        }
+        Assert.That(await _client.GetStringAsync($"/Queries/{q}"),
+            Does.Match("data-view-rows-for=\"#results\"").And.Match("value=\"10\""));
+    }
+
+    [Test]
     public async Task Panels_CanBeMovedEarlierAndLater_NotPastTheEnds()
     {
         var w = NewWorkplace("Order");

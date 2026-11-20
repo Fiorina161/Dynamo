@@ -211,12 +211,12 @@ public class ViewModel(
     /// connection or a missing limit is left as it is). No content.
     /// </summary>
     public IActionResult OnPostPanelSettings(
-        long id, long panel, string? connection, long? seconds, long? maxRows)
+        long id, long panel, string? connection, long? seconds, long? maxRows, long? viewRows)
     {
         if (repo.GetPanel(panel) is not { } p || p.WorkplaceId != id)
             return NotFound();
         repo.SetPanel(panel, string.IsNullOrWhiteSpace(connection) ? null : connection.Trim(),
-            seconds ?? 0, maxRows);
+            seconds ?? 0, maxRows, viewRows);
         return new NoContentResult();
     }
 
