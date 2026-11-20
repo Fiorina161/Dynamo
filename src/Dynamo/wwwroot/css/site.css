@@ -609,6 +609,20 @@ dialog footer { display: flex; gap: 8px; margin-top: 18px; }
 .panel { margin-bottom: 0; padding-top: 10px; }
 .panel > header { margin-bottom: 6px; }
 .panel .gear { margin-left: auto; opacity: .55; }
+/* Full width: the panel takes the whole row of the grid. (Not called "wide":
+   that is the class of the settings sections, with a maximum width.) The count,
+   the full-width button and the gear sit together on the right. */
+.panel.full-width { grid-column: 1 / -1; }
+.panel > header .count { margin-left: auto; }
+.panel .gear { margin-left: 0; }
+.wide-toggle { opacity: .55; }
+.wide-toggle:hover, .wide-toggle[aria-pressed="true"] { opacity: 1; }
+.wide-toggle[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+/* On the Queries page the whole window goes to the results: the menu folds away. */
+@media (min-width: 761px) {
+    body.wide-results .side { display: none; }
+    body.wide-results main { padding-left: 16px; padding-right: 16px; }
+}
 .panel .gear:hover, .panel .gear[aria-expanded="true"] { opacity: 1; }
 .panel .results { max-height: 62vh; }
 .panel pre.error { margin: 0 10px 6px; }

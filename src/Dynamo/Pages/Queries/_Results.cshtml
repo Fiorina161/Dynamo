@@ -11,6 +11,7 @@ else if (Model.Result is { } r)
         <header>
             <h2>Results</h2>
             <span class="count"><partial name="_ResultSummary" model="r" /></span>
+            <partial name="_WideButton" model="@("the results")" />
         </header>
 
         <partial name="_ResultTable" model="r" />

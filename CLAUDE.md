@@ -397,7 +397,17 @@ connection.
   (event `resultsorted`). Client side only, on the fetched rows. Checked with
   jsdom (26 checks) and a real Edge render of the open list. Not built: text
   conditions ("contains", "greater than"), filtering by colour, a filter on a
-  column across several panels. **Highlight boxes (20 Nov
+  column across several panels. **Full width (20 Nov 2026):** a ↔ button
+  (partial `Shared/_WideButton`, `data-wide-toggle`) in the title bar of every
+  result. In a workspace it makes that panel span the whole row of the grid
+  (`.panel.full-width`, kept per panel in localStorage, `wide:<path>#<panel id>`);
+  on the Queries page, where the result already spans the content area, it folds
+  the menu away (`body.wide-results`, not remembered so a page never opens without
+  its menu; Escape outside a text field or the button restores it). **Do not
+  call the class `wide`: `.group.wide` is the settings sections' max-width
+  (caught in a render).** Checked with jsdom (12 checks) and a real Edge render.
+  Not built: hiding the menu from a workspace panel, a width in pixels, lifting
+  the 420px cap on a cell's width. **Highlight boxes (20 Nov
   2026; up to three since the same day: yellow, sky blue, green-yellow, so
   three things can be followed at once; **how many are rendered is a setting,
   0 to 3, default 1**: Settings > Results, `ResultOptions`, key

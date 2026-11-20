@@ -217,6 +217,10 @@ public class WorkplacesTests
         var run = await _client.GetStringAsync($"/Queries/{q}");
         foreach (var html in new[] { page, run })
             Assert.That(html, Does.Contain("data-post-form=").And.Contain(">Export CSV</button>"));
+
+        // The "full width" button is one partial too: in the result's title bar on both.
+        Assert.That(onPage, Does.Contain("data-wide-toggle").And.Contain("aria-label=\"Full width: the results\""));
+        Assert.That(page, Does.Contain("data-wide-toggle").And.Contain("aria-label=\"Full width: Twin\""));
     }
 
     [Test]

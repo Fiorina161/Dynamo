@@ -68,6 +68,7 @@
                 <h2><span class="dot" data-panel-dot aria-hidden="true"></span>@p.QueryName</h2>
                 @* Time, rows, duration: the same summary as the Queries page, filled by each run (_PanelResults). *@
                 <span class="count" id="panel-count-@p.Id"></span>
+                <partial name="_WideButton" model="p.QueryName" />
                 <button type="button" class="ghost small gear" data-panel-toggle
                         aria-expanded="false" title="Details and settings"
                         aria-label="Details and settings of @p.QueryName">⚙</button>

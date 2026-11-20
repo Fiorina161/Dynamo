@@ -152,6 +152,13 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     numérotées de 1 à n dans la première colonne (la numérotation suit l'ordre
     affiché après un tri). Le réglage est retenu par ce navigateur, pour
     chaque requête.
+  - Pleine largeur : le bouton ↔ dans la barre de titre d'un résultat lui donne
+    toute la largeur possible, pour voir une requête qui a beaucoup de
+    colonnes. Dans un espace de travail, le panneau occupe alors toute la
+    rangée (retenu par ce navigateur, panneau par panneau); sur la page
+    « Queries », le menu de gauche se replie pour donner toute la fenêtre au
+    résultat (touche Échap ou le même bouton pour le remettre; ce n'est pas
+    retenu, pour que la page ne s'ouvre jamais sans son menu).
   - Filtrer les lignes (comme dans un tableur) : la petite flèche ▾ dans
     l'en-tête de chaque colonne ouvre la liste des valeurs de cette colonne,
     avec le nombre de lignes pour chacune. Décochez les valeurs à cacher; la

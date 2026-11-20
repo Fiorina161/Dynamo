@@ -851,6 +851,65 @@
         if (e.target && e.target.id === 'results') applyStoredSort(e.target);
     });
 
+    // ---- Wide results ----------------------------------------------------------------
+    // [data-wide-toggle] gives a result all the width it can have. In a workspace the
+    // panel takes the whole row of the grid (.panel.full-width); this is kept per panel in
+    // this browser. On the Queries page, where the result already spans the content
+    // area, the menu folds away (body.wide-results) so it gets the whole window; that
+    // is not remembered, so a page never opens without its menu. Escape (outside a
+    // text field) or the button brings it back.
+    function setWideButton(button, on) {
+        button.setAttribute('aria-pressed', on ? 'true' : 'false');
+        button.title = on ? 'Back to normal width' : 'Use the full width';
+    }
+
+    function wideKey(panel) { return 'wide:' + location.pathname + '#' + (panel.dataset.panel || ''); }
+
+    function syncPageWide() {
+        var on = document.body.classList.contains('wide-results');
+        document.querySelectorAll('[data-wide-toggle]').forEach(function (button) {
+            if (!button.closest('.panel')) setWideButton(button, on);
+        });
+    }
+
+    document.querySelectorAll('.panel[data-panel]').forEach(function (panel) {
+        var saved = null;
+        try { saved = localStorage.getItem(wideKey(panel)); } catch (err) { }
+        var button = panel.querySelector('[data-wide-toggle]');
+        if (saved === '1' && button) { panel.classList.add('full-width'); setWideButton(button, true); }
+    });
+
+    document.addEventListener('click', function (e) {
+        var button = e.target.closest && e.target.closest('[data-wide-toggle]');
+        if (!button) return;
+        var panel = button.closest('.panel');
+        if (panel) {
+            var on = !panel.classList.contains('full-width');
+            panel.classList.toggle('full-width', on);
+            setWideButton(button, on);
+            try {
+                if (on) localStorage.setItem(wideKey(panel), '1');
+                else localStorage.removeItem(wideKey(panel));
+            } catch (err) { }
+        } else {
+            document.body.classList.toggle('wide-results');
+            syncPageWide();
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape' || !document.body.classList.contains('wide-results')) return;
+        var typing = e.target.closest && e.target.closest('input, textarea, select');
+        if (typing) return;
+        document.body.classList.remove('wide-results');
+        syncPageWide();
+    });
+
+    // The query page's results (and their button) are replaced on every run.
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+        if (e.target && e.target.id === 'results') syncPageWide();
+    });
+
     // ---- Highlighting ------------------------------------------------------------
     // A .highlight-box holds up to three fields (data-slot 1..3, three colours),
     // each an <input data-highlight-scope="<selector>">: what is typed is marked
