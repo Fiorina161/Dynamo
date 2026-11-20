@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.3 - 2026-11-20
+
+- Make links in Settings look like links and messages look like messages
+
 ## 1.5.2 - 2026-11-20
 
 - Lay out the Settings sections in two columns when the window is wide enough
