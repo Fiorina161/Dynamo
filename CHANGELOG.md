@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.9 - 2026-11-20
+
+- Make the workspace names on the Workspaces page look like links
+
 ## 1.5.8 - 2026-11-20
 
 - List the workspaces directly on the page instead of inside a panel
