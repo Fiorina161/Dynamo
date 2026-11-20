@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.0 - 2026-11-20
+
+- Add a full width button to every result: a workspace panel takes the whole row, the Queries page hides the menu
+
 ## 1.6.0 - 2026-11-20
 
 - Choose how many highlight boxes show above the results (0 to 3, one by default)
