@@ -277,6 +277,10 @@ body.dragging .ungrouped.empty-card { display: block; }
 
 /* One wide panel instead of the column flow. */
 .group.wide { max-width: 720px; }
+/* Settings: the sections side by side in two columns when there is room (each
+   needs about 460px), a single column on a narrow window or a phone. */
+.settings-cards { columns: 460px; column-gap: 20px; }
+.settings-cards .group.wide { max-width: none; }
 .items.plain .item { cursor: default; }
 .item .row-btn { margin-right: 10px; }
 /* What still has to be filled in: the one thing worth a colour. */

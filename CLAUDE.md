@@ -280,9 +280,14 @@ Then `git checkout master && git pull`, and delete the branch.
   to remember:** the checksum comes from the same GitHub account as the file and
   releases are not signed, so a stolen account would still get code onto the
   machine; the script is embedded in the running version, so the *first*
-  version with the button is installed by hand; a service stopped from the script
-  must not take the script down with it (children of a service survive its stop,
-  **not verified on a real update yet**). Tests: `UpdateInstallerTests`
+  version with the button is installed by hand. **Verified on the real service
+  (20 Nov 2026, 1.5.0 -> 1.5.1, started from the Settings button by the
+  owner):** the detached script survives the service's stop (children of a
+  service outlive it), the whole swap took 7 s, the service kept its name,
+  account (LocalSystem), start type and firewall rule, and `update.log` /
+  `last-result.txt` read as designed. Not exercised on a real machine: the
+  rollback (only on temp folders in tests), and a packaged install on another
+  computer. Tests: `UpdateInstallerTests`
   (refusals, hand-over, Settings page, the script on temp folders incl.
   rollback).
 - Going public (16 Nov 2026): history and files scanned (no secrets, identity or
