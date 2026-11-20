@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0 - 2026-11-20
+
+- Add two more highlight boxes (sky blue, green-yellow) and show pinned rows in reverse video
+
 ## 1.4.0 - 2026-11-20
 
 - Add a highlight box for result text and an option to hide Bookmarks from the menu
