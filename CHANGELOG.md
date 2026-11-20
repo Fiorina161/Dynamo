@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.5 - 2026-11-20
+
+- Show the installed version next to the Dynamo title in the menu
+
 ## 1.5.4 - 2026-11-20
 
 - Keep only the newest 3 releases on GitHub when releasing
