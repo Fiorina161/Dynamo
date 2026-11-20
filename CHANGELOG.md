@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.6 - 2026-11-20
+
+- Draw query results as a grid, with faint lines between the columns too
+
 ## 1.5.5 - 2026-11-20
 
 - Show the installed version next to the Dynamo title in the menu
