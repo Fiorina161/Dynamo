@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.4 - 2026-11-20
+
+- Keep only the newest 3 releases on GitHub when releasing
+
 ## 1.5.3 - 2026-11-20
 
 - Make links in Settings look like links and messages look like messages
