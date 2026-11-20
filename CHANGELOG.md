@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.1 - 2026-11-20
+
+- Show just Highlight in the highlight boxes and soften the pinned row colour
+
 ## 1.5.0 - 2026-11-20
 
 - Add two more highlight boxes (sky blue, green-yellow) and show pinned rows in reverse video
