@@ -12,7 +12,8 @@
     }
     else
     {
-        <div class="cards">
+        @* Flat: the categories are headings on the page itself, not cards. *@
+        <div class="cards flat">
             @foreach (var g in Model)
             {
                 <section class="group @(g.Collapsed ? "collapsed" : "")">

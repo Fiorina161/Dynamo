@@ -286,12 +286,23 @@ body.dragging .ungrouped.empty-card { display: block; }
 .items.plain .item { cursor: default; }
 /* The workspaces listed on their page: each name is a link, so it looks like one
    (accent colour and underline, as the links in Settings). */
-.workplace-list .item .title {
+.workplace-list .item .title, .flat .item .title {
     color: var(--accent);
     text-decoration: underline;
     text-underline-offset: 3px;
 }
-.workplace-list .item:hover .title, .workplace-list .item:focus-within .title { text-decoration-thickness: 2px; }
+.workplace-list .item:hover .title, .workplace-list .item:focus-within .title,
+.flat .item:hover .title, .flat .item:focus-within .title { text-decoration-thickness: 2px; }
+/* The same list without the cards: the groups sit on the page itself, a heading
+   and its rows, still collapsible and still flowing into columns when wide. */
+.cards.flat { column-gap: 40px; }
+.cards.flat .group {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    overflow: visible;
+}
 .item .row-btn { margin-right: 10px; }
 /* What still has to be filled in: the one thing worth a colour. */
 .hint .todo { color: var(--accent); }

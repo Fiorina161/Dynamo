@@ -156,7 +156,13 @@ Invoke-WebRequest "https://github.com/$repo/releases/download/$tag/Dynamo-$next.
 $downloaded = (Get-FileHash $check -Algorithm SHA256).Hash.ToLower()
 Remove-Item $check -Force
 if ($downloaded -ne $hash) { throw "The published file does not match the zip built here (SHA-256 $downloaded vs $hash)." }
-$latest = Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest" -Headers @{ 'User-Agent' = 'dynamo-release'; Accept = 'application/vnd.github+json' }
+# GitHub's "latest release" answer can lag a few seconds behind a release created
+# just now (seen once, 20 Nov 2026): ask again, up to about 40 s, before failing.
+for ($try = 1; $try -le 8; $try++) {
+    $latest = Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest" -Headers @{ 'User-Agent' = 'dynamo-release'; Accept = 'application/vnd.github+json' }
+    if ($latest.tag_name -eq $tag) { break }
+    Start-Sleep -Seconds 5
+}
 if ($latest.tag_name -ne $tag) { throw "GitHub's latest release is $($latest.tag_name), not $tag." }
 Write-Host "Released ${tag}: $($latest.html_url)"
 Write-Host "SHA-256 $hash (matches the file on GitHub)."
