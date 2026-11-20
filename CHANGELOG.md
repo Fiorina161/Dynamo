@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.2 - 2026-11-20
+
+- Lay out the Settings sections in two columns when the window is wide enough
+
 ## 1.5.1 - 2026-11-20
 
 - Show just Highlight in the highlight boxes and soften the pinned row colour
