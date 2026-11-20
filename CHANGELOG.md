@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0 - 2026-11-20
+
+- Pin result rows to the top by clicking them
+
 ## 1.1.0 - 2026-11-20
 
 - Add a Visible rows setting for the height of query results (10 by default) and number the rows
