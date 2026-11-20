@@ -431,12 +431,60 @@
     // refreshes: it is applied again to every new result with the same column.
     var SORT_ROOT = '#results, .panel-results';
 
+    // ---- Pinning rows -------------------------------------------------------
+    // Click a row to pin it to the top (click again to unpin); the row-number
+    // header unpins all. A row is known by its first column's value, plus its
+    // rank among the rows with that same value, so a pin survives a refresh
+    // even when the other cells change. Pins are kept per results container in
+    // this browser (localStorage), like the height.
+    function pinStoreKey(root) { return 'pins:' + location.pathname + '#' + (root.id || ''); }
+
+    function pinsOf(root) {
+        if (root.dataset.pins === undefined) {
+            var stored = null;
+            try { stored = localStorage.getItem(pinStoreKey(root)); } catch (err) { }
+            root.dataset.pins = stored || '[]';
+        }
+        try { return new Set(JSON.parse(root.dataset.pins)); } catch (err) { return new Set(); }
+    }
+
+    function savePins(root, set) {
+        var json = JSON.stringify(Array.from(set));
+        root.dataset.pins = json;
+        try {
+            if (set.size) localStorage.setItem(pinStoreKey(root), json);
+            else localStorage.removeItem(pinStoreKey(root));
+        } catch (err) { }
+    }
+
+    // Gives every row its original position (data-row) and its pin key; returns
+    // the rows as they are now on screen.
+    function keyRows(body) {
+        var rows = Array.prototype.slice.call(body.rows);
+        rows.forEach(function (tr, i) { if (tr.dataset.row === undefined) tr.dataset.row = i; });
+        var seen = new Map();
+        rows.slice().sort(function (a, b) { return a.dataset.row - b.dataset.row; }).forEach(function (tr) {
+            var value = tr.cells.length > 1 ? tr.cells[1].textContent : '';
+            var rank = (seen.get(value) || 0) + 1;
+            seen.set(value, rank);
+            tr.dataset.pinKey = value + String.fromCharCode(1) + rank;
+        });
+        return rows;
+    }
+
+    // Runs the current order again (so the pins apply) and tells the page.
+    function rearrange(root, table) {
+        if (root.dataset.sortCol !== undefined)
+            sortTable(root, table, parseInt(root.dataset.sortCol, 10), root.dataset.sortDir);
+        else sortTable(root, table, null);
+        root.dispatchEvent(new CustomEvent('resultsorted', { bubbles: true }));
+    }
+
     function sortTable(root, table, col, dir) {
         var body = table.tBodies[0];
         var head = table.tHead && table.tHead.rows[0];
         if (!body || !head) return;
-        var rows = Array.prototype.slice.call(body.rows);
-        rows.forEach(function (tr, i) { if (tr.dataset.row === undefined) tr.dataset.row = i; });
+        var rows = keyRows(body);
         var original = function (a, b) { return a.dataset.row - b.dataset.row; };
         if (col === null) {
             rows.sort(original);
@@ -454,7 +502,18 @@
                 return c * sign || original(a, b);
             });
         }
-        rows.forEach(function (tr) { body.appendChild(tr); });
+        // Pinned rows stay on top, whatever the order: stable, so they keep the
+        // relative order the sort gives them.
+        var pins = pinsOf(root);
+        if (pins.size) {
+            var pinned = [], rest = [];
+            rows.forEach(function (tr) { (pins.has(tr.dataset.pinKey) ? pinned : rest).push(tr); });
+            rows = pinned.concat(rest);
+        }
+        rows.forEach(function (tr) {
+            body.appendChild(tr);
+            tr.classList.toggle('pinned', pins.has(tr.dataset.pinKey));
+        });
         Array.prototype.forEach.call(head.cells, function (th, i) {
             if (col !== null && i === col) th.setAttribute('aria-sort', dir === 'desc' ? 'descending' : 'ascending');
             else th.removeAttribute('aria-sort');
@@ -468,14 +527,21 @@
     }
 
     // A new result arrived: sort it as the user had it, if it has the same column.
+    // Also puts the pinned rows on top when there is no sort.
     function applyStoredSort(root) {
-        if (!root || root.dataset.sortCol === undefined) return;
+        if (!root) return;
         var table = root.querySelector('.results table');
         if (!table || !table.tHead) return;
-        var col = parseInt(root.dataset.sortCol, 10);
-        var th = table.tHead.rows[0].cells[col];
-        if (!th || th.textContent.trim() !== root.dataset.sortName) { clearSort(root); return; }
-        sortTable(root, table, col, root.dataset.sortDir);
+        if (root.dataset.sortCol !== undefined) {
+            var col = parseInt(root.dataset.sortCol, 10);
+            var th = table.tHead.rows[0].cells[col];
+            if (th && th.textContent.trim() === root.dataset.sortName) {
+                sortTable(root, table, col, root.dataset.sortDir);
+                return;
+            }
+            clearSort(root);
+        }
+        sortTable(root, table, null);
     }
 
     function toggleSort(th, restore) {
@@ -500,7 +566,24 @@
 
     document.addEventListener('click', function (e) {
         var th = e.target.closest && e.target.closest('.results th');
-        if (th) toggleSort(th, e.shiftKey);
+        if (th && th.classList.contains('rownum')) {
+            var head = th.closest(SORT_ROOT), headTable = th.closest('table');
+            if (head && headTable) { savePins(head, new Set()); rearrange(head, headTable); }
+            return;
+        }
+        if (th) { toggleSort(th, e.shiftKey); return; }
+
+        // A click on a row pins or unpins it (not while the user is selecting text).
+        var cell = e.target.closest && e.target.closest('.results tbody td');
+        if (!cell || e.target.closest('a, button, input, select, textarea')) return;
+        if (window.getSelection && String(window.getSelection())) return;
+        var tr = cell.parentNode, root = tr.closest(SORT_ROOT), table = tr.closest('table');
+        if (!root || !table) return;
+        keyRows(table.tBodies[0]);
+        var pins = pinsOf(root);
+        if (pins.has(tr.dataset.pinKey)) pins.delete(tr.dataset.pinKey); else pins.add(tr.dataset.pinKey);
+        savePins(root, pins);
+        rearrange(root, table);
     });
     document.addEventListener('keydown', function (e) {
         var th = e.target.closest && e.target.closest('.results th');

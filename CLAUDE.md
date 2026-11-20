@@ -335,7 +335,17 @@ connection.
   "Visible rows", not posted, remembered in localStorage per query; panels:
   `watch_panel.view_rows` (migration 4), saved with the other panel settings and
   copied by Duplicate. Checked with jsdom and a faked `offsetHeight` (no layout
-  there), so the real pixel height has not been seen. Still
+  there), so the real pixel height has not been seen. **Pinned rows (20 Nov
+  2026):** click a row to pin it to the top (again to unpin; the `#` header
+  unpins all); pinned rows stay first whatever the sort and keep the sort's
+  order among themselves, tinted with an accent bar (`tr.pinned`). Client side
+  only, in site.js next to the sort (`sortTable` applies them, so every
+  re-sort and refresh keeps them). **A row is its first column's value plus its
+  rank among rows with that value**, so a pin survives a refresh even when the
+  other cells change (it would be lost if the first column changes); kept per
+  results container in localStorage (`pins:<path>#<container id>`). A click
+  with text selected, or on a link/button, does not pin. jsdom check (15
+  checks) in the scratch dir. Still
   separate on purpose: the refresh timers (`initAutoRefresh` for one query,
   `initWorkplace` for many panels) and the panel-only change flash. Checked
   with jsdom + the real htmx (scratch dir `oob.js`), not kept in the repo.

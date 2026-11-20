@@ -152,6 +152,13 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     numérotées de 1 à n dans la première colonne (la numérotation suit l'ordre
     affiché après un tri). Le réglage est retenu par ce navigateur, pour
     chaque requête.
+  - Épingler des lignes : cliquez sur une ligne du tableau pour l'épingler
+    (elle reste en haut, surlignée, quel que soit le tri); cliquez de nouveau
+    pour la désépingler, ou sur « # » pour tout désépingler. Une ligne est
+    reconnue par la valeur de sa première colonne: l'épingle suit la ligne
+    d'un rafraîchissement à l'autre même si les autres valeurs changent.
+    Sélectionner du texte n'épingle pas la ligne. Les épingles sont retenues
+    par ce navigateur. Cela fonctionne aussi dans les espaces de travail.
   - Tri : cliquez sur l'en-tête d'une colonne du tableau de résultats pour
     trier selon cette colonne, cliquez de nouveau pour inverser l'ordre (▲ ou
     ▼ indique la colonne triée). Les colonnes numériques sont triées comme des

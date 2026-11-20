@@ -16,7 +16,7 @@ else
                 <tr>
                     @* Row numbers 1..n are a CSS counter (see site.css): they follow the
                        order on screen after a sort, and are not copied with the data. *@
-                    <th class="rownum" title="Row number">#</th>
+                    <th class="rownum" title="Row number. Click a row to pin it to the top; click here to unpin all.">#</th>
                     @foreach (var c in r.Columns)
                     {
                         <th class="@(c.Numeric ? "num" : "")" tabindex="0"

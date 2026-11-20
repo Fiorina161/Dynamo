@@ -397,6 +397,10 @@ dialog textarea { margin-top: 4px; }
     letter-spacing: .04em;
     border-bottom: 1px solid var(--line);
 }
+.results tbody tr { cursor: pointer; }
+/* A pinned row: tinted, with an accent bar on its number. */
+.results tbody tr.pinned td { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+.results tbody tr.pinned td.rownum { box-shadow: inset 3px 0 0 var(--accent); color: var(--fg); font-weight: 700; }
 .results tbody tr:hover td { background: color-mix(in srgb, var(--fg) 6%, transparent); }
 .results .num { text-align: right; font-variant-numeric: tabular-nums; }
 .results td.null { color: var(--muted); font-style: italic; }
