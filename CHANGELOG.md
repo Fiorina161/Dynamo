@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0 - 2026-11-20
+
+- Add a Visible rows setting for the height of query results (10 by default) and number the rows
+
 ## 1.0.8 - 2026-11-18
 
 - Share the query result code between the Queries page and workspace panels
