@@ -417,9 +417,10 @@ mark.hl3 { background: color-mix(in srgb, var(--hl3) 60%, transparent); }
 .hl-input.hl3 { box-shadow: inset 5px 0 0 var(--hl3); padding-left: 14px; }
 .highlight-box .count { white-space: nowrap; }
 /* A pinned row: reverse video (the text colour as the background, the page
-   colour as the text), so it stands out in the light and the dark theme. */
+   colour as the text), softened a little (72% of the text colour) so it is not
+   harsh, and it still stands out in the light and the dark theme. */
 .results tbody tr.pinned td,
-.results tbody tr.pinned:hover td { background: var(--fg); color: var(--bg); }
+.results tbody tr.pinned:hover td { background: color-mix(in srgb, var(--fg) 72%, var(--bg)); color: var(--bg); }
 .results tbody tr.pinned td.null { color: color-mix(in srgb, var(--bg) 60%, transparent); }
 .results tbody tr.pinned td.rownum { color: var(--bg); font-weight: 700; }
 /* Highlights keep their colour on it, with dark text so they stay readable. */

@@ -152,7 +152,7 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     numérotées de 1 à n dans la première colonne (la numérotation suit l'ordre
     affiché après un tri). Le réglage est retenu par ce navigateur, pour
     chaque requête.
-  - Surligner du texte : les trois zones « Highlight in … », au-dessus des
+  - Surligner du texte : les trois zones « Highlight », au-dessus des
     résultats, surlignent le texte tapé (sans tenir compte des majuscules)
     dans toutes les cellules, chacune de sa couleur (jaune, bleu ciel, vert
     jaune), pour suivre jusqu'à trois choses à la fois; le nombre
