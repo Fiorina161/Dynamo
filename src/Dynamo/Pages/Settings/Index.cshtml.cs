@@ -12,7 +12,7 @@ namespace Dynamo.Pages.Settings;
 public class IndexModel(
     PasswordService passwords, SessionStore sessions, LoginThrottle throttle,
     CertificateService certificates, HttpsOptions https, UpdateChecker updates,
-    UpdateInstaller installer, MenuOptions menu) : PageModel
+    UpdateInstaller installer, MenuOptions menu, ResultOptions results) : PageModel
 {
     public string CurrentVersion => AppVersion.Format(updates.Current);
     public UpdateStatus UpdateStatus => updates.Status;
@@ -34,6 +34,7 @@ public class IndexModel(
     public string? Installing { get; private set; }
 
     public bool ShowBookmarks => menu.IsVisible("bookmarks");
+    public int HighlightBoxes => results.HighlightBoxes;
 
     public bool HasPassword { get; private set; }
     public bool IsRemote { get; private set; }
@@ -81,6 +82,20 @@ public class IndexModel(
         passwords.Clear();
         Fill();
         Message = "Password removed. Other computers are refused again.";
+        return Page();
+    }
+
+    /// <summary>The list: how many highlight boxes show above the results (0 to 3).</summary>
+    public IActionResult OnPostResultOptions(int? highlightBoxes)
+    {
+        Fill();
+        results.SetHighlightBoxes(highlightBoxes ?? ResultOptions.DefaultHighlightBoxes);
+        Message = results.HighlightBoxes switch
+        {
+            0 => "No highlight box is shown above the results.",
+            1 => "One highlight box is shown above the results.",
+            var n => $"{n} highlight boxes are shown above the results.",
+        };
         return Page();
     }
 

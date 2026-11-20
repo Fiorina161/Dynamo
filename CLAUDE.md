@@ -379,9 +379,30 @@ connection.
   "Visible rows", not posted, remembered in localStorage per query; panels:
   `watch_panel.view_rows` (migration 4), saved with the other panel settings and
   copied by Duplicate. Checked with jsdom and a faked `offsetHeight` (no layout
-  there), so the real pixel height has not been seen. **Highlight boxes (20 Nov
-  2026; three of them since the same day: yellow, sky blue, green-yellow, so
-  three things can be followed at once):** the partial `Shared/_HighlightBox`
+  there), so the real pixel height has not been seen. **Column filters (20 Nov
+  2026), spreadsheet style:** each header has a ▾ button (`button.col-filter`,
+  no text, so header text-based logic is unaffected) that opens one shared list
+  (`.filter-menu`, built in site.js): the column's distinct values with counts,
+  a search box, "(Select all)" (applies to the values listed, so after a search
+  it acts on those) and "Clear this filter"; NULL and the empty text are their
+  own values. Ticks apply live. **A filter stores the values left out, not the
+  ones kept**, so a value that appears in a refresh is shown rather than
+  silently hidden; columns combine (all must pass). Rows are hidden with the
+  `hidden` attribute, so the `#` counter numbers only the visible rows;
+  `applyFilters` runs at the end of `sortTable`, i.e. after every swap, sort and
+  pin, and a filter whose column is gone or renamed is dropped. A "Showing X of
+  Y rows · Clear filters" line is added above the table; filters are kept per
+  page in localStorage (`filters:<path>#<container id>`), like the pins. The
+  highlight counts and the visible-rows height only consider shown rows
+  (event `resultsorted`). Client side only, on the fetched rows. Checked with
+  jsdom (26 checks) and a real Edge render of the open list. Not built: text
+  conditions ("contains", "greater than"), filtering by colour, a filter on a
+  column across several panels. **Highlight boxes (20 Nov
+  2026; up to three since the same day: yellow, sky blue, green-yellow, so
+  three things can be followed at once; **how many are rendered is a setting,
+  0 to 3, default 1**: Settings > Results, `ResultOptions`, key
+  `results.highlight_boxes`, 0 renders nothing, the stored text of a box that is
+  no longer shown is simply not applied):** the partial `Shared/_HighlightBox`
   above the results (Queries run
   page: scope `#results`; workspace with panels: scope `[data-workplace]`, so
   every panel at once). Typing marks the text, case-insensitive, with

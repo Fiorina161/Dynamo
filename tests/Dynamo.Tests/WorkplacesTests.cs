@@ -278,9 +278,9 @@ public class WorkplacesTests
         Assert.That(await _client.GetStringAsync($"/Workplaces/{w}"),
             Does.Contain("data-highlight-scope=\"[data-workplace]\"").And.Contain("data-highlight-count"));
         var panelPage = await _client.GetStringAsync($"/Workplaces/{w}");
-        Assert.That(System.Text.RegularExpressions.Regex.Matches(panelPage, "data-highlight-scope=").Count, Is.EqualTo(3),
-            "three boxes, three colours");
-        Assert.That(System.Text.RegularExpressions.Regex.Matches(panelPage, "placeholder=\"Highlight\"").Count, Is.EqualTo(3),
+        Assert.That(System.Text.RegularExpressions.Regex.Matches(panelPage, "data-highlight-scope=").Count, Is.EqualTo(1),
+            "one box by default (a setting goes up to three)");
+        Assert.That(System.Text.RegularExpressions.Regex.Matches(panelPage, "placeholder=\"Highlight\"").Count, Is.EqualTo(1),
             "the colour is shown by the stripe on the field, not named");
         Assert.That(panelPage, Does.Not.Contain("Highlight in "));
         Assert.That(await _client.GetStringAsync($"/Queries/{q}"),

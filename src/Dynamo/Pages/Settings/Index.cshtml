@@ -49,6 +49,33 @@
 
 <section class="group wide settings">
     <header>
+        <h2>Results</h2>
+        <span class="count">@(Model.HighlightBoxes == 0 ? "no highlight box" : Model.HighlightBoxes == 1 ? "1 highlight box" : Model.HighlightBoxes + " highlight boxes")</span>
+    </header>
+
+    <div class="settings-body">
+        <form method="post" asp-page-handler="ResultOptions" class="settings-form">
+            <label>Highlight boxes above the results
+                <select name="highlightBoxes">
+                    @for (var n = 0; n <= ResultOptions.MaxHighlightBoxes; n++)
+                    {
+                        <option value="@n" selected="@(n == Model.HighlightBoxes)">@(n == 0 ? "None" : n.ToString())</option>
+                    }
+                </select>
+            </label>
+            <p class="hint-text">
+                Each box highlights what you type in its own colour (yellow, sky blue, green-yellow), on the
+                Queries page and in every workspace: pick as many as you follow at once, or none to hide them.
+            </p>
+            <footer>
+                <button type="submit">Save</button>
+            </footer>
+        </form>
+    </div>
+</section>
+
+<section class="group wide settings">
+    <header>
         <h2>Remote access</h2>
         <span class="count">@(Model.HasPassword ? "password set" : "off")</span>
     </header>

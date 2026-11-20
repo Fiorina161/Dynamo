@@ -152,10 +152,24 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     numérotées de 1 à n dans la première colonne (la numérotation suit l'ordre
     affiché après un tri). Le réglage est retenu par ce navigateur, pour
     chaque requête.
-  - Surligner du texte : les trois zones « Highlight », au-dessus des
-    résultats, surlignent le texte tapé (sans tenir compte des majuscules)
-    dans toutes les cellules, chacune de sa couleur (jaune, bleu ciel, vert
-    jaune), pour suivre jusqu'à trois choses à la fois; le nombre
+  - Filtrer les lignes (comme dans un tableur) : la petite flèche ▾ dans
+    l'en-tête de chaque colonne ouvre la liste des valeurs de cette colonne,
+    avec le nombre de lignes pour chacune. Décochez les valeurs à cacher; la
+    zone de recherche réduit la liste, « (Select all) » coche ou décoche toutes
+    les valeurs affichées, « Clear this filter » retire le filtre de la colonne.
+    Les valeurs NULL et le texte vide sont des valeurs à part. Les filtres de
+    plusieurs colonnes se combinent. Les lignes cachées ne comptent plus dans la
+    numérotation, et la ligne « Showing X of Y rows » indique combien de lignes
+    sont affichées; « Clear filters » retire tous les filtres. Un filtre garde
+    les valeurs décochées: une nouvelle valeur qui apparaît à un
+    rafraîchissement est donc visible. Les filtres portent sur les lignes
+    affichées, sont refaits à chaque rafraîchissement et retenus par ce
+    navigateur.
+  - Surligner du texte : les zones « Highlight », au-dessus des résultats,
+    surlignent le texte tapé (sans tenir compte des majuscules) dans toutes les
+    cellules, chacune de sa couleur (jaune, bleu ciel, vert jaune), pour suivre
+    jusqu'à trois choses à la fois. Le nombre de zones affichées (0 à 3, une
+    par défaut) se règle dans « Settings », section « Results ». Le nombre
     d'occurrences trouvées est indiqué à côté de chaque zone. Touche Échap ou
     « × » pour effacer une zone. Le surlignage est refait à chaque
     rafraîchissement et retenu par ce navigateur. Dans un espace de travail,
