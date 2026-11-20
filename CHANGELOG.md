@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.8 - 2026-11-20
+
+- List the workspaces directly on the page instead of inside a panel
+
 ## 1.5.7 - 2026-11-20
 
 - Center the column titles of query results
