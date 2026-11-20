@@ -18,6 +18,9 @@
     subjects since the last release) and the SHA-256 -> verification: the file
     downloaded from GitHub matches, and the public "latest release" is this one.
 
+    Afterwards only the newest -Keep (3) releases stay on GitHub; the older ones
+    are deleted (their tags and the CHANGELOG stay). -Keep 0 turns that off.
+
     Needs the GitHub CLI (`gh`), signed in with access to the repository. If a
     GITHUB_TOKEN environment variable holds an old token, remove it: gh prefers it.
 
@@ -30,6 +33,9 @@ param(
     [string] $Version,
     [string] $Notes,
     [string] $Output = (Join-Path $env:USERPROFILE 'Downloads'),
+    # How many releases stay on GitHub: the older ones are deleted after a
+    # release (their git tags stay). 0 keeps them all.
+    [int] $Keep = 3,
     [switch] $DryRun
 )
 
@@ -154,3 +160,18 @@ $latest = Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest"
 if ($latest.tag_name -ne $tag) { throw "GitHub's latest release is $($latest.tag_name), not $tag." }
 Write-Host "Released ${tag}: $($latest.html_url)"
 Write-Host "SHA-256 $hash (matches the file on GitHub)."
+
+# ---- keep only the newest releases ------------------------------------------------------------
+# A failure here never undoes the release: it is only a warning.
+if ($Keep -gt 0) {
+    try {
+        $published = & $ghExe release list --repo $repo --limit 200 --json tagName,publishedAt | ConvertFrom-Json |
+            Sort-Object publishedAt -Descending
+        foreach ($old in ($published | Select-Object -Skip $Keep)) {
+            & $ghExe release delete $old.tagName --repo $repo --yes 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) { Write-Host "Removed the old release $($old.tagName) (its tag stays)." }
+            else { Write-Warning "Could not remove the old release $($old.tagName)." }
+        }
+    }
+    catch { Write-Warning "Could not tidy the old releases: $($_.Exception.Message)" }
+}

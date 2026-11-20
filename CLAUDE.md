@@ -307,7 +307,12 @@ Then `git checkout master && git pull`, and delete the branch.
   the version and the changes, then run it for real. **"Deploy" (decision of
   20 Nov 2026) = commit + push + release in one go, and never the install
   script: the owner installs through Settings > Updates > Update now.**
-  "Install" alone still means `scripts/install-service.ps1`. It checks a clean `master`
+  "Install" alone still means `scripts/install-service.ps1`. **Only the newest 3
+  releases stay on GitHub** (owner's decision, 20 Nov 2026: 17 were pointless):
+  `release.ps1` deletes the older ones after each release (`-Keep 3`, `-Keep 0`
+  to disable); their git tags and CHANGELOG.md stay, and the update check only
+  reads the latest. The first 14 were deleted by hand that day.
+  **The script** checks a clean `master`
   in step with origin, `gh` signed in, bumps `<Version>`, runs `dotnet test`,
   writes `CHANGELOG.md`, commits "Release X.Y.Z" and pushes, builds the zip,
   creates the GitHub release `vX.Y.Z` (tag on that commit) with notes (commit
