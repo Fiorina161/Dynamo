@@ -588,7 +588,15 @@ dialog label.tns-row { display: flex; flex: 1; align-items: center; gap: 12px;
 .settings-body { padding: 4px 10px 14px; }
 .settings-form { max-width: 420px; margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
 .settings-form h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
-.notice { margin: 0 0 8px; color: var(--accent); }
+/* A message (what the last action did): plain text with an accent bar, so it
+   cannot be mistaken for a link. */
+.notice {
+    margin: 0 0 10px;
+    padding: 6px 10px;
+    color: var(--fg);
+    border-left: 3px solid var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
 .logout { margin: 0; }
 .logout button { width: 100%; }
 
@@ -652,5 +660,11 @@ dialog label.tns-row { display: flex; flex: 1; align-items: center; gap: 12px;
 .update-note:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); }
 
 /* The new-version sentence in Settings is a link to the release page. */
-.notice a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
-.notice a:hover { opacity: .8; }
+/* Links in the settings and in messages: the accent colour and an underline, so
+   they read as links (elsewhere links stay plain, as in the menu). */
+.settings-body a, .notice a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.settings-body a:hover, .notice a:hover { text-decoration-thickness: 2px; }

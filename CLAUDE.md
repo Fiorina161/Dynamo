@@ -304,7 +304,10 @@ Then `git checkout master && git pull`, and delete the branch.
 - **Releases are handled by Claude** (decision of 16 Nov 2026), with
   `scripts/release.ps1 -Bump patch|minor|major` (or `-Version X.Y.Z`, `-DryRun`
   to preview). When the owner says "release": run the dry run, tell the owner
-  the version and the changes, then run it for real. It checks a clean `master`
+  the version and the changes, then run it for real. **"Deploy" (decision of
+  20 Nov 2026) = commit + push + release in one go, and never the install
+  script: the owner installs through Settings > Updates > Update now.**
+  "Install" alone still means `scripts/install-service.ps1`. It checks a clean `master`
   in step with origin, `gh` signed in, bumps `<Version>`, runs `dotnet test`,
   writes `CHANGELOG.md`, commits "Release X.Y.Z" and pushes, builds the zip,
   creates the GitHub release `vX.Y.Z` (tag on that commit) with notes (commit
