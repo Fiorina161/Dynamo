@@ -1,0 +1,56 @@
+@* One row of the health page. Without a probe it says "testing" and asks for it as soon as it loads (and on
+   the "retest" event of the Test all again button); with one it shows the answer and only answers "retest"
+   (asking on load again would never end). *@
+@model Dynamo.Pages.OracleConnections.HealthRowModel
+@{
+    var c = Model.Connection;
+    var probe = Model.Probe;
+    var state = probe is null ? "testing" : probe.NotReady ? "notready" : probe.Ok ? "up" : "down";
+}
+<tr id="health-@c.Id" class="health-@state"
+    hx-post="@Url.Page("/OracleConnections/Health", "Probe", new { id = c.Id })"
+    hx-trigger="@(probe is null ? "load, retest from:body" : "retest from:body")" hx-swap="outerHTML"
+    data-health-state="@state">
+    <td>
+        <span class="health-name">
+            @if (c.Color is not null)
+            {
+                <span class="conn-dot conn-@c.Color" aria-hidden="true"></span>
+            }
+            @c.Name
+            @if (c.Dba)
+            {
+                <span class="badge-dba" title="Logs in AS SYSDBA">DBA</span>
+            }
+        </span>
+        <span class="hint">@(c.Username.Length > 0 ? c.Username + "@" : "")@c.Summary</span>
+    </td>
+    <td>
+        @switch (state)
+        {
+            case "testing":
+                <span class="health-pill">Testing…</span>
+                break;
+            case "up":
+                <span class="health-pill">Up</span>
+                break;
+            case "notready":
+                <span class="health-pill">Not ready</span>
+                break;
+            default:
+                <span class="health-pill">Down</span>
+                break;
+        }
+        @if (probe is { Ok: false } failed)
+        {
+            <span class="hint health-error">@failed.Error</span>
+        }
+    </td>
+    <td class="num">@(probe is { Ok: true } ? probe.ConnectMs + " ms" : "")</td>
+    <td class="num">@(probe is { Ok: true } ? probe.RoundTripMs + " ms" : "")</td>
+    <td>@(probe is { Ok: true } ? probe.Version : "")</td>
+    <td>
+        <button type="button" class="ghost small" hx-post="@Url.Page("/OracleConnections/Health", "Probe", new { id = c.Id })"
+                hx-target="#health-@c.Id" hx-swap="outerHTML">Test</button>
+    </td>
+</tr>

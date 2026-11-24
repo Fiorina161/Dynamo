@@ -25,6 +25,15 @@ public sealed class OracleConnectionInfo
     /// <summary>Pinned connections come first in lists and pickers.</summary>
     public bool Pinned { get; set; }
 
+    /// <summary>
+    /// A DBA connection: Dynamo logs in AS SYSDBA (the schema is usually SYS), and the
+    /// DBA features (workspace templates, the sessions panel) are offered on it.
+    /// </summary>
+    public bool Dba { get; set; }
+
+    /// <summary>A key of <see cref="ConnectionColors"/>, or null for no colour.</summary>
+    public string? Color { get; set; }
+
     /// <summary>The data source in a short, readable form (for lists).</summary>
     public string Summary => DataSourceSummary.Of(DataSource);
 
@@ -38,7 +47,7 @@ public sealed class OracleConnectionInfo
 public sealed class OracleConnectionRepository(Db db)
 {
     private const string Columns =
-        "id, name, data_source AS DataSource, username, password, pinned";
+        "id, name, data_source AS DataSource, username, password, pinned, dba, color";
 
     public List<OracleConnectionInfo> GetAll()
     {
@@ -71,15 +80,16 @@ public sealed class OracleConnectionRepository(Db db)
             conn.Execute("""
                 UPDATE oracle_connection
                    SET name = @Name, data_source = @DataSource,
-                       username = @Username, password = @Password
+                       username = @Username, password = @Password,
+                       dba = @Dba, color = @Color
                  WHERE id = @Id
                 """, c);
             return c.Id;
         }
 
         return conn.ExecuteScalar<long>("""
-            INSERT INTO oracle_connection (name, data_source, username, password)
-            VALUES (@Name, @DataSource, @Username, @Password);
+            INSERT INTO oracle_connection (name, data_source, username, password, dba, color)
+            VALUES (@Name, @DataSource, @Username, @Password, @Dba, @Color);
             SELECT last_insert_rowid();
             """, c);
     }

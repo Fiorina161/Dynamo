@@ -1,0 +1,36 @@
+@* The execution plan of a panel's query (EXPLAIN PLAN + DBMS_XPLAN: the query is not run). The detail
+   list asks the server again with another format. *@
+@model Dynamo.Pages.Workplaces.PlanModel
+@{
+    var action = Url.Page("/Workplaces/View", "Plan", new { id = Model.Workplace.Id, panel = Model.Panel.Id });
+}
+<form class="wide plan-form" hx-post="@action" hx-include="#binds" hx-target="#dlg" hx-swap="innerHTML">
+    <h2>Execution plan: @Model.Panel.QueryName</h2>
+    <input type="hidden" name="connection" value="@Model.Connection" />
+    <label>Detail
+        <select name="format" hx-post="@action" hx-include="#binds" hx-trigger="change" hx-target="#dlg" hx-swap="innerHTML">
+            @foreach (var f in Dynamo.Modules.Queries.PlanRunner.Formats)
+            {
+                <option value="@f" selected="@(f == Model.Format)">@f</option>
+            }
+        </select>
+    </label>
+
+    @if (Model.Error is not null)
+    {
+        <pre class="error">@Model.Error</pre>
+    }
+    else
+    {
+        <pre class="plan-text" id="plan-text">@Model.Text</pre>
+    }
+
+    <footer>
+        @if (Model.Error is null)
+        {
+            <button type="button" class="ghost" data-copy-target="#plan-text">Copy</button>
+        }
+        <span class="spacer"></span>
+        <button type="button" data-close>Close</button>
+    </footer>
+</form>

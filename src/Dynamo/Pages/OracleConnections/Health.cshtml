@@ -1,0 +1,45 @@
+@page "/Oracle/Health"
+@model Dynamo.Pages.OracleConnections.HealthModel
+@{
+    ViewData["Title"] = "Connection health";
+}
+
+<header class="page-head">
+    <div class="greeting">
+        <p><a class="back" href="@Url.Page("/OracleConnections/Index")">← Connections</a></p>
+        <h1>Connection health</h1>
+        <p>Every connection is tried now: whether it logs in, how long that takes, and the Oracle version.</p>
+    </div>
+    <div class="actions">
+        <span class="count" data-health-summary></span>
+        <button type="button" data-retest-all>Test all again</button>
+    </div>
+</header>
+
+@if (Model.Connections.Count == 0)
+{
+    <p class="empty">No connections yet. Add one on the Connections page.</p>
+}
+else
+{
+    <section class="group wide health">
+        <table class="health-table">
+            <thead>
+                <tr>
+                    <th>Connection</th>
+                    <th>State</th>
+                    <th class="num">Login</th>
+                    <th class="num">Round trip</th>
+                    <th>Oracle</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model.Connections)
+                {
+                    <partial name="_HealthRow" model="@(new Dynamo.Pages.OracleConnections.HealthRowModel(c, null))" />
+                }
+            </tbody>
+        </table>
+    </section>
+}

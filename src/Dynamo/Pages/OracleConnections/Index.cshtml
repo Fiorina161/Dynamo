@@ -13,6 +13,8 @@
         <input type="search" class="filter" placeholder="Filter…" aria-label="Filter connections"
                data-filter="#connections" autocomplete="off" />
         <div class="actions">
+            <a class="button ghost" href="@Url.Page("/OracleConnections/Health")"
+               title="Try every connection now: up or down, login time, Oracle version">Health</a>
             @if (Model.TnsFile is not null)
             {
                 @* Only when the user has a tnsnames.ora: pick which aliases to import. *@

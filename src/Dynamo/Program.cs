@@ -69,6 +69,8 @@ builder.Services.AddSingleton<OracleConnectionRepository>();
 builder.Services.AddSingleton<OracleConnector>();
 builder.Services.AddSingleton<TnsNamesImporter>();
 builder.Services.AddSingleton<IQueryRunner, QueryRunner>();
+builder.Services.AddSingleton<IPlanRunner, PlanRunner>();
+builder.Services.AddSingleton<ISessionKiller, SessionKiller>();
 builder.Services.AddSingleton<WorkplaceRepository>();
 builder.Services.AddSingleton<SettingsRepository>();
 builder.Services.AddSingleton<MenuOptions>();

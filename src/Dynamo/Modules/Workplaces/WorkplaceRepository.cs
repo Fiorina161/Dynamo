@@ -40,6 +40,11 @@ public sealed class WorkplacePanel
     /// <summary>Shown as its title line only (it keeps refreshing).</summary>
     public bool Collapsed { get; set; }
 
+    /// <summary>A <see cref="PanelKinds"/> value: an ordinary query, or the DBA sessions panel.</summary>
+    public string Kind { get; set; } = PanelKinds.Query;
+
+    public bool IsSessions => Kind == PanelKinds.Sessions;
+
     /// <summary>Seed values for the binds: those the query had when it was created or copied.</summary>
     public string LastParamsJson { get; set; } = "{}";
 
@@ -127,7 +132,7 @@ public sealed class WorkplaceRepository(Db db)
                p.sql_text AS Sql, p.last_params AS LastParamsJson,
                p.connection_name AS Connection, p.refresh_seconds AS RefreshSeconds,
                p.max_rows AS MaxRows, p.view_rows AS ViewRows, p.position AS Position,
-               p.collapsed AS Collapsed
+               p.collapsed AS Collapsed, p.kind AS Kind
           FROM watch_panel p
         """;
 
@@ -212,9 +217,9 @@ public sealed class WorkplaceRepository(Db db)
             conn.Execute("""
                 INSERT INTO watch_panel
                     (watch_id, name, sql_text, last_params, connection_name,
-                     refresh_seconds, max_rows, view_rows, collapsed, position)
+                     refresh_seconds, max_rows, view_rows, collapsed, kind, position)
                 SELECT @workplaceId, p.name, p.sql_text, p.last_params, p.connection_name,
-                       p.refresh_seconds, p.max_rows, p.view_rows, p.collapsed,
+                       p.refresh_seconds, p.max_rows, p.view_rows, p.collapsed, p.kind,
                        (SELECT COALESCE(MAX(position), 0) + 1
                           FROM watch_panel WHERE watch_id = @workplaceId)
                   FROM watch_panel p WHERE p.id = @source
@@ -234,6 +239,35 @@ public sealed class WorkplaceRepository(Db db)
                        FROM watch_panel WHERE watch_id = @workplaceId));
             SELECT last_insert_rowid();
             """, new { workplaceId, name, sql, connection });
+    }
+
+    /// <summary>
+    /// Adds the DBA templates with these keys to the workspace, at the end, in catalogue order
+    /// (unknown keys are ignored), each as a panel on <paramref name="connection"/> with the
+    /// template's refresh interval. Returns how many panels were added.
+    /// </summary>
+    public int AddTemplates(long workplaceId, string connection, IEnumerable<string> keys)
+    {
+        var wanted = keys.ToHashSet();
+        var chosen = DbaTemplates.All.Where(t => wanted.Contains(t.Key)).ToList();
+        if (chosen.Count == 0)
+            return 0;
+        using var conn = db.Open();
+        using var tx = conn.BeginTransaction();
+        foreach (var t in chosen)
+            conn.Execute("""
+                INSERT INTO watch_panel
+                    (watch_id, name, sql_text, connection_name, refresh_seconds, view_rows, kind, position)
+                VALUES (@workplaceId, @name, @sql, @connection, @seconds, 0, @kind,
+                        (SELECT COALESCE(MAX(position), 0) + 1
+                           FROM watch_panel WHERE watch_id = @workplaceId))
+                """, new
+            {
+                workplaceId, name = t.Title, sql = t.Sql.Trim().Replace("\r\n", "\n"), connection,
+                seconds = t.RefreshSeconds, kind = t.Kind,
+            }, tx);
+        tx.Commit();
+        return chosen.Count;
     }
 
     /// <summary>Changes the panel's own query; nothing else is affected.</summary>
@@ -358,9 +392,9 @@ public sealed class WorkplaceRepository(Db db)
         conn.Execute("""
             INSERT INTO watch_panel
                 (watch_id, name, sql_text, last_params, connection_name,
-                 refresh_seconds, max_rows, view_rows, collapsed, position)
+                 refresh_seconds, max_rows, view_rows, collapsed, kind, position)
             SELECT @copy, name, sql_text, last_params, connection_name,
-                   refresh_seconds, max_rows, view_rows, collapsed, position
+                   refresh_seconds, max_rows, view_rows, collapsed, kind, position
               FROM watch_panel WHERE watch_id = @id
             """, new { copy, id }, tx);
         tx.Commit();

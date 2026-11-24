@@ -1,0 +1,86 @@
+@* Picks DBA templates (hard-coded panels, see DbaTemplates) to add to a workspace: an existing one
+   (Target) or a new one (Target is null: the dialog also asks for its name). Only the DBA
+   connections (logging in AS SYSDBA) are offered; without one there is nothing to do. The form is the
+   data-selectable root: select-all, the count, the filter and the button's enabled state come from site.js. *@
+@model Dynamo.Pages.Workplaces.DbaFormModel
+@{
+    var isNew = Model.Target is null;
+    var action = isNew
+        ? Url.Page("/Workplaces/Index", "CreateDba")
+        : Url.Page("/Workplaces/View", "AddDba", new { id = Model.Target!.Id });
+}
+<form id="dba-pick" class="wide" data-selectable hx-post="@action" hx-swap="none">
+    <h2>@(isNew ? "New DBA workspace" : $"Add DBA panels to “{Model.Target!.Name}”")</h2>
+
+    @if (Model.Connections.Count == 0)
+    {
+        <p class="empty">
+            No DBA connection yet. Edit a connection and tick “DBA connection (log in AS SYSDBA)”: the DBA
+            panels are offered on those only.
+        </p>
+        <footer>
+            <span class="spacer"></span>
+            <button type="button" class="ghost" data-close>Close</button>
+        </footer>
+    }
+    else
+    {
+        <p class="hint-text">
+            Each ticked template becomes an ordinary panel on the chosen DBA connection. Its query can be
+            edited afterwards (⚙, Edit query): only that panel changes.
+        </p>
+
+        @if (isNew)
+        {
+            <label>Name of the workspace
+                <input name="name" value="@Model.Name" autocomplete="off" autofocus placeholder="DBA – PROD" />
+            </label>
+        }
+
+        <label>Connection (DBA)
+            <select name="connection">
+                @foreach (var c in Model.Connections)
+                {
+                    <option value="@c.Name" selected="@(c.Name == Model.Connection)">@c.Name</option>
+                }
+            </select>
+        </label>
+
+        <div class="tns-tools">
+            <input type="checkbox" class="pick" data-select-all
+                   title="Select all the templates shown" aria-label="Select all shown" />
+            <input type="search" class="filter" placeholder="Filter…" aria-label="Filter the templates"
+                   data-filter="#dba-pick" autocomplete="off"
+                   onkeydown="if (event.key === 'Enter') event.preventDefault()" />
+            <span class="selected-count" data-select-count></span>
+        </div>
+        <ul class="items plain tns-list">
+            @foreach (var group in Dynamo.Modules.Workplaces.DbaTemplates.ByGroup())
+            {
+                <li class="tns-group-head">@group.Key</li>
+                foreach (var t in group)
+                {
+                    <li class="item">
+                        <label class="tns-row">
+                            <input type="checkbox" class="pick" name="template" value="@t.Key" data-select-item
+                                   checked="@Model.Ticked.Contains(t.Key)" />
+                            <span class="title">@t.Title</span>
+                            <span class="hint">@t.Description</span>
+                        </label>
+                    </li>
+                }
+            }
+        </ul>
+
+        @if (Model.Error is not null)
+        {
+            <p class="error">@Model.Error</p>
+        }
+
+        <footer>
+            <span class="spacer"></span>
+            <button type="button" class="ghost" data-close>Cancel</button>
+            <button type="submit" data-select-action disabled>@(isNew ? "Create the workspace" : "Add the panels")</button>
+        </footer>
+    }
+</form>

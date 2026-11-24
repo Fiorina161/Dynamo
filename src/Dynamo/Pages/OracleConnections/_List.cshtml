@@ -45,7 +45,17 @@
                         <a class="link" href="#"
                            hx-get="@Handler("Form", new { id = c.Id })"
                            hx-target="#dlg" hx-swap="innerHTML">
-                            <span class="title">@c.Name</span>
+                            <span class="title">
+                                @if (c.Color is not null)
+                                {
+                                    <span class="conn-dot conn-@c.Color" title="Panel title colour" aria-hidden="true"></span>
+                                }
+                                @c.Name
+                                @if (c.Dba)
+                                {
+                                    <span class="badge-dba" title="Logs in AS SYSDBA">DBA</span>
+                                }
+                            </span>
                             <span class="hint">
                                 @if (missing.Length > 0)
                                 {

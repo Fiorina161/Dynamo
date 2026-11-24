@@ -65,6 +65,8 @@ public class IndexModel(
             Name = UniqueCopyName(source.Name),
             DataSource = source.DataSource,
             Username = source.Username,
+            Dba = source.Dba,
+            Color = source.Color,
             // The password stays on the server: see ConnectionFormModel.CopyFrom.
         };
         return Partial("_Form", new ConnectionFormModel(copy, null, source.Id, source.Name));
@@ -72,7 +74,7 @@ public class IndexModel(
 
     public IActionResult OnPostSave(
         long id, string? name, string? dataSource, string? username, string? password,
-        long copyFrom)
+        long copyFrom, string? dba, string? color)
     {
         var existing = id == 0 ? null : repo.Get(id);
         if (id != 0 && existing is null)
@@ -86,6 +88,9 @@ public class IndexModel(
             Username = (username ?? "").Trim(),
             // Left blank: keep the stored password (an edit) or take the original's (a copy).
             Password = string.IsNullOrEmpty(password) ? StoredPassword(id, copyFrom) : password,
+            Pinned = existing?.Pinned ?? false,
+            Dba = dba == "on",
+            Color = ConnectionColors.Normalize(color),
         };
 
         var error = Validate(c);
@@ -194,7 +199,7 @@ public class IndexModel(
     /// <summary>Tests what is typed in the dialog, saved or not.</summary>
     public async Task<IActionResult> OnPostTestForm(
         long id, string? name, string? dataSource, string? username, string? password,
-        long copyFrom)
+        long copyFrom, string? dba)
     {
         var c = new OracleConnectionInfo
         {
@@ -202,6 +207,7 @@ public class IndexModel(
             DataSource = (dataSource ?? "").Trim(),
             Username = (username ?? "").Trim(),
             Password = string.IsNullOrEmpty(password) ? StoredPassword(id, copyFrom) : password,
+            Dba = dba == "on",
         };
         if (c.DataSource.Length == 0 || c.Username.Length == 0)
             return Toast("Enter a data source and a schema first.");

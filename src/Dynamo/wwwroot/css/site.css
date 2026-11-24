@@ -14,6 +14,14 @@
     --radius: 6px;               /* controls; panels are square */
     --font: sans-serif;
     --font-title: "Arial Black", Arial, sans-serif;
+    /* Connection colours: six pastels, desaturated enough to tell apart without
+       shouting (the title bar of a panel takes its connection's). */
+    --conn-blue: #cfdcf2;
+    --conn-teal: #c5e3df;
+    --conn-green: #d3e6cb;
+    --conn-sand: #eadfbe;
+    --conn-rose: #f0d0d3;
+    --conn-violet: #dcd2ee;
     color-scheme: light;
 }
 
@@ -28,6 +36,12 @@
     --accent: #8b97ff;
     --danger: #f2877f;
     --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 18px rgba(0, 0, 0, .25);
+    --conn-blue: #33425f;
+    --conn-teal: #2f4e4c;
+    --conn-green: #3a4e35;
+    --conn-sand: #54492f;
+    --conn-rose: #5b3a3f;
+    --conn-violet: #473d62;
     color-scheme: dark;
 }
 
@@ -42,6 +56,12 @@
         --accent: #8b97ff;
         --danger: #f2877f;
         --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 18px rgba(0, 0, 0, .25);
+        --conn-blue: #33425f;
+        --conn-teal: #2f4e4c;
+        --conn-green: #3a4e35;
+        --conn-sand: #54492f;
+        --conn-rose: #5b3a3f;
+        --conn-violet: #473d62;
         color-scheme: dark;
     }
 }
@@ -114,6 +134,11 @@ button.ghost { background: transparent; color: var(--fg); border-color: var(--li
 button.ghost:hover { background: var(--hover); opacity: 1; }
 button.danger { color: var(--danger); }
 button.small { padding: 1px 8px; font-size: 12px; color: var(--muted); }
+/* A link that looks like a button (the Health link of the Connections page). */
+a.button { display: inline-block; font: inherit; color: var(--bg); background: var(--fg); border: 1px solid var(--fg);
+    border-radius: var(--radius); padding: 5px 12px; text-decoration: none; }
+a.button.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+a.button.ghost:hover { background: var(--hover); }
 
 input, select {
     font: inherit;
@@ -211,6 +236,21 @@ input:focus, select:focus, button:focus-visible, a:focus-visible {
 .group.tinted .item + .item {
     border-top-color: color-mix(in srgb, var(--hue) 30%, transparent);
 }
+
+/* A connection colour on any element: --conn is the shade of the current theme. */
+.conn-blue { --conn: var(--conn-blue); }
+.conn-teal { --conn: var(--conn-teal); }
+.conn-green { --conn: var(--conn-green); }
+.conn-sand { --conn: var(--conn-sand); }
+.conn-rose { --conn: var(--conn-rose); }
+.conn-violet { --conn: var(--conn-violet); }
+/* The colour of a connection in the Connections list, and the DBA tag. */
+.conn-dot { display: inline-block; width: 10px; height: 10px; margin-right: 6px;
+    border-radius: 50%; background: var(--conn); border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent); }
+.badge-dba { margin-left: 6px; padding: 0 5px; border-radius: 3px; font-size: 10px; font-weight: 700;
+    letter-spacing: .04em; color: var(--muted); border: 1px solid var(--line); vertical-align: 1px; }
+dialog label.check { display: flex; align-items: center; gap: 8px; color: var(--fg); font-size: 14px; }
+dialog label.check input { width: auto; margin: 0; }
 
 /* The color picker of the group dialog. */
 .swatches { display: flex; align-items: center; gap: 10px; border: none;
@@ -603,7 +643,11 @@ dialog footer { display: flex; gap: 8px; margin-top: 18px; }
    the room; the details stay behind the gear. */
 .workplace-grid { columns: 560px; column-gap: 20px; position: relative; }
 .panel { margin-bottom: 20px; padding-top: 10px; }
-.panel > header { margin-bottom: 6px; }
+/* The title bar runs edge to edge of the panel, so a coloured one (below) and a plain one line up. */
+.panel > header { margin: -10px -10px 8px; padding: 8px 10px; }
+/* A panel whose connection has a colour: the title bar is drawn in it
+   (site.js keeps the class in step when the connection changes). */
+.panel[class*="conn-"] > header { background: var(--conn); }
 .panel .gear { margin-left: auto; opacity: .55; }
 /* Full width: the panel spans every column (the panels before it fill the
    columns above it, those after it start below). Not called "wide": that is the
@@ -682,6 +726,63 @@ button.panel-grip:hover, button.panel-grip:focus-visible { opacity: 1; backgroun
     pointer-events: none;
 }
 .panel-drop-marker[hidden] { display: none; }
+/* The Kill button and its confirmation: red, because it ends a session for real. */
+.kill-btn { background: var(--danger); border-color: var(--danger); color: #fff; }
+.kill-btn:hover { background: color-mix(in srgb, var(--danger) 85%, #000); border-color: color-mix(in srgb, var(--danger) 85%, #000); }
+button.kill-btn.small { padding: 1px 9px; font-size: 12px; min-height: 0; color: #fff; }
+.results th.kill-col, .results td.kill-col { text-align: center; width: 1%; }
+.kill-form .kill-title { color: var(--danger); }
+.kill-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0 0 12px; font-size: 14px; }
+.kill-facts dt { color: var(--muted); }
+.kill-facts dd { margin: 0; word-break: break-word; }
+dialog:has(form.plan-form) { width: min(1100px, 96vw); }
+.plan-form label { max-width: 220px; }
+pre.plan-text { margin: 0 0 10px; padding: 10px; max-height: 60vh; overflow: auto;
+    font: 12px/1.35 Consolas, "Cascadia Mono", monospace; white-space: pre;
+    background: var(--bg); border: 1px solid var(--line); }
+/* Result tools: the ⋯ menu, the vertical view of a one-row result, readable sizes, the long cells. */
+.panel .result-tools { opacity: .55; }
+.panel .result-tools:hover, .panel .result-tools[aria-expanded="true"] { opacity: 1; }
+.result-menu { position: absolute; z-index: 70; min-width: 240px; padding: 4px; background: var(--surface);
+    border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: var(--radius); font-size: 13px; }
+.result-menu[hidden] { display: none; }
+.result-menu button { display: block; width: 100%; text-align: left; background: transparent; color: var(--fg);
+    border: none; padding: 6px 10px; border-radius: 4px; font-size: 13px; }
+.result-menu button:hover:not(:disabled) { background: var(--hover); opacity: 1; }
+.result-menu button:disabled { color: var(--muted); opacity: .55; cursor: default; }
+.result-menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+.panel-results.vertical-on .results { display: none; }
+.results-vertical { overflow: auto; max-height: 62vh; margin: 0 -10px; }
+.results-vertical table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.results-vertical th, .results-vertical td { padding: 5px 12px; text-align: left; vertical-align: top;
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.results-vertical th { width: 1%; white-space: nowrap; color: var(--muted); font: 400 11px var(--font-title);
+    text-transform: uppercase; letter-spacing: .04em; border-right: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.results-vertical td { white-space: pre-wrap; word-break: break-word; max-width: 0; width: 99%; }
+.results-vertical td.null { color: var(--muted); font-style: italic; }
+.results-vertical td.long { cursor: zoom-in; }
+.results td.long { cursor: zoom-in; }
+/* A byte column shown as KB, MB, GB: the number stays in the cell (sort, filter, copy), the stylesheet shows the readable form. */
+.human-sizes td[data-human] { font-size: 0; }
+.human-sizes td[data-human]::after { content: attr(data-human); font-size: 13px; }
+.cell-viewer pre.plan-text { white-space: pre-wrap; word-break: break-word; }
+/* The connection health page. */
+.health-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.health-table th { text-align: left; padding: 8px 10px; color: var(--muted); font-size: 11px;
+    letter-spacing: .06em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+.health-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.health-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.health-table .hint { display: block; }
+.health-name { font-weight: 600; }
+.health-pill { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--line); color: var(--muted); }
+.health-up .health-pill { color: #1f6b3a; background: #dff2e4; border-color: #b9e0c3; }
+.health-down .health-pill, .health-notready .health-pill { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+:root[data-theme="dark"] .health-up .health-pill { color: #8fd6a3; background: #1f3a2a; border-color: #2e5a40; }
+.health-error { color: var(--danger); word-break: break-word; }
+.tns-group-head { margin: 10px 0 2px; padding: 0 8px; color: var(--muted); font-size: 11px;
+    font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.tns-group-head:first-child { margin-top: 0; }
 body.panel-dragging, body.panel-dragging * { cursor: grabbing !important; user-select: none; }
 .panel .results { max-height: 62vh; }
 .panel pre.error { margin: 0 10px 6px; }

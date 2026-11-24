@@ -30,6 +30,13 @@
         <button type="button" class="ghost danger"
                 hx-post="@Handler("Delete")" hx-swap="none"
                 hx-confirm="Delete the workspace “@w.Name” and its queries? The other workspaces are not affected.">Delete</button>
+        @if (Model.Connections.Any(c => c.Dba))
+        {
+            @* The DBA templates need a DBA connection (logging in AS SYSDBA): no button without one. *@
+            <button type="button" class="ghost"
+                    title="Add ready-made DBA panels to this workspace"
+                    hx-get="@Handler("DbaForm")" hx-target="#dlg">Add DBA panels</button>
+        }
         <button type="button" class="ghost"
                 title="Copy queries from another workspace into this one"
                 hx-get="@Handler("ImportForm")" hx-target="#dlg">Import from workspace</button>
@@ -69,7 +76,8 @@
         var p = w.Panels[index];
         var csvButton = new Dynamo.Pages.Shared.ExportButtonModel(
             Handler("CsvPanel", new { id = w.Id, panel = p.Id }), "#binds");
-        <section class="group panel @(p.Collapsed ? "collapsed" : "")" data-panel="@p.Id">
+        var tint = Model.Connections.FirstOrDefault(c => c.Name == p.Connection)?.Color;
+        <section class="group panel @(p.Collapsed ? "collapsed" : "")@(tint is null ? "" : (p.Collapsed ? " " : "") + "conn-" + tint)" data-panel="@p.Id">
             <header>
                 @* Drag by this handle to put the panel elsewhere in the order (site.js, "Reordering panels");
                    the arrow keys on it do the same, and the earlier/later buttons in the details remain. *@
@@ -88,6 +96,10 @@
                 @* Time, rows, duration: the same summary as the Queries page, filled by each run (_PanelResults). *@
                 <span class="count" id="panel-count-@p.Id"></span>
                 <partial name="_WideButton" model="p.QueryName" />
+                @* Copy the rows as TSV, Markdown or a table; vertical view; readable sizes (site.js, "Result tools"). *@
+                <button type="button" class="ghost small result-tools" data-result-tools aria-haspopup="menu"
+                        title="Copy the rows, vertical view, readable sizes"
+                        aria-label="Result tools of @p.QueryName">⋯</button>
                 <button type="button" class="ghost small gear" data-panel-toggle
                         aria-expanded="false" title="Details and settings"
                         aria-label="Details and settings of @p.QueryName">⚙</button>
@@ -108,7 +120,7 @@
                                 <option value="" selected disabled>(choose)</option>
                             }
                             <partial name="_ConnectionOptions"
-                                     model="new ConnectionOptionsModel(Model.Connections, p.Connection.Length > 0 ? p.Connection : null)" />
+                                     model="new ConnectionOptionsModel(p.IsSessions ? Model.Connections.Where(c => c.Dba).ToList() : Model.Connections, p.Connection.Length > 0 ? p.Connection : null)" />
                         </select>
                     </label>
                     <label>Max rows
@@ -136,10 +148,17 @@
                 <footer class="run-actions">
                     <button type="submit">Run now</button>
                     <partial name="_ExportButton" model="csvButton" />
-                    <button type="button" class="ghost"
-                            title="Rename this panel or change its SQL. Only this workspace's copy changes."
-                            hx-get="@Handler("EditQueryForm", new { id = w.Id, panel = p.Id })"
-                            hx-target="#dlg" hx-swap="innerHTML" hx-include="this">Edit query</button>
+                    @if (!p.IsSessions)
+                    {
+                        <button type="button" class="ghost"
+                                title="Rename this panel or change its SQL. Only this workspace's copy changes."
+                                hx-get="@Handler("EditQueryForm", new { id = w.Id, panel = p.Id })"
+                                hx-target="#dlg" hx-swap="innerHTML" hx-include="this">Edit query</button>
+                        <button type="button" class="ghost"
+                                title="How Oracle would run this query (EXPLAIN PLAN: the query is not executed)"
+                                hx-post="@Handler("Plan", new { id = w.Id, panel = p.Id })"
+                                hx-include="#binds, closest form" hx-target="#dlg" hx-swap="innerHTML">Plan</button>
+                    }
                     <button type="button" class="ghost" data-move="-1" title="Move this panel earlier in the order"
                             aria-label="Move @p.QueryName earlier"
                             disabled="@(index == 0)"

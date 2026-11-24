@@ -22,5 +22,5 @@ else if (results.Result is { } r)
 {
     <div class="panel-meta" hidden data-rows="@r.Rows.Count" data-ms="@r.ElapsedMs"
          data-more="@(r.Truncated ? "1" : "0")"></div>
-    <partial name="_ResultTable" model="r" />
+    <partial name="_ResultTable" model="r" view-data="@(new ViewDataDictionary(ViewData) { ["KillUrl"] = Model.KillUrl })" />
 }

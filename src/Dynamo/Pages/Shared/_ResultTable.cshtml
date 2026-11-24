@@ -3,6 +3,20 @@
 @model Dynamo.Modules.Queries.QueryResult
 @{
     var r = Model;
+    // The sessions panel on a DBA connection passes the address of its Kill dialog: every row then
+    // gets a red Kill button, built from the INST_ID, SID and SERIAL columns of its query.
+    var killUrl = ViewData["KillUrl"] as string;
+    int ColumnOf(string name)
+    {
+        for (var i = 0; i < r.Columns.Count; i++)
+            if (string.Equals(r.Columns[i].Name, name, StringComparison.OrdinalIgnoreCase))
+                return i;
+        return -1;
+    }
+    var killInst = killUrl is null ? -1 : ColumnOf("INST_ID");
+    var killSid = killUrl is null ? -1 : ColumnOf("SID");
+    var killSerial = killUrl is null ? -1 : ColumnOf("SERIAL");
+    var canKill = killInst >= 0 && killSid >= 0 && killSerial >= 0;
 }
 @if (r.Columns.Count == 0)
 {
@@ -17,6 +31,11 @@ else
                     @* Row numbers 1..n are a CSS counter (see site.css): they follow the
                        order on screen after a sort, and are not copied with the data. *@
                     <th class="rownum" title="Row number. Click a row to pin it to the top; click here to unpin all.">#</th>
+                    @* The Kill column comes first: a wide result scrolls sideways, and the button must stay in reach. *@
+                    @if (canKill)
+                    {
+                        <th class="kill-col" aria-label="Actions"></th>
+                    }
                     @foreach (var c in r.Columns)
                     {
                         <th class="@(c.Numeric ? "num" : "")" tabindex="0"
@@ -29,6 +48,18 @@ else
                 {
                     <tr>
                         <td class="rownum"></td>
+                        @if (canKill)
+                        {
+                            <td class="kill-col">
+                                @if (long.TryParse(row[killInst], out var kInst) && long.TryParse(row[killSid], out var kSid)
+                                     && long.TryParse(row[killSerial], out var kSerial))
+                                {
+                                    <button type="button" class="kill-btn small" title="Kill this session (asks first)"
+                                            hx-get="@($"{killUrl}&inst={kInst}&sid={kSid}&serial={kSerial}")"
+                                            hx-target="#dlg" hx-swap="innerHTML">Kill</button>
+                                }
+                            </td>
+                        }
                         @for (var i = 0; i < row.Length; i++)
                         {
                             var cell = row[i];
@@ -38,7 +69,7 @@ else
                             }
                             else
                             {
-                                <td class="@(r.Columns[i].Numeric ? "num" : "")" title="@(cell.Length > 120 ? cell : null)">@cell</td>
+                                <td class="@(r.Columns[i].Numeric ? "num" : "")@(cell.Length > 120 ? " long" : "")" title="@(cell.Length > 120 ? cell : null)">@cell</td>
                             }
                         }
                     </tr>

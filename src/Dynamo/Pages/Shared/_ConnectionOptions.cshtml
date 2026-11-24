@@ -11,13 +11,13 @@
     <optgroup label="★ Pinned">
         @foreach (var c in pinned)
         {
-            <option value="@c.Name" selected="@(c.Name == Model.Selected)">@c.Name</option>
+            <option value="@c.Name" data-color="@c.Color" data-dba="@(c.Dba ? "1" : "0")" selected="@(c.Name == Model.Selected)">@c.Name@(c.Dba ? " (DBA)" : "")</option>
         }
     </optgroup>
     <optgroup label="Others">
         @foreach (var c in others)
         {
-            <option value="@c.Name" selected="@(c.Name == Model.Selected)">@c.Name</option>
+            <option value="@c.Name" data-color="@c.Color" data-dba="@(c.Dba ? "1" : "0")" selected="@(c.Name == Model.Selected)">@c.Name@(c.Dba ? " (DBA)" : "")</option>
         }
     </optgroup>
 }
@@ -25,6 +25,6 @@ else
 {
     @foreach (var c in Model.Choices)
     {
-        <option value="@c.Name" selected="@(c.Name == Model.Selected)">@c.Name</option>
+        <option value="@c.Name" data-color="@c.Color" data-dba="@(c.Dba ? "1" : "0")" selected="@(c.Name == Model.Selected)">@c.Name@(c.Dba ? " (DBA)" : "")</option>
     }
 }

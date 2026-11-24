@@ -10,6 +10,14 @@
         <p>A workspace shows several saved queries side by side, each refreshing on its own, to keep an eye on a few things at once.</p>
     </div>
     <div class="actions">
+        @if (Model.HasDbaConnection)
+        {
+            @* The DBA templates need a DBA connection (logging in AS SYSDBA): no button without one. *@
+            <button type="button" class="ghost"
+                    title="Create a workspace from ready-made DBA panels"
+                    hx-get="@Url.Page("/Workplaces/Index", "DbaForm")"
+                    hx-target="#dlg">New DBA workspace</button>
+        }
         <button type="button"
                 hx-get="@Url.Page("/Workplaces/Index", "NewForm")"
                 hx-target="#dlg">New workspace</button>

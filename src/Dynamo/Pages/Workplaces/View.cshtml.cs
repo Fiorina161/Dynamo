@@ -25,13 +25,34 @@ public sealed record PanelQueryModel(
     IReadOnlyList<ConnectionChoice> Connections, string? Error = null);
 
 /// <summary>
+/// Model of the dialog that adds DBA templates: to an existing workspace, or (Target null) to a
+/// new one. <c>Connections</c> are the DBA connections only.
+/// </summary>
+public sealed record DbaFormModel(
+    Workplace? Target, string Name, string Connection,
+    IReadOnlyList<ConnectionChoice> Connections, IReadOnlySet<string> Ticked, string? Error = null)
+{
+    /// <summary>The dialog as it opens: nothing ticked.</summary>
+    public static DbaFormModel Open(Workplace? target, IReadOnlyList<ConnectionChoice> all) =>
+        new(target, "", "", all.Where(c => c.Dba).ToList(), new HashSet<string>());
+}
+
+/// <summary>Model of the Kill dialog: the session about to be killed, and where it runs.</summary>
+public sealed record KillFormModel(long WorkplaceId, long PanelId, string Connection, SessionInfo Session);
+
+/// <summary>Model of the execution plan dialog: the plan text, or why there is none.</summary>
+public sealed record PlanModel(
+    Workplace Workplace, WorkplacePanel Panel, string Connection, string Format, string? Text, string? Error);
+
+/// <summary>
 /// One workspace: its panels (each with its own query, refreshing on its own)
 /// and the bind values they share. Rendered once; panels run through RunPanel,
 /// which answers the results area of one panel.
 /// </summary>
 public class ViewModel(
     WorkplaceRepository repo, OracleConnector connector,
-    IQueryRunner runner, ResultOptions resultOptions, ILogger<ViewModel> log) : PageModel
+    IQueryRunner runner, IPlanRunner planner, ISessionKiller killer,
+    ResultOptions resultOptions, ILogger<ViewModel> log) : PageModel
 {
     /// <summary>How many rows a panel shows when its own Visible rows is 0 (Settings).</summary>
     public int DefaultRows => resultOptions.DefaultRows;
@@ -66,6 +87,46 @@ public class ViewModel(
         var source = others.FirstOrDefault(w => w.Id == from) ?? others.FirstOrDefault();
         return Partial("_ImportForm", new ImportModel(target, others, source is null ? null : repo.Get(source.Id)));
     }
+
+    /// <summary>The dialog to add DBA templates (offered on DBA connections only).</summary>
+    public IActionResult OnGetDbaForm(long id)
+    {
+        var target = repo.Get(id);
+        return target is null
+            ? NotFound()
+            : Partial("_DbaForm", DbaFormModel.Open(target, connector.Choices()));
+    }
+
+    /// <summary>
+    /// Adds the ticked DBA templates to this workspace, on the chosen connection, which must be
+    /// a DBA one (the server checks: the page only offers those).
+    /// </summary>
+    public IActionResult OnPostAddDba(long id, string? connection, List<string>? template)
+    {
+        if (repo.Get(id) is not { } target)
+            return NotFound();
+        var choices = connector.Choices();
+        connection = (connection ?? "").Trim();
+        var error = DbaProblem(choices, connection, template);
+        if (error is not null)
+        {
+            Response.Headers["HX-Retarget"] = "#dlg";
+            Response.Headers["HX-Reswap"] = "innerHTML";
+            return Partial("_DbaForm", new DbaFormModel(
+                target, "", connection, choices.Where(c => c.Dba).ToList(),
+                (template ?? []).ToHashSet(), error));
+        }
+
+        repo.AddTemplates(id, connection, template!);
+        return Refresh();
+    }
+
+    /// <summary>Why the DBA dialog cannot be applied, or null: a DBA connection and a known template.</summary>
+    public static string? DbaProblem(
+        IReadOnlyList<ConnectionChoice> choices, string connection, List<string>? template) =>
+        !choices.Any(c => c.Dba && c.Name == connection) ? "Choose a DBA connection."
+        : template is null || !template.Any(k => DbaTemplates.Find(k) is not null) ? "Tick at least one template."
+        : null;
 
     /// <summary>Copies the ticked panels of another workspace into this one.</summary>
     public IActionResult OnPostImport(long id, long from, List<long>? panel)
@@ -107,7 +168,7 @@ public class ViewModel(
     /// <summary>The dialog to change a panel's own query (other panels it was copied from or to are not affected).</summary>
     public IActionResult OnGetEditQueryForm(long id, long panel)
     {
-        if (repo.Get(id) is not { } workplace || repo.GetPanel(panel) is not { } p || p.WorkplaceId != id)
+        if (repo.Get(id) is not { } workplace || repo.GetPanel(panel) is not { } p || p.WorkplaceId != id || p.IsSessions)
             return NotFound();
         return Partial("_PanelForm", new PanelQueryModel(
             workplace, p.Id, p.QueryName, p.Sql, p.Connection, connector.Choices()));
@@ -115,7 +176,7 @@ public class ViewModel(
 
     public IActionResult OnPostEditQuery(long id, long panel, string? name, string? sql)
     {
-        if (repo.Get(id) is not { } workplace || repo.GetPanel(panel) is not { } p || p.WorkplaceId != id)
+        if (repo.Get(id) is not { } workplace || repo.GetPanel(panel) is not { } p || p.WorkplaceId != id || p.IsSessions)
             return NotFound();
         name = name?.Trim() ?? "";
         sql = (sql ?? "").Replace("\r\n", "\n").Trim();
@@ -268,6 +329,9 @@ public class ViewModel(
     {
         if (repo.GetPanel(panel) is not { } p || p.WorkplaceId != id)
             return NotFound();
+        // The sessions panel (and its Kill button) only ever runs on a DBA connection.
+        if (p.IsSessions && !string.IsNullOrWhiteSpace(connection) && !connector.IsDba(connection.Trim()))
+            return BadRequest();
         repo.SetPanel(panel, string.IsNullOrWhiteSpace(connection) ? null : connection.Trim(),
             seconds ?? 0, maxRows, viewRows);
         return new NoContentResult();
@@ -297,11 +361,107 @@ public class ViewModel(
         var rows = (int)Math.Clamp(maxRows ?? p.MaxRows, 1, WorkplaceRepository.MaxRowsLimit);
 
         var name = string.IsNullOrWhiteSpace(connection) ? p.Connection : connection.Trim();
+        var sessionsOnDba = p.IsSessions && name.Length > 0 && connector.IsDba(name);
         var results = name.Length == 0
             ? new ResultsModel(null, "No connection chosen: open the panel's settings (⚙) and pick one.")
-            : await QueryActions.RunAsync(
-                runner, log, name, p.Sql, QueryActions.ParamsOf(Request.Form), rows, ct);
-        return Partial("_PanelResults", new PanelResultsModel(results, panel));
+            : p.IsSessions && !sessionsOnDba
+                ? new ResultsModel(null, $"The sessions panel needs a DBA connection, and “{name}” is not one: open the panel's settings (⚙) and pick another.")
+                : await QueryActions.RunAsync(
+                    runner, log, name, p.Sql, QueryActions.ParamsOf(Request.Form), rows, ct);
+        var killUrl = sessionsOnDba && results.Result is not null
+            ? Url.Page("/Workplaces/View", "KillForm", new { id, panel })
+            : null;
+        return Partial("_PanelResults", new PanelResultsModel(results, panel, killUrl));
+    }
+
+    // ---- The execution plan of a panel's query ------------------------------------
+
+    /// <summary>
+    /// Shows how Oracle would run the panel's query (EXPLAIN PLAN and DBMS_XPLAN; the query is not
+    /// executed). <paramref name="format"/> is BASIC, TYPICAL or ALL; changing it in the dialog asks again.
+    /// </summary>
+    public async Task<IActionResult> OnPostPlanAsync(
+        long id, long panel, string? connection, string? format, CancellationToken ct)
+    {
+        if (repo.Get(id) is not { } workplace || repo.GetPanel(panel) is not { } p || p.WorkplaceId != id || p.IsSessions)
+            return NotFound();
+        var name = string.IsNullOrWhiteSpace(connection) ? p.Connection : connection.Trim();
+        format = PlanRunner.NormalizeFormat(format);
+        string? text = null, error = null;
+        if (name.Length == 0)
+            error = "No connection chosen: open the panel's settings (⚙) and pick one.";
+        else
+        {
+            try
+            {
+                text = await planner.ExplainAsync(name, p.Sql, QueryActions.ParamsOf(Request.Form), format, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                error = QueryErrorText.Of(ex, log);
+            }
+        }
+        return Partial("_Plan", new PlanModel(workplace, p, name, format, text, error));
+    }
+
+    // ---- Killing a session (the sessions panel, DBA connections only) ---------------
+
+    /// <summary>
+    /// The sessions panel of this workspace and its DBA connection, or why the Kill buttons do not
+    /// apply (the page only offers them on a sessions panel running on a DBA connection; the server
+    /// checks again because anything can be posted).
+    /// </summary>
+    private (WorkplacePanel? Panel, string? Problem) KillablePanel(long id, long panel)
+    {
+        if (repo.GetPanel(panel) is not { } p || p.WorkplaceId != id || !p.IsSessions)
+            return (null, "This is not a sessions panel.");
+        if (p.Connection.Length == 0 || !connector.IsDba(p.Connection))
+            return (null, "Killing a session needs a DBA connection.");
+        return (p, null);
+    }
+
+    private IActionResult Toast(string message)
+    {
+        Response.Headers["HX-Trigger"] = JsonSerializer.Serialize(new { toast = message });
+        return new NoContentResult();
+    }
+
+    /// <summary>The red confirmation dialog: who is about to be killed. Nothing is killed here.</summary>
+    public async Task<IActionResult> OnGetKillFormAsync(
+        long id, long panel, long inst, long sid, long serial, CancellationToken ct)
+    {
+        var (p, problem) = KillablePanel(id, panel);
+        if (p is null)
+            return Toast(problem!);
+        SessionInfo? session;
+        try
+        {
+            session = await killer.DescribeAsync(p.Connection, inst, sid, serial, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return Toast(QueryErrorText.Of(ex, log));
+        }
+        if (session is null)
+            return Toast("That session no longer exists.");
+        if (session.IsOwn || session.IsBackground)
+            return Toast(session.IsOwn ? "That is Dynamo's own session: it is not killed." : "That is a background process: it is not killed.");
+        return Partial("_KillForm", new KillFormModel(id, panel, p.Connection, session));
+    }
+
+    /// <summary>Kills the confirmed session, then has every panel run again.</summary>
+    public async Task<IActionResult> OnPostKillSessionAsync(
+        long id, long panel, long inst, long sid, long serial, CancellationToken ct)
+    {
+        var (p, problem) = KillablePanel(id, panel);
+        if (p is null)
+            return Toast(problem!);
+        log.LogWarning("Kill of session {Sid},{Serial},@{Instance} asked on {Connection} from {Client}",
+            sid, serial, inst, p.Connection, HttpContext.Connection.RemoteIpAddress);
+        var outcome = await killer.KillAsync(p.Connection, inst, sid, serial, ct);
+        Response.Headers["HX-Trigger"] = JsonSerializer.Serialize(
+            new { closeDialog = "", toast = outcome.Message, runAll = "" });
+        return new NoContentResult();
     }
 
     /// <summary>

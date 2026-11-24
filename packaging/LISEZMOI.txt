@@ -125,6 +125,26 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
   déjà présentes ne sont jamais modifiées : on peut donc refaire l'importation
   sans rien perdre.
 
+  Connexion DBA et couleur (dans la fenêtre de modification) :
+
+  - « DBA connection (log in AS SYSDBA) » : la connexion se fait avec le rôle
+    SYSDBA (en général avec le schéma SYS). Les fonctions pour DBA (panneaux
+    DBA, panneau des sessions : voir 3.3) ne sont proposées que sur ces
+    connexions-là : sans connexion DBA, les boutons n'apparaissent pas.
+  - « Colour » : une couleur pastel parmi six (ou aucune). La barre de titre
+    de tous les panneaux qui utilisent la connexion est dessinée dans cette
+    couleur : impossible de prendre la production pour un environnement de
+    test. La liste des connexions montre la couleur et une étiquette « DBA ».
+
+  Santé des connexions : le bouton « Health » (en haut de la page) essaie
+  toutes les connexions maintenant et indique, pour chacune, si elle répond
+  (« Up ») ou non (« Down », avec le message d'Oracle), le temps de
+  connexion, le temps d'un aller-retour et la version d'Oracle. Chaque ligne
+  se vérifie séparément : une base lente ou arrêtée ne retarde que sa propre
+  ligne. « Test all again » refait toutes les vérifications. Chaque essai est
+  une vraie connexion (jamais une connexion déjà ouverte), donc les temps sont
+  honnêtes.
+
   Important : pour que le service retrouve vos alias TNS, la variable
   d'environnement TNS_ADMIN doit être définie au niveau du SYSTÈME (variables
   d'environnement système), et non seulement pour votre utilisateur. Sinon,
@@ -254,6 +274,56 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     zone. Touche Échap ou « × » pour effacer une zone. Le surlignage est refait
     à chaque rafraîchissement et retenu par ce navigateur. Si deux textes se
     chevauchent, la première zone l'emporte.
+
+  Plus d'outils sur les résultats d'un panneau (tout se passe dans le
+  navigateur) :
+
+  - Le bouton « ⋯ » de la barre de titre : « Copy as TSV » (se colle dans
+    Excel), « Copy as Markdown table », « Copy as formatted table » (se colle
+    en tableau dans Word ou Outlook). On copie les lignes affichées, dans
+    l'ordre affiché (les lignes cachées par un filtre ne sont pas copiées).
+  - « Vertical view » : pour un résultat d'une seule ligne, les colonnes sont
+    listées l'une sous l'autre (pratique pour v$instance ou une ligne de
+    v$session). « Readable sizes » : les colonnes dont le nom contient BYTES
+    s'affichent en Ko, Mo ou Go; le nombre reste dans la cellule, donc le tri,
+    les filtres et la copie utilisent toujours le nombre. Ces deux choix sont
+    retenus par panneau, par ce navigateur.
+  - Un clic sur une cellule longue (coupée à l'écran) ouvre son texte complet
+    dans une fenêtre, avec un bouton « Copy » (le JSON y est indenté);
+    Alt + clic fait de même pour n'importe quelle cellule. Un clic sur une
+    cellule courte épingle toujours la ligne.
+  - « Plan » (dans les détails d'un panneau) : montre comment Oracle exécuterait
+    la requête du panneau (EXPLAIN PLAN puis DBMS_XPLAN.DISPLAY). La requête
+    n'est PAS exécutée. On peut choisir le niveau de détail (BASIC, TYPICAL,
+    ALL) et copier le plan. Le plan utilise la connexion et les valeurs
+    partagées du panneau. Quelques lignes sont écrites dans la table de plan
+    de la session, puis annulées aussitôt.
+
+  Panneaux DBA (connexions DBA seulement) :
+
+  - « Add DBA panels » (dans un espace) et « New DBA workspace » (sur la liste
+    des espaces) proposent des panneaux prêts à l'emploi, intégrés à Dynamo :
+    sessions actives, sessions bloquantes, objets verrouillés, opérations
+    longues, utilisation des tablespaces, espace temporaire, undo, zone de
+    récupération rapide, plus gros segments, SQL les plus coûteux, événements
+    d'attente, sessions par utilisateur, sauvegardes RMAN, redo archivé par
+    heure, travaux planifiés en échec, objets invalides, erreurs du journal
+    d'alertes, instance et base, retard Data Guard. Choisissez la connexion
+    DBA et les panneaux voulus (rien n'est coché au départ). Chacun devient un
+    panneau ordinaire, avec un rythme de rafraîchissement raisonnable, dont la
+    requête peut ensuite être modifiée (seul ce panneau change).
+  - Le panneau « Active sessions (with Kill) » liste les sessions utilisateur
+    actives (jamais celle de Dynamo) avec, en première colonne, un bouton rouge
+    « Kill ». Il ouvre une confirmation rouge qui nomme la session
+    (utilisateur, machine, programme, identifiant SQL) : rien ne se passe tant
+    qu'on n'a pas cliqué « Kill session ». Alors ALTER SYSTEM KILL SESSION ...
+    IMMEDIATE est exécuté et les panneaux se rafraîchissent. C'est la seule
+    chose, dans Dynamo, qui MODIFIE la base : elle est donc protégée (panneau
+    des sessions sur une connexion DBA seulement; la session doit encore exister
+    avec ce même numéro de série; jamais un processus d'arrière-plan ni la
+    session de Dynamo). Chaque demande est inscrite dans le journal. La
+    requête de ce panneau n'est pas modifiable, et sa liste de connexions ne
+    contient que des connexions DBA.
 
 Menu. Si vous n'utilisez pas les signets, « Settings » (section « Menu »)
 permet de retirer « Bookmarks » du menu; la page d'accueil ouvre alors la

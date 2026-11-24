@@ -10,7 +10,11 @@ public sealed record ResultsModel(QueryResult? Result, string? Error);
 /// A workspace panel's answer: its results, and the panel they belong to (the
 /// title bar is updated with the same summary line as the Queries page).
 /// </summary>
-public sealed record PanelResultsModel(ResultsModel Results, long PanelId);
+/// <param name="KillUrl">
+/// The sessions panel on a DBA connection: the address of the Kill dialog (the row adds the session);
+/// null for every other panel, which gets no Kill column.
+/// </param>
+public sealed record PanelResultsModel(ResultsModel Results, long PanelId, string? KillUrl = null);
 
 /// <summary>A button that downloads the query's whole result as CSV.</summary>
 public sealed record ExportButtonModel(string Url, string? IncludeSelector = null);

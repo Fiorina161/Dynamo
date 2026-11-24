@@ -296,6 +296,59 @@ Then `git checkout master && git pull`, and delete the branch.
   Scripts verified with jsdom (refresh: 26 checks, real htmx,
   stand-in server), kept only in the scratch dir; the server side is in
   `WorkplacesTests` and `WorkplaceMigrationTests`.
+- **DBA features (done, 24 Nov 2026; the owner's list, built in one go; none of
+  it has been run against a real Oracle: see "Not verified").**
+  **DBA connection:** `oracle_connection.dba` (migration 3) = log in AS SYSDBA
+  (`OracleConnectionStringBuilder.DBAPrivilege = "SYSDBA"`, in
+  `OracleConnector.ConnectionStringOf`); `OracleConnector.IsDba(name)`;
+  `ConnectionChoice` carries `Dba` and `Color`. **Colour:** `oracle_connection.color`
+  (migration 4), six pastels (`ConnectionColors`: blue, teal, green, sand, rose,
+  violet; the shades are the `--conn-*` variables of site.css, light and dark); the
+  panel's title bar takes it (`.panel.conn-<key> > header`, set by the server; site.js
+  "Panel title colour" follows a change of the connection picker through
+  `data-color` on each `<option>`). **Everything DBA is gated on a DBA connection and
+  checked again on the server:** the buttons "Add DBA panels" / "New DBA workspace"
+  exist only when one exists, `ViewModel.DbaProblem` refuses a non-DBA connection, the
+  sessions panel refuses to run, to be moved to a non-DBA connection (400), or to kill.
+  **Templates:** `Modules/Workplaces/DbaTemplates.cs`, hard-coded (`All`: key, group,
+  title, description, SQL, refresh seconds, kind); to add one, add it there. They are
+  ordinary panels once added (`WorkplaceRepository.AddTemplates`); a test checks every
+  template is one SELECT/WITH with no binds. **Panel kind:** `watch_panel.kind`
+  (migration 8 of Workplaces, `query` or `sessions`, copied by Duplicate and import).
+  **Sessions panel and Kill:** `SessionKiller` (`ISessionKiller`, faked in tests) is the
+  **only code in Dynamo that writes to Oracle**; guards: DBA connection, the session
+  still exists with that serial, not `BACKGROUND`, not Dynamo's own session
+  (`sys_context('USERENV','SID')`), integers only because ALTER SYSTEM takes no binds;
+  ORA-00031 (marked for kill) counts as success; the request is logged with the
+  client address; the red confirmation (`_KillForm`) is fetched with ids only and
+  re-reads the session. `QueryRunner` stays read-only. The Kill column is built in
+  `_ResultTable` from the columns INST_ID, SID, SERIAL when the panel passes
+  `KillUrl`, and is the **first** column after `#` (a wide result scrolls sideways);
+  `keyRows` (pin keys) skips it. **Plan:** `PlanRunner` (`IPlanRunner`):
+  `EXPLAIN PLAN SET STATEMENT_ID` + `DBMS_XPLAN.DISPLAY`, then ROLLBACK, **not** in the
+  read-only transaction (EXPLAIN PLAN inserts into PLAN_TABLE), available on every
+  connection; format BASIC/TYPICAL/ALL only. **Health page** `/Oracle/Health`:
+  `OracleConnector.ProbeAsync` (real, **unpooled** login + `select 1 from dual`, so
+  times are honest; `TestAsync` is built on it); the page lists rows that each probe
+  themselves (`hx-trigger="load, retest from:body"`; a row that has its answer does
+  **not** ask on load again, or it would never stop). **Result tools** (site.js
+  "Result tools"): the ⋯ menu copies the visible rows in screen order (TSV with Excel
+  quoting, Markdown, formatted HTML + TSV; the copy uses a hidden textarea and the
+  `copy` event because the clipboard API needs https and Dynamo may be on http),
+  vertical view of a one-row result (`.results-vertical`, preference per panel in
+  localStorage, re-applied after each swap and `resultsorted`), readable sizes (columns
+  whose name matches `(^|_)bytes($|_)`: the raw number stays in the cell and
+  `data-human` is shown by CSS `font-size:0` + `::after`, so sort, filter, copy and
+  highlight still see the number), and the whole text of a cell: a click on a `.long`
+  cell (over 120 characters, or visibly cut) or an Alt-click sends a `cellview` event and
+  does **not** pin the row. Tests: `DbaConnectionTests`, `DbaFeaturesTests`,
+  `ConnectionHealthTests`; jsdom (42 checks for the result tools, kept in the scratch
+  dir) and static renders of the real pages in headless Edge (colours, dialogs, Kill
+  column, vertical view, health). **Not verified:** any SQL of the templates against a
+  real Oracle (written from the documentation, 12c and later in mind; the alert-log one
+  needs 12c), the SYSDBA login, EXPLAIN PLAN through the driver (binds as text), the
+  real `ALTER SYSTEM KILL SESSION`, and the health probe against a live database.
+  Run them once on a test database before relying on them.
 - Sortable results (done, 12 Nov 2026): **client side only**, in site.js, for
   every `.results table` (the shared `_ResultTable` in the workspace panels).
   Click a header = ascending, again = descending

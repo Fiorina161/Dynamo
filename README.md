@@ -218,6 +218,27 @@ in the local database and never shown again in the UI; leave the password
 blank when editing to keep it. Each row has a Test button, and the edit
 dialog can test unsaved values.
 
+### DBA connections and colours
+
+Two options in the connection dialog:
+
+- **DBA connection (log in AS SYSDBA).** The login is made with the SYSDBA role
+  (usually schema `SYS`). The DBA features (the DBA panels and the sessions panel,
+  see *Workspaces*) are offered on DBA connections only: no DBA connection, no
+  button.
+- **Colour:** one of six pastel colours (blue, teal, green, sand, rose, violet) or
+  none. The title bar of every panel that runs on the connection is drawn in it, so a
+  production database is never mistaken for a test one. It follows the connection
+  when a panel's connection is changed. The list shows the colour and a **DBA** tag.
+
+### Connection health
+
+**Health** (Connections page) tries every connection now and shows up or down,
+the login time, the time of one round trip and the Oracle version. The page opens at
+once and each row asks for its own check, so a database that is slow or down delays
+only its own row; **Test all again** repeats them all. Every check is a real login
+(never a pooled connection), so the time is honest. It never shows a password.
+
 ### Duplicating a connection
 
 Open a connection and press **Duplicate**: a new connection form opens with the
@@ -336,6 +357,45 @@ In the tables of results, all in the browser and on the rows fetched:
 - **Highlighting:** up to three boxes (Settings, *Results*; one by default), each
   its own colour, mark what you type in every panel at once.
 - **Row numbers, NULL in a faded italic, a grid of faint lines.**
+- **Result tools** (the **⋯** in a panel's title bar): *copy* the rows on screen (the
+  visible ones, in the order shown) as **TSV** (pastes into Excel), as a **Markdown**
+  table or as a **formatted table** (rich text for Word or Outlook); **Vertical view**
+  lists a one-row result down the page, one line per column (useful for `v$instance`
+  or a `v$session` row); **Readable sizes** shows the columns whose name contains
+  `BYTES` as KB, MB or GB (the number stays in the cell: sorting, filtering and copying
+  still use it). The two toggles are kept per panel in the browser.
+- **Whole text of a cell:** a click on a long cell (cut short on screen) opens its
+  full text in a window, with a Copy button (JSON is indented); **Alt-click** does it
+  for any cell. A click on a short cell still pins its row.
+- **Execution plan:** the **Plan** button in a panel's details shows how Oracle would
+  run the panel's query (`EXPLAIN PLAN` and `DBMS_XPLAN.DISPLAY`; the query is **not
+  run**), with a BASIC / TYPICAL / ALL choice and a Copy button. It uses the panel's
+  connection and bind values. It writes a few rows into the session's plan table, rolled
+  back at once, so it is the one thing besides the Kill button that is not a plain
+  read-only query.
+
+### DBA panels and the sessions panel
+
+On a workspace, **Add DBA panels** (and **New DBA workspace** on the list of
+workspaces) offers ready-made panels, built into Dynamo: active sessions, blocking
+sessions, locked objects, long operations, tablespace usage, temporary space, undo, the
+fast recovery area, the largest segments, top SQL by elapsed time, wait events, sessions
+per user, RMAN backups, archived redo per hour, failed scheduler jobs, invalid objects,
+alert-log errors, instance and database, Data Guard lag. Pick a **DBA connection** and
+the ones you want (none is ticked at first); each becomes an ordinary panel with a sensible
+refresh interval, whose query can be edited afterwards (only that panel changes). The
+buttons only exist when a DBA connection does, and the server checks again.
+
+The **Active sessions (with Kill)** panel lists the active user sessions (never
+Dynamo's own) and puts a red **Kill** button first on every row. It opens a red
+confirmation that names the session (user, machine, program, SQL id): nothing happens
+until **Kill session** is pressed, then `ALTER SYSTEM KILL SESSION 'sid,serial#,@inst'
+IMMEDIATE` runs and the panels refresh. It is the one thing in Dynamo that changes the
+database, so it is guarded: only a sessions panel on a **DBA connection**; the session
+must still exist with that exact serial number; never a background process, never
+Dynamo's own session; and the three numbers are integers. Every request is written to
+the log. The query of this panel cannot be edited, and its connection picker lists
+DBA connections only.
 
 ## Tests
 

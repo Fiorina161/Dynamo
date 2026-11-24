@@ -1,0 +1,29 @@
+@* The confirmation of a kill: who is about to be ended, in red. Nothing happens until the red button
+   is pressed. Only the sessions panel on a DBA connection ever opens it (the server checks). *@
+@model Dynamo.Pages.Workplaces.KillFormModel
+@{
+    var s = Model.Session;
+}
+<form class="kill-form"
+      hx-post="@Url.Page("/Workplaces/View", "KillSession", new { id = Model.WorkplaceId, panel = Model.PanelId, inst = s.InstanceId, sid = s.Sid, serial = s.Serial })"
+      hx-swap="none">
+    <h2 class="kill-title">Kill session @s.Sid,@s.Serial?</h2>
+    <p class="hint-text">
+        The session is ended at once on “@Model.Connection”: whatever it was doing is rolled back and
+        its user is disconnected. This cannot be undone.
+    </p>
+    <dl class="kill-facts">
+        <dt>User</dt><dd>@(s.Username ?? "—")</dd>
+        <dt>Status</dt><dd>@(s.Status ?? "—")</dd>
+        <dt>OS user</dt><dd>@(s.OsUser ?? "—")</dd>
+        <dt>Machine</dt><dd>@(s.Machine ?? "—")</dd>
+        <dt>Program</dt><dd>@(s.Program ?? "—")</dd>
+        <dt>SQL id</dt><dd>@(s.SqlId ?? "—")</dd>
+        <dt>Instance</dt><dd>@s.InstanceId</dd>
+    </dl>
+    <footer>
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close autofocus>Cancel</button>
+        <button type="submit" class="kill-btn">Kill session</button>
+    </footer>
+</form>

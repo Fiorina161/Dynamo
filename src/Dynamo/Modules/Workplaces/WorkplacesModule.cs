@@ -115,5 +115,8 @@ public sealed class WorkplacesModule : IModule
         // panels at 10 become 0 and follow the setting; any other number was chosen and
         // stays.
         "UPDATE watch_panel SET view_rows = 0 WHERE view_rows = 10;",
+        // What a panel is: 'query' (an ordinary query) or 'sessions' (the DBA sessions panel, which
+        // adds a Kill button to each row). Copied by Duplicate and by an import.
+        "ALTER TABLE watch_panel ADD COLUMN kind TEXT NOT NULL DEFAULT 'query';",
     ];
 }

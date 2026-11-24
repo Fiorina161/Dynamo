@@ -325,7 +325,10 @@
         rows.forEach(function (tr, i) { if (tr.dataset.row === undefined) tr.dataset.row = i; });
         var seen = new Map();
         rows.slice().sort(function (a, b) { return a.dataset.row - b.dataset.row; }).forEach(function (tr) {
-            var value = tr.cells.length > 1 ? tr.cells[1].textContent : '';
+            // The first data column: not the row number, not the Kill column of the sessions panel.
+            var first = 1;
+            while (first < tr.cells.length && tr.cells[first].classList.contains('kill-col')) first++;
+            var value = first < tr.cells.length ? tr.cells[first].textContent : '';
             var rank = (seen.get(value) || 0) + 1;
             seen.set(value, rank);
             tr.dataset.pinKey = value + String.fromCharCode(1) + rank;
@@ -687,12 +690,19 @@
             if (head && headTable) { savePins(head, new Set()); rearrange(head, headTable); }
             return;
         }
+        if (th && th.classList.contains('kill-col')) return;
         if (th) { toggleSort(th, e.shiftKey); return; }
 
         // A click on a row pins or unpins it (not while the user is selecting text).
         var cell = e.target.closest && e.target.closest('.results tbody td');
         if (!cell || e.target.closest('a, button, input, select, textarea')) return;
         if (window.getSelection && String(window.getSelection())) return;
+        // A long cell (cut short on screen), or any cell with Alt: show its whole text; no pin.
+        if (!cell.classList.contains('rownum') && !cell.classList.contains('kill-col') && !cell.classList.contains('null') &&
+            (e.altKey || cell.classList.contains('long') || cell.scrollWidth > cell.clientWidth + 1)) {
+            cell.dispatchEvent(new CustomEvent('cellview', { bubbles: true }));
+            return;
+        }
         var tr = cell.parentNode, root = tr.closest(SORT_ROOT), table = tr.closest('table');
         if (!root || !table) return;
         keyRows(table.tBodies[0]);
@@ -703,7 +713,7 @@
     });
     document.addEventListener('keydown', function (e) {
         var th = e.target.closest && e.target.closest('.results th');
-        if (!th || e.target.closest('.col-filter')) return;
+        if (!th || e.target.closest('.col-filter') || th.classList.contains('kill-col')) return;
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort(th, e.shiftKey); }
         else if (e.key === 'Escape') toggleSort(th, true);
     });
@@ -1210,6 +1220,385 @@
             saveOrder();
         });
     })();
+
+    // ---- Result tools: copy, vertical view, readable sizes, full text -------------------------------
+    // For the results of every panel (a .panel-results container). The ⋯ button of the title bar opens a
+    // menu: copy what is on screen (the visible rows, in the order shown) as TSV (for Excel), as a Markdown
+    // table or as a formatted table; see a result of one row as a list down the page (vertical view); read
+    // the byte columns as KB, MB, GB. A click on a long cell (or Alt-click on any) opens its whole text.
+    // All client side, on the rows fetched. The two toggles are kept per panel in this browser.
+    (function () {
+        var BYTE_COLUMN = /(^|_)bytes($|_)/i;       // INPUT_BYTES, BYTES, BYTES_FREE...
+        var LONG_CELL = 120;                        // as in the cell's title (_ResultTable)
+
+        function say(message) {
+            document.body.dispatchEvent(new CustomEvent('toast', { detail: { value: message } }));
+        }
+        function prefKey(kind, root) { return kind + ':' + location.pathname + '#' + (root.id || ''); }
+        function getPref(kind, root) {
+            try { return localStorage.getItem(prefKey(kind, root)) === '1'; } catch (err) { return false; }
+        }
+        function setPref(kind, root, on) {
+            try {
+                if (on) localStorage.setItem(prefKey(kind, root), '1');
+                else localStorage.removeItem(prefKey(kind, root));
+            } catch (err) { }
+        }
+
+        // What the results container shows, as data: the column names, which are numbers, and the
+        // visible rows in the order on screen (the row-number and Kill columns are left out).
+        function readTable(root) {
+            var table = root.querySelector('.results table');
+            if (!table || !table.tBodies[0] || !table.tHead) return null;
+            var heads = Array.prototype.slice.call(table.tHead.rows[0].cells);
+            var cols = [];
+            heads.forEach(function (th, i) {
+                if (!th.classList.contains('rownum') && !th.classList.contains('kill-col')) cols.push(i);
+            });
+            var data = {
+                head: cols.map(function (i) { return heads[i].textContent.trim(); }),
+                numeric: cols.map(function (i) { return heads[i].classList.contains('num'); }),
+                rows: [], nulls: [], cols: cols, table: table
+            };
+            Array.prototype.forEach.call(table.tBodies[0].rows, function (tr) {
+                if (tr.hidden) return;
+                data.rows.push(cols.map(function (i) {
+                    var td = tr.cells[i];
+                    return !td || td.classList.contains('null') ? '' : td.textContent;
+                }));
+                data.nulls.push(cols.map(function (i) { return !tr.cells[i] || tr.cells[i].classList.contains('null'); }));
+            });
+            return data;
+        }
+
+        function tsvCell(s) { return /[\t\n\r"]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+        function toTsv(d) {
+            return [d.head].concat(d.rows).map(function (r) { return r.map(tsvCell).join('\t'); }).join('\r\n');
+        }
+        function mdCell(s) { return s.replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>'); }
+        function toMarkdown(d) {
+            var lines = [
+                '| ' + d.head.map(mdCell).join(' | ') + ' |',
+                '| ' + d.numeric.map(function (n) { return n ? '---:' : '---'; }).join(' | ') + ' |'
+            ];
+            d.rows.forEach(function (r) { lines.push('| ' + r.map(mdCell).join(' | ') + ' |'); });
+            return lines.join('\n');
+        }
+        function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+        function toHtml(d) {
+            var h = '<table border="1" cellspacing="0" cellpadding="3"><thead><tr>' +
+                d.head.map(function (n) { return '<th>' + esc(n) + '</th>'; }).join('') + '</tr></thead><tbody>';
+            d.rows.forEach(function (r) {
+                h += '<tr>' + r.map(function (c, i) {
+                    return '<td' + (d.numeric[i] ? ' align="right"' : '') + '>' + esc(c) + '</td>';
+                }).join('') + '</tr>';
+            });
+            return h + '</tbody></table>';
+        }
+
+        // Copies text (and, when given, the same as HTML). A hidden text box and the copy command work
+        // on plain http too (the clipboard API needs https); inside an open dialog the box must be
+        // inside it, since the rest of the page is inert.
+        function copy(text, html) {
+            var ok = false;
+            function onCopy(e) {
+                e.clipboardData.setData('text/plain', text);
+                if (html) e.clipboardData.setData('text/html', html);
+                e.preventDefault();
+            }
+            var host = document.querySelector('dialog[open]') || document.body;
+            var box = document.createElement('textarea');
+            box.value = text;
+            box.setAttribute('readonly', '');
+            box.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px';
+            host.appendChild(box);
+            box.select();
+            document.addEventListener('copy', onCopy);
+            try { ok = document.execCommand('copy'); } catch (err) { }
+            document.removeEventListener('copy', onCopy);
+            host.removeChild(box);
+            if (!ok && navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).catch(function () { });
+                ok = true;
+            }
+            return ok;
+        }
+
+        function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+
+        // ---- Readable sizes
+        function humanBytes(n) {
+            if (!isFinite(n)) return null;
+            var units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'], i = 0, v = Math.abs(n);
+            while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+            var s = i === 0 ? String(Math.round(v)) : v.toFixed(v >= 100 ? 0 : v >= 10 ? 1 : 2);
+            return (n < 0 ? '-' : '') + s + ' ' + units[i];
+        }
+        function byteColumns(table) {
+            var cols = [];
+            if (!table || !table.tHead) return cols;
+            Array.prototype.forEach.call(table.tHead.rows[0].cells, function (th, i) {
+                if (th.classList.contains('num') && BYTE_COLUMN.test(th.textContent.trim())) cols.push(i);
+            });
+            return cols;
+        }
+        // The raw number stays in the cell (sorting, filtering and copying read it); a data attribute
+        // shows the readable form instead, through the stylesheet.
+        function applySizes(root) {
+            var table = root.querySelector('.results table');
+            var on = getPref('sizes', root);
+            root.classList.remove('human-sizes');
+            if (!table || !table.tBodies[0]) return;
+            var cols = byteColumns(table);
+            Array.prototype.forEach.call(table.tBodies[0].rows, function (tr) {
+                cols.forEach(function (i) {
+                    var td = tr.cells[i];
+                    if (!td) return;
+                    var human = on && !td.classList.contains('null') ? humanBytes(Number(td.textContent)) : null;
+                    if (human) td.setAttribute('data-human', human); else td.removeAttribute('data-human');
+                });
+            });
+            if (on && cols.length) root.classList.add('human-sizes');
+        }
+
+        // ---- Vertical view of a one-row result
+        function applyVertical(root) {
+            var old = root.querySelector('.results-vertical');
+            if (old) old.parentNode.removeChild(old);
+            var d = readTable(root);
+            var on = getPref('vertical', root) && d && d.rows.length === 1 && d.head.length > 1;
+            root.classList.toggle('vertical-on', !!on);
+            if (!on) return;
+            var box = document.createElement('div');
+            box.className = 'results-vertical';
+            var table = document.createElement('table');
+            var body = document.createElement('tbody');
+            d.head.forEach(function (name, i) {
+                var tr = document.createElement('tr');
+                var th = document.createElement('th');
+                th.textContent = name;
+                var td = document.createElement('td');
+                if (d.nulls[0][i]) { td.className = 'null'; td.textContent = 'NULL'; }
+                else {
+                    td.textContent = d.rows[0][i];
+                    if (d.numeric[i]) td.classList.add('num');
+                    if (d.rows[0][i].length > LONG_CELL) td.classList.add('long');
+                }
+                tr.appendChild(th);
+                tr.appendChild(td);
+                body.appendChild(tr);
+            });
+            table.appendChild(body);
+            box.appendChild(table);
+            var results = root.querySelector('.results');
+            results.parentNode.insertBefore(box, results.nextSibling);
+        }
+
+        function applyAll(root) {
+            if (!root) return;
+            applySizes(root);
+            applyVertical(root);
+        }
+
+        // New results (a run, an auto-refresh), or the rows re-sorted or filtered: show them as chosen.
+        document.body.addEventListener('htmx:afterSwap', function (e) {
+            var t = e.target;
+            if (!t || !t.querySelectorAll) return;
+            var roots = t.classList && t.classList.contains('panel-results')
+                ? [t] : Array.prototype.slice.call(t.querySelectorAll('.panel-results'));
+            roots.forEach(applyAll);
+        });
+        document.body.addEventListener('resultsorted', function (e) {
+            var root = e.target.closest && e.target.closest('.panel-results');
+            if (root) applyAll(root);
+        });
+        document.querySelectorAll('.panel-results').forEach(applyAll);
+
+        // ---- The menu of the ⋯ button
+        var menu = document.createElement('div');
+        menu.className = 'result-menu';
+        menu.hidden = true;
+        menu.setAttribute('role', 'menu');
+        document.body.appendChild(menu);
+        var menuRoot = null;
+
+        function closeMenu() { menu.hidden = true; menuRoot = null; }
+
+        function addItem(label, enabled, title, action) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.setAttribute('role', 'menuitem');
+            b.textContent = label;
+            if (title) b.title = title;
+            if (!enabled) b.disabled = true;
+            else b.addEventListener('click', function () { var root = menuRoot; closeMenu(); action(root); });
+            menu.appendChild(b);
+        }
+
+        function copyAs(kind) {
+            return function (root) {
+                var d = readTable(root);
+                if (!d) return;
+                var n = d.rows.length;
+                if (kind === 'tsv') copy(toTsv(d));
+                else if (kind === 'md') copy(toMarkdown(d));
+                else copy(toTsv(d), toHtml(d));
+                say('Copied ' + plural(n, 'row') + ' as ' +
+                    (kind === 'tsv' ? 'TSV' : kind === 'md' ? 'a Markdown table' : 'a table') + '.');
+            };
+        }
+
+        function openMenu(button) {
+            var panel = button.closest('.panel');
+            var root = panel && panel.querySelector('.panel-results');
+            if (!root) return;
+            menuRoot = root;
+            var d = readTable(root);
+            var hasBytes = !!(d && byteColumns(d.table).length);
+            var vertical = getPref('vertical', root), sizes = getPref('sizes', root);
+            menu.textContent = '';
+            addItem('Copy as TSV (paste into Excel)', !!d, 'The rows on screen, tab separated', copyAs('tsv'));
+            addItem('Copy as Markdown table', !!d, null, copyAs('md'));
+            addItem('Copy as formatted table', !!d, 'Pastes as a table in Word, Outlook, Excel', copyAs('html'));
+            menu.appendChild(document.createElement('hr'));
+            addItem((vertical ? '✓ ' : '') + 'Vertical view', !!d && (d.rows.length === 1 || vertical),
+                'A result of one row, listed down the page: one line per column',
+                function (r) { setPref('vertical', r, !getPref('vertical', r)); applyVertical(r); });
+            addItem((sizes ? '✓ ' : '') + 'Readable sizes (KB, MB, GB)', hasBytes || sizes,
+                'Shows the columns whose name has BYTES in it as KB, MB or GB',
+                function (r) { setPref('sizes', r, !getPref('sizes', r)); applySizes(r); });
+            menu.hidden = false;
+            var rect = button.getBoundingClientRect();
+            var width = menu.offsetWidth || 240;
+            menu.style.left = Math.max(8, rect.right + window.pageXOffset - width) + 'px';
+            menu.style.top = (rect.bottom + window.pageYOffset + 4) + 'px';
+        }
+
+        document.addEventListener('click', function (e) {
+            var tools = e.target.closest && e.target.closest('[data-result-tools]');
+            if (tools) {
+                var same = !menu.hidden && menuRoot && menuRoot === (tools.closest('.panel') || document).querySelector('.panel-results');
+                if (same) closeMenu(); else openMenu(tools);
+                return;
+            }
+            if (!menu.hidden && !menu.contains(e.target)) closeMenu();
+            var copier = e.target.closest && e.target.closest('[data-copy-target]');
+            if (copier) {
+                var source = document.querySelector(copier.dataset.copyTarget);
+                if (source) say(copy(source.textContent) ? 'Copied.' : 'Could not copy.');
+            }
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !menu.hidden) closeMenu();
+        });
+
+        // ---- The whole text of a cell: a long one, or any with Alt-click (the click handler of the
+        // result tables sends the event, so a click on a long cell does not pin its row)
+        function openCell(name, text) {
+            var shown = text, trimmed = text.trim();
+            if (/^[\[{]/.test(trimmed)) {
+                try { shown = JSON.stringify(JSON.parse(trimmed), null, 2); } catch (err) { }
+            }
+            dlg.textContent = '';
+            var form = document.createElement('form');
+            form.className = 'wide cell-viewer';
+            form.addEventListener('submit', function (e) { e.preventDefault(); });
+            var title = document.createElement('h2');
+            title.textContent = name;
+            var pre = document.createElement('pre');
+            pre.className = 'plan-text';
+            pre.id = 'cell-text';
+            pre.textContent = shown;
+            var footer = document.createElement('footer');
+            var copyButton = document.createElement('button');
+            copyButton.type = 'button';
+            copyButton.className = 'ghost';
+            copyButton.setAttribute('data-copy-target', '#cell-text');
+            copyButton.textContent = 'Copy';
+            var spacer = document.createElement('span');
+            spacer.className = 'spacer';
+            var close = document.createElement('button');
+            close.type = 'button';
+            close.setAttribute('data-close', '');
+            close.textContent = 'Close';
+            footer.appendChild(copyButton);
+            footer.appendChild(spacer);
+            footer.appendChild(close);
+            form.appendChild(title);
+            form.appendChild(pre);
+            form.appendChild(footer);
+            dlg.appendChild(form);
+            if (!dlg.open) dlg.showModal();
+        }
+
+        document.addEventListener('cellview', function (e) {
+            var td = e.target.closest && e.target.closest('td');
+            if (!td) return;
+            var table = td.closest('table'), name = '';
+            if (table && table.tHead && table.tHead.rows[0] && table.tHead.rows[0].cells[td.cellIndex])
+                name = table.tHead.rows[0].cells[td.cellIndex].textContent.trim();
+            var row = td.parentNode;
+            if (table.parentNode.classList.contains('results-vertical') && row.cells[0]) name = row.cells[0].textContent.trim();
+            openCell(name || 'Value', td.textContent);
+        });
+
+        // In the vertical view a click on a long value opens it too (nothing there pins).
+        document.addEventListener('click', function (e) {
+            var td = e.target.closest && e.target.closest('.results-vertical td');
+            if (td && !td.classList.contains('null') && (td.classList.contains('long') || e.altKey))
+                td.dispatchEvent(new CustomEvent('cellview', { bubbles: true }));
+        });
+    })();
+
+    // ---- Connection health page ---------------------------------------------------------------
+    // "Test all again" fires the retest event every row listens to (htmx, trigger "retest from:body");
+    // the summary counts the rows as their answers arrive.
+    (function () {
+        var summary = document.querySelector('[data-health-summary]');
+        if (!summary) return;
+        function count() {
+            var rows = document.querySelectorAll('tr[data-health-state]');
+            var up = 0, down = 0, waiting = 0;
+            rows.forEach(function (tr) {
+                var s = tr.getAttribute('data-health-state');
+                if (s === 'up') up++; else if (s === 'testing') waiting++; else down++;
+            });
+            var parts = [up + ' up'];
+            if (down) parts.push(down + ' down');
+            if (waiting) parts.push(waiting + ' testing');
+            summary.textContent = parts.join(' · ');
+        }
+        var button = document.querySelector('[data-retest-all]');
+        if (button) button.addEventListener('click', function () {
+            document.querySelectorAll('tr[data-health-state]').forEach(function (tr) {
+                tr.setAttribute('data-health-state', 'testing');
+                var pill = tr.querySelector('.health-pill');
+                if (pill) pill.textContent = 'Testing…';
+            });
+            count();
+            htmx.trigger(document.body, 'retest');
+        });
+        // Rows are replaced as their answers arrive: count again whenever the table changes.
+        var table = document.querySelector('.health-table tbody');
+        if (table) new MutationObserver(count).observe(table, { childList: true, subtree: true });
+        count();
+    })();
+
+    // ---- Panel title colour = its connection's colour ------------------------------------------
+    // The server draws it (class conn-<colour> on the panel); when the connection is changed in
+    // the panel's settings the class follows at once. Each <option> carries data-color.
+    document.addEventListener('change', function (e) {
+        var select = e.target;
+        if (!select || select.name !== 'connection' || !select.closest) return;
+        var panel = select.closest('.panel');
+        if (!panel) return;
+        Array.prototype.slice.call(panel.classList).forEach(function (c) {
+            if (c.indexOf('conn-') === 0) panel.classList.remove(c);
+        });
+        var option = select.options[select.selectedIndex];
+        var color = option && option.getAttribute('data-color');
+        if (color) panel.classList.add('conn-' + color);
+    });
 
     // ---- Collapsing panels -------------------------------------------------------------
     // The ▾ in a panel's title bar (or a click on the title) collapses the panel to its title

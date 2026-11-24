@@ -32,5 +32,11 @@ public sealed class OracleConnectionsModule : IModule
         """,
         // A pinned connection is listed (and offered in pickers) first.
         "ALTER TABLE oracle_connection ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;",
+        // A DBA connection logs in AS SYSDBA; the DBA features (templates, the
+        // sessions panel) are offered only on those.
+        "ALTER TABLE oracle_connection ADD COLUMN dba INTEGER NOT NULL DEFAULT 0;",
+        // One of the pastel colours of ConnectionColors, or NULL: the title bar of
+        // the panels that use the connection is drawn in it.
+        "ALTER TABLE oracle_connection ADD COLUMN color TEXT;",
     ];
 }

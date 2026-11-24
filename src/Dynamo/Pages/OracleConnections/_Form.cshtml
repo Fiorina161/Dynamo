@@ -30,6 +30,33 @@
                placeholder="@(Model.CopyOf is not null ? $"same as “{Model.CopyOf}”" : c.Id == 0 ? "" : "unchanged")" />
     </label>
 
+    @* A DBA connection logs in AS SYSDBA; only these get the DBA features (workspace templates,
+       the sessions panel). *@
+    <label class="check">
+        <input type="checkbox" name="dba" value="on" checked="@c.Dba" />
+        DBA connection (log in AS SYSDBA)
+    </label>
+    <p class="hint-text">
+        Usually the schema is SYS. The DBA features (workspace templates, the sessions panel with its Kill
+        button) are offered on DBA connections only.
+    </p>
+
+    @* The colour of the title bar of the panels that use this connection. *@
+    <fieldset class="swatches">
+        <legend>Colour</legend>
+        <label class="swatch none" title="None">
+            <input type="radio" name="color" value="" checked="@(c.Color is null)" />
+            <span></span>
+        </label>
+        @foreach (var color in ConnectionColors.All)
+        {
+            <label class="swatch" title="@color.Label" style="--hue:var(--conn-@color.Key)">
+                <input type="radio" name="color" value="@color.Key" checked="@(c.Color == color.Key)" />
+                <span></span>
+            </label>
+        }
+    </fieldset>
+
     @if (Model.Error is not null)
     {
         <p class="error">@Model.Error</p>
