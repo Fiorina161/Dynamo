@@ -1,0 +1,852 @@
+/* Dynamo — clean and sober. Palette, fonts and spacing follow the old
+   start page this tool grew out of. One accent colour, used sparingly. */
+
+:root {
+    --bg: #f9fafc;
+    --surface: #f4f5f8;          /* panels */
+    --fg: #1d2033;
+    --muted: #6b7088;
+    --line: #e2e5f0;
+    --hover: #f0f2ff;
+    --accent: #5b6cff;
+    --danger: #b3261e;
+    --shadow: 0 1px 2px rgba(20, 24, 60, .06), 0 4px 14px rgba(20, 24, 60, .05);
+    --radius: 6px;               /* controls; panels are square */
+    --font: sans-serif;
+    --font-title: "Arial Black", Arial, sans-serif;
+    color-scheme: light;
+}
+
+/* Dark: explicit choice, or system preference when nothing is chosen. */
+:root[data-theme="dark"] {
+    --bg: #1b1e29;
+    --surface: #242836;
+    --fg: #e7e9f4;
+    --muted: #8b90aa;
+    --line: #343950;
+    --hover: #2e3350;
+    --accent: #8b97ff;
+    --danger: #f2877f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg: #1b1e29;
+        --surface: #242836;
+        --fg: #e7e9f4;
+        --muted: #8b90aa;
+        --line: #343950;
+        --hover: #2e3350;
+        --accent: #8b97ff;
+        --danger: #f2877f;
+        --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 18px rgba(0, 0, 0, .25);
+        color-scheme: dark;
+    }
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 15px/1.4 var(--font);
+}
+a { color: inherit; text-decoration: none; }
+
+/* ---- Shell ------------------------------------------------------------ */
+
+.shell { display: flex; min-height: 100vh; }
+
+.side {
+    width: 190px;
+    flex: none;
+    padding: 20px 12px;
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.brand { font-family: var(--font-title); font-weight: 400; font-size: 14px; padding: 0 8px; letter-spacing: .02em; }
+/* The installed version, small and quiet, next to the name. */
+.brand .version { font-family: var(--font); margin-left: 4px; font-weight: 400; font-size: 12px; letter-spacing: 0; color: var(--muted); }
+
+.side-menu { display: flex; flex-direction: column; gap: 16px; flex: 1; }
+.menu-toggle { display: none; }
+.side ul { list-style: none; margin: 0; padding: 0; flex: 1; }
+.side ul.side-bottom { flex: none; }
+.side li a { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--radius); color: var(--muted); }
+.side li a:hover { background: var(--hover); color: var(--fg); }
+.side li a.active { color: var(--fg); font-weight: 600; background: var(--hover); }
+
+main { flex: 1; min-width: 0; padding: 40px 32px 64px; }
+
+.page-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px 24px;
+    margin-bottom: 28px;
+}
+.greeting { flex: 1 1 280px; min-width: 0; }
+.greeting h1 { margin: 0; font: 400 24px var(--font-title); letter-spacing: -.01em; }
+.greeting p { margin: 2px 0 0; color: var(--muted); }
+.page-tools { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.count { color: var(--muted); font-size: 13px; }
+.actions { display: flex; gap: 8px; }
+/* ---- Controls --------------------------------------------------------- */
+
+button {
+    font: inherit;
+    color: var(--bg);
+    background: var(--fg);
+    border: 1px solid var(--fg);
+    border-radius: var(--radius);
+    padding: 5px 12px;
+    cursor: pointer;
+}
+button:hover { opacity: .85; }
+button.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+button.ghost:hover { background: var(--hover); opacity: 1; }
+button.danger { color: var(--danger); }
+button.small { padding: 1px 8px; font-size: 12px; color: var(--muted); }
+
+input, select {
+    font: inherit;
+    color: var(--fg);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 6px 8px;
+    width: 100%;
+}
+input:focus, select:focus, button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+/* ---- Board ------------------------------------------------------------ */
+
+.empty { color: var(--muted); }
+
+/* Groups run top to bottom, then continue at the top of the next column:
+   as many columns of at least 340px as fit, stretched to the full width. */
+.cards { columns: 340px; column-gap: 20px; }
+
+.group {
+    --card: var(--surface);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: var(--shadow);
+    padding: 16px 10px 10px;
+    overflow: hidden;
+    /* Never split a group across two columns. */
+    break-inside: avoid;
+    margin-bottom: 20px;
+}
+.group > header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 10px 10px;
+}
+.group > header[draggable="true"] { cursor: grab; }
+.group h2 {
+    margin: 0;
+    font: 400 13px var(--font-title);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+}
+.toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+}
+.toggle:hover { color: var(--fg); opacity: 1; }
+.chev { display: inline-block; width: 12px; font-size: 11px; transition: transform .12s; }
+.group.collapsed .chev { transform: rotate(-90deg); }
+.group .count { margin-left: auto; font-size: 13px; }/* Add/Edit appear over the count, on the right, when the header is hovered. */
+.row-actions {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 4px;
+    padding-left: 12px;
+    background: var(--card);
+    opacity: 0;
+}
+/* A group with a chosen hue (--hue, set inline): a faint wash of it over the
+   panel color, so it works in light and dark alike. */
+.group.tinted {
+    --card: color-mix(in srgb, var(--hue) 16%, var(--surface));
+    /* Deeper versions of the hue, made by mixing it with the text color:
+       darker in the light theme, lighter (so still readable) in the dark. */
+    --ink: color-mix(in srgb, var(--hue) 30%, var(--fg));
+    --ink-soft: color-mix(in srgb, var(--hue) 35%,
+        color-mix(in srgb, var(--fg) 50%, var(--muted)));
+    border-color: color-mix(in srgb, var(--hue) 50%, var(--line));
+    color: var(--ink);
+}
+.group.tinted h2,
+.group.tinted .count,
+.group.tinted .item .hint { color: var(--ink-soft); }
+.group.tinted .toggle:hover { color: var(--ink); }
+.group.tinted .item + .item {
+    border-top-color: color-mix(in srgb, var(--hue) 30%, transparent);
+}
+
+/* The color picker of the group dialog. */
+.swatches { display: flex; align-items: center; gap: 10px; border: none;
+    margin: 0 0 12px; padding: 0; }
+.swatches legend { float: left; margin-right: 12px; padding: 0;
+    color: var(--muted); font-size: 12px; }
+dialog label.swatch { display: block; margin: 0; cursor: pointer; }
+.swatch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.swatch span { display: block; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--hue); border: 2px solid transparent; }
+.swatch.none span { background: var(--surface); border-color: var(--line); }
+.swatch input:checked + span { border-color: var(--fg); }
+.swatch input:focus-visible + span { outline: 2px solid var(--accent);
+    outline-offset: 2px; }
+.group > header:hover .row-actions,
+.group > header:focus-within .row-actions { opacity: 1; }
+
+/* An empty group keeps a little height so it can still receive a drop. */
+.items { list-style: none; margin: 0; padding: 0; min-height: 24px; }
+.group.collapsed .items { display: none; }
+.group.collapsed { padding-bottom: 6px; }
+.group.collapsed > header { margin-bottom: 4px; }
+/* A collapsed group opens while something is dragged over it. */
+.group.collapsed.peek .items { display: block; }
+
+/* Not in a group: only worth a panel when it holds something. */
+.ungrouped.empty-card { display: none; }
+body.dragging .ungrouped.empty-card { display: block; }
+
+.item { display: flex; align-items: center; cursor: grab; transition: background .12s; }
+/* A thin, muted line between consecutive items (none above the first). */
+.item + .item { border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.item:hover, .item:focus-within {
+    background: color-mix(in srgb, var(--fg) 6%, transparent);
+}
+/* The whole row is the click target. */
+.item .link {
+    flex: 1;
+    min-width: 0;
+    display: block;
+    padding: 8px 10px;
+    cursor: pointer;
+    outline: none;
+}
+.item .title {
+    display: block;
+    font: 400 14px var(--font-title);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.item .hint {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.item .edit { margin-right: 8px; opacity: 0; }
+.item:hover .edit, .item:focus-within .edit { opacity: 1; }
+
+.item.dragging, .group.dragging { opacity: .4; }
+.dropzone.over { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+/* ---- Lists of plain rows (Oracle connections) -------------------------- */
+
+/* One wide panel instead of the column flow. */
+.group.wide { max-width: 720px; }
+/* Settings: one column of sections, nothing reflows with the window; inside a
+   section the forms sit side by side (.settings-row) when there is room. */
+.settings-cards { max-width: 980px; }
+.settings-cards .group.wide { max-width: none; }
+.items.plain .item { cursor: default; }
+/* The workspaces listed on their page: each name is a link, so it looks like one
+   (accent colour and underline, as the links in Settings). */
+.workplace-list .item .title, .flat .item .title {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.workplace-list .item:hover .title, .workplace-list .item:focus-within .title,
+.flat .item:hover .title, .flat .item:focus-within .title { text-decoration-thickness: 2px; }
+/* The same list without the cards: the groups sit on the page itself, a heading
+   and its rows, still collapsible and still flowing into columns when wide. */
+.cards.flat { column-gap: 40px; }
+.cards.flat .group {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    overflow: visible;
+}
+.item .row-btn { margin-right: 10px; }
+/* What still has to be filled in: the one thing worth a colour. */
+.hint .todo { color: var(--accent); }
+/* ---- Selecting rows (batch actions) ------------------------------------ */
+
+input[type="checkbox"] { width: auto; padding: 0; accent-color: var(--accent); cursor: pointer; }
+.item .pick { margin: 0 0 0 12px; flex: none; }
+.group > header .pick { margin: 0; }
+.items.plain .item .pick + .link { padding-left: 10px; }
+.batch { display: flex; align-items: center; gap: 10px; }
+.selected-count { color: var(--muted); font-size: 13px; white-space: nowrap; }
+button:disabled { opacity: .4; pointer-events: none; }
+.btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* The list of what a batch action is about to touch. */
+.names {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+    max-height: 260px;
+    overflow: auto;
+    background: var(--bg);
+    border: 1px solid var(--line);
+}
+.names li {
+    padding: 5px 10px;
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+}
+.names li:last-child { border-bottom: none; }
+.hint-inline { margin-left: 8px; color: var(--muted); font-size: 12px; }
+/* A button waiting for an answer (htmx adds the class while it is in flight). */
+button.htmx-request { opacity: .5; pointer-events: none; }
+
+/* ---- Queries ----------------------------------------------------------- */
+
+[hidden] { display: none !important; }
+
+.group.full { max-width: none; }
+.back { color: var(--muted); font-size: 13px; }
+.back:hover { color: var(--fg); }
+.filter { width: 200px; }
+.hint-text { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+code, .sql, .sql-edit { font-family: Consolas, "Cascadia Mono", monospace; font-size: 13px; }
+
+/* Fields of the run form, laid out like the dialog's. */
+.run-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    margin: 0 10px 12px;
+}
+.run-grid label { flex: 1 1 200px; max-width: 320px; color: var(--muted); font-size: 12px; }
+.run-grid label input, .run-grid label select { margin-top: 4px; font-size: 14px; color: var(--fg); }
+.run-grid label:last-child { flex: 0 0 110px; }
+.run-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 10px 8px; }
+
+.refresh-status { color: var(--muted); font-size: 13px; min-width: 0; }
+
+.sql-view { margin: 4px 10px 0; color: var(--muted); }
+.sql-view summary { cursor: pointer; font-size: 13px; }
+.sql {
+    margin: 8px 0 4px;
+    padding: 10px 12px;
+    max-height: 320px;
+    overflow: auto;
+    color: var(--fg);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    white-space: pre-wrap;
+}
+
+textarea {
+    font: inherit;
+    width: 100%;
+    color: var(--fg);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 6px 8px;
+    resize: vertical;
+}
+textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.sql-edit { margin-top: 4px; }
+
+/* A wider dialog for the query form. */
+dialog:has(form.wide) { width: min(760px, 94vw); }
+dialog .two { display: flex; gap: 12px; }
+dialog .two label { flex: 1; }
+dialog textarea { margin-top: 4px; }
+
+.results-panel .count, .panel > header .count { white-space: nowrap; }
+.results { overflow: auto; max-height: 70vh; margin: 0 -10px; }
+.results table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.results th, .results td {
+    padding: 5px 12px;
+    text-align: left;
+    white-space: nowrap;
+    max-width: 420px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+    /* A grid, not just row lines: a faint line between the columns too. */
+    border-right: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+}
+.results th:last-child, .results td:last-child { border-right: none; }
+/* Column titles are centred, whatever the alignment of their content. */
+.results th, .results th.num, .results th.rownum { text-align: center; }
+.results th {
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    color: var(--muted);
+    font: 400 11px var(--font-title);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border-bottom: 1px solid var(--line);
+}
+.results tbody tr { cursor: pointer; }
+/* Filtering the rows by a column's values (the arrow in each header, site.js). */
+button.col-filter {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 3px;
+    min-height: 0;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.4;
+    opacity: .45;
+    vertical-align: middle;
+}
+button.col-filter::before { content: "▾"; }
+.results th:hover button.col-filter, button.col-filter:focus-visible { opacity: 1; background: transparent; }
+.results th.filtered button.col-filter { opacity: 1; color: var(--accent); }
+.results th.filtered { box-shadow: inset 0 -2px 0 var(--accent); }
+.filter-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 10px 8px;
+    font-size: 13px;
+    color: var(--muted);
+}
+.filter-menu {
+    position: absolute;
+    z-index: 60;
+    width: 260px;
+    padding: 8px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    border-radius: var(--radius);
+    font-size: 13px;
+    text-align: left;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 400;
+    color: var(--fg);
+}
+.filter-menu[hidden] { display: none; }
+.filter-menu .fm-search { margin: 0 0 6px; }
+.filter-menu label { display: flex; align-items: center; gap: 8px; margin: 0; padding: 3px 2px; cursor: pointer; }
+.filter-menu label:hover { background: var(--hover); }
+.filter-menu input[type="checkbox"] { flex: none; width: auto; margin: 0; }
+.filter-menu .fm-all { border-bottom: 1px solid var(--line); margin-bottom: 4px; padding-bottom: 5px; font-weight: 600; }
+.filter-menu .fm-list { max-height: 240px; overflow: auto; }
+.filter-menu .fm-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filter-menu .count { margin-left: auto; font-size: 12px; }
+.filter-menu .fm-note { margin: 4px 2px; color: var(--muted); }
+.filter-menu .fm-foot { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+/* Highlighted text: three colours, one per box above the results. */
+:root { --hl1: #ffc933; --hl2: #7fd0f5; --hl3: #c9e55b; }
+mark.hl {
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+mark.hl1 { background: color-mix(in srgb, var(--hl1) 55%, transparent); }
+mark.hl2 { background: color-mix(in srgb, var(--hl2) 60%, transparent); }
+mark.hl3 { background: color-mix(in srgb, var(--hl3) 60%, transparent); }
+.highlight-box { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0 0 12px; }
+.highlight-field { display: flex; align-items: center; gap: 8px; flex: 1 1 240px; max-width: 360px; }
+.highlight-field input { min-width: 0; }
+/* The colour of each box, on the left edge of its field. */
+.hl-input.hl1 { box-shadow: inset 5px 0 0 var(--hl1); padding-left: 14px; }
+.hl-input.hl2 { box-shadow: inset 5px 0 0 var(--hl2); padding-left: 14px; }
+.hl-input.hl3 { box-shadow: inset 5px 0 0 var(--hl3); padding-left: 14px; }
+.highlight-box .count { white-space: nowrap; }
+/* A pinned row: reverse video (the text colour as the background, the page
+   colour as the text), softened a little (72% of the text colour) so it is not
+   harsh, and it still stands out in the light and the dark theme. */
+.results tbody tr.pinned td,
+.results tbody tr.pinned:hover td { background: color-mix(in srgb, var(--fg) 72%, var(--bg)); color: var(--bg); }
+.results tbody tr.pinned td.null { color: color-mix(in srgb, var(--bg) 60%, transparent); }
+.results tbody tr.pinned td.rownum { color: var(--bg); font-weight: 700; }
+.results tbody tr.pinned td { border-color: color-mix(in srgb, var(--bg) 30%, transparent); }
+/* Highlights keep their colour on it, with dark text so they stay readable. */
+.results tbody tr.pinned mark.hl { color: #1d2033; }
+.results tbody tr.pinned mark.hl1 { background: var(--hl1); }
+.results tbody tr.pinned mark.hl2 { background: var(--hl2); }
+.results tbody tr.pinned mark.hl3 { background: var(--hl3); }
+.results tbody tr:hover td { background: color-mix(in srgb, var(--fg) 6%, transparent); }
+.results .num { text-align: right; font-variant-numeric: tabular-nums; }
+/* NULL: the text colour, faded (so it follows the theme), in italics. */
+.results td.null { color: color-mix(in srgb, var(--fg) 45%, transparent); font-style: italic; }
+/* Row numbers 1..n: a counter, so they follow the order on screen after a sort
+   and are not part of the text a user copies. */
+.results tbody { counter-reset: rownum; }
+.results tbody tr { counter-increment: rownum; }
+.results td.rownum::before { content: counter(rownum); }
+.results .rownum {
+    width: 1%;
+    padding-right: 6px;
+    text-align: right;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+}
+pre.error { margin: 0 10px 6px; white-space: pre-wrap; font: 13px Consolas, monospace; }
+/* ---- Dialog & toast --------------------------------------------------- */
+
+dialog {
+    width: min(440px, 92vw);
+    padding: 20px;
+    color: var(--fg);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .25);
+}
+dialog::backdrop { background: rgba(0, 0, 0, .35); }
+dialog h2 { margin: 0 0 14px; font-size: 16px; }
+dialog label { display: block; margin-bottom: 12px; color: var(--muted); font-size: 12px; }
+dialog label > input, dialog label > select { margin-top: 4px; font-size: 14px; color: var(--fg); }
+dialog footer { display: flex; gap: 8px; margin-top: 18px; }
+.spacer { flex: 1; }
+.error { color: var(--danger); margin: 0 0 8px; }
+
+#toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    max-width: 420px;
+    padding: 10px 14px;
+    background: var(--fg);
+    color: var(--bg);
+    border-radius: var(--radius);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity .15s, transform .15s;
+    pointer-events: none;
+}
+#toast.show { opacity: 1; transform: none; }
+
+/* ---- Pinned Oracle connections ------------------------------------------ */
+
+/* The star: faint on hover for an unpinned row, always there once pinned. */
+.item .pin {
+    flex: none;
+    margin-right: 6px;
+    padding: 2px 6px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+}
+.item:hover .pin, .item:focus-within .pin { opacity: .7; }
+.item .pin:hover { opacity: 1; color: var(--accent); }
+.item .pin.on { opacity: 1; color: var(--accent); }
+/* A pinned row: a faint accent wash, so it stands out from the others. */
+.item.pinned {
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+.item.pinned:hover, .item.pinned:focus-within {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* ---- Data workplaces: several queries refreshing side by side -------------------- */
+
+/* The values shared by all the panels. */
+.workplace-binds { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px;
+    margin: 0 0 16px; }
+.workplace-binds[hidden] { display: none; }
+.workplace-binds label { color: var(--muted); font-size: 12px; }
+.workplace-binds input { display: block; width: 180px; margin-top: 4px;
+    font-size: 14px; color: var(--fg); }
+
+/* The panels flow down the columns of the page (as many as fit, each at least
+   560px wide), so a short panel leaves no hole under it: the next panel takes
+   its place. The order is a sequence: down the first column, then the next.
+   A panel reserves the height of its "Visible rows" (site.js, fitResults), so
+   it keeps its place when a refresh changes the number of rows. The results get
+   the room; the details stay behind the gear. */
+.workplace-grid { columns: 560px; column-gap: 20px; position: relative; }
+.panel { margin-bottom: 20px; padding-top: 10px; }
+.panel > header { margin-bottom: 6px; }
+.panel .gear { margin-left: auto; opacity: .55; }
+/* Full width: the panel spans every column (the panels before it fill the
+   columns above it, those after it start below). Not called "wide": that is the
+   class of the settings sections, with a maximum width. The count, the
+   full-width button and the gear sit together on the right. */
+.panel.full-width { column-span: all; }
+.panel > header .count { margin-left: auto; }
+/* A long title or a long "fetched" line shrinks with an ellipsis instead of
+   pushing the title onto two lines. The title keeps priority over the line. */
+.panel > header h2 { min-width: 0; max-width: 100%; flex: 0 0 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel > header .count { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
+.panel .gear { margin-left: 0; }
+.wide-toggle { opacity: .55; }
+.wide-toggle:hover, .wide-toggle[aria-pressed="true"] { opacity: 1; }
+.wide-toggle[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.panel .gear:hover, .panel .gear[aria-expanded="true"] { opacity: 1; }
+/* Collapsing: the ▾ turns to the side, only the title line stays (the panel keeps
+   refreshing, hidden), and the small info text shows what matters meanwhile. The
+   .group.collapsed rules (bookmark groups) already trim its padding. */
+button.panel-collapse {
+    flex: none;
+    min-height: 0;
+    padding: 0 4px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1;
+    opacity: .6;
+}
+button.panel-collapse:hover, button.panel-collapse:focus-visible { opacity: 1; background: transparent; }
+.panel.collapsed button.panel-collapse { transform: rotate(-90deg); }
+.panel > header h2.panel-title { cursor: pointer; }
+.panel .panel-info {
+    display: none;
+    min-width: 0;
+    max-width: 45%;
+    flex: 0 0 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--muted);
+}
+.panel.collapsed .panel-info { display: inline; }
+/* A collapsed panel is only its title bar: a hint of the accent colour makes
+   the collapsed ones stand out at a glance. */
+.panel.collapsed {
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+.panel.collapsed .panel-form, .panel.collapsed .panel-results { display: none; }
+
+/* Reordering by dragging: the handle, the dimmed panel, the line showing where it lands. */
+button.panel-grip {
+    flex: none;
+    min-height: 0;
+    padding: 0 4px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1;
+    opacity: .5;
+    cursor: grab;
+    touch-action: none;
+}
+button.panel-grip:hover, button.panel-grip:focus-visible { opacity: 1; background: transparent; }
+.panel.dragging { opacity: .45; }
+.panel-drop-marker {
+    position: absolute;
+    z-index: 20;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--accent);
+    pointer-events: none;
+}
+.panel-drop-marker[hidden] { display: none; }
+body.panel-dragging, body.panel-dragging * { cursor: grabbing !important; user-select: none; }
+.panel .results { max-height: 62vh; }
+.panel pre.error { margin: 0 10px 6px; }
+.panel .panel-form { margin: 0 10px 10px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--line); }
+.panel .panel-form[hidden] { display: none; }
+
+/* The only always-visible sign of life: accent-coloured while refreshing, red when a
+   run failed, grey otherwise; it pulses on each refresh. */
+.dot { display: inline-block; width: 8px; height: 8px; margin-right: 8px;
+    border-radius: 50%; background: var(--muted); opacity: .5;
+    vertical-align: middle; }
+.panel.live .dot { background: var(--accent); opacity: 1; }
+.panel.failed .dot { background: var(--danger); opacity: 1; }
+.dot.tick { animation: dot-tick .6s; }
+@keyframes dot-tick { 0% { transform: scale(1.9); } 100% { transform: none; } }
+
+/* A cell that differs from the previous refresh flashes, then fades. */
+.results td.changed { animation: cell-changed 4s ease-out; }
+@keyframes cell-changed {
+    from { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+    to   { background: transparent; }
+}
+
+/* ---- Importing tnsnames.ora aliases (a long list to pick from) ----------- */
+
+.tns-tools { display: flex; align-items: center; gap: 12px; margin: 4px 0 8px; }
+.tns-tools .pick { margin: 0 0 0 10px; }
+.tns-tools .filter { flex: 1; margin: 0; }
+.tns-list { max-height: 46vh; overflow: auto; border: 1px solid var(--line); }
+/* Beats the dialog's own label style: a row, the whole of it clickable. */
+dialog label.tns-row { display: flex; flex: 1; align-items: center; gap: 12px;
+    margin: 0; padding: 8px 10px; color: inherit; font-size: inherit;
+    cursor: pointer; min-width: 0; }
+.tns-row .pick { flex: none; margin: 0; }
+.tns-row .title { flex: none; }
+.tns-row .hint { flex: 1; min-width: 0; }
+
+/* ---- Sortable result columns -------------------------------------------- */
+
+.results th { cursor: pointer; user-select: none; }
+.results th:hover { color: var(--fg); }
+.results th.rownum { cursor: default; }
+.results th.rownum:hover { color: var(--muted); }
+.results th:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.results th[aria-sort] { color: var(--fg); }
+.results th[aria-sort="ascending"]::after { content: " ▲"; font-size: 9px; }
+.results th[aria-sort="descending"]::after { content: " ▼"; font-size: 9px; }
+
+/* ---- Login (another computer) and Settings ------------------------------ */
+
+.login { max-width: 360px; margin: 14vh auto 0; padding: 0 20px; }
+.login h1 { margin: 0 0 12px; font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
+.login footer, .settings-form footer { display: flex; gap: 8px; margin-top: 14px; }
+.login label, .settings-form label { display: block; margin: 0 0 12px; color: var(--muted); font-size: 12px; }
+.login label input, .settings-form label input { margin-top: 4px; font-size: 14px; color: var(--fg); }
+.settings-body { padding: 4px 10px 14px; }
+/* What a new version changes (Settings, Updates): plain text, scrolls when long. */
+.whats-new {
+    max-height: 280px;
+    overflow: auto;
+    margin: 0 0 14px;
+    padding: 6px 12px 2px;
+    border-left: 3px solid var(--line);
+}
+.whats-new h3 { margin: 4px 0 8px; font-size: 14px; font-weight: 600; }
+.whats-new .whats-new-version { margin: 8px 0 2px; font-size: 13px; }
+.whats-new .whats-new-version b { font-variant-numeric: tabular-nums; }
+.whats-new ul { margin: 0 0 6px; padding-left: 20px; font-size: 13px; }
+.whats-new li { margin: 2px 0; }
+.settings-form { max-width: 420px; margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
+.settings-form h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
+/* Side by side inside a section; they wrap under each other on a narrow
+   window. A form in a row keeps its own top rule but no bigger gap. */
+.settings-row { display: flex; flex-wrap: wrap; gap: 0 32px; align-items: flex-start; }
+.settings-row > .settings-form, .settings-row > .settings-cell { flex: 1 1 300px; min-width: 0; }
+.settings-row > .settings-cell { max-width: 420px; }
+.settings-row > .settings-form { max-width: 440px; }
+/* A form whose fields sit in a row uses the whole width. */
+.settings-form.spread { max-width: none; }
+/* The first form of a section needs no rule above it. */
+.settings-body > .settings-form:first-child { margin-top: 0; padding-top: 4px; border-top: 0; }
+/* Updates: the manual look on the left, the information on the right (wider). */
+.updates-row > .settings-form { flex: 1 1 260px; max-width: 320px; margin-top: 0; border-top: 0; padding-top: 4px; }
+.updates-row > .updates-info { flex: 3 1 360px; max-width: none; }
+.updates-info > :first-child { margin-top: 4px; }
+.settings-fields { display: flex; flex-wrap: wrap; gap: 0 16px; }
+.settings-fields > label { flex: 1 1 160px; min-width: 0; }
+/* A message (what the last action did): plain text with an accent bar, so it
+   cannot be mistaken for a link. */
+.notice {
+    margin: 0 0 10px;
+    padding: 6px 10px;
+    color: var(--fg);
+    border-left: 3px solid var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.logout { margin: 0; }
+.logout button { width: 100%; }
+
+/* A local-file bookmark seen from another computer: shown, but off. */
+.item .link.off { opacity: .45; cursor: not-allowed; }
+
+.fingerprint { display: inline-block; max-width: 100%; word-break: break-all; font: 12px Consolas, monospace; }
+.settings-form label.check { display: flex; align-items: center; gap: 8px; color: var(--fg); font-size: 14px; }
+.settings-form label.check input { width: auto; margin: 0; }
+
+/* ---- Small screens (a phone): the menu folds into a hamburger button ------ */
+
+@media (max-width: 760px) {
+    .shell { flex-direction: column; }
+    .side {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        width: auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0 12px;
+        padding: 8px 14px;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+        background: var(--bg);
+    }
+    .brand { font-size: 17px; padding: 0; }
+    .menu-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        margin-left: auto;
+        padding: 0;
+        font-size: 22px;
+        line-height: 1;
+    }
+    .side-menu { display: none; flex-basis: 100%; gap: 10px; padding: 6px 0 8px; }
+    .side.open .side-menu { display: flex; }
+    /* Bigger targets for a finger. */
+    .side li a { padding: 12px 10px; }
+    .side-menu button { min-height: 42px; }
+
+    main { padding: 18px 14px 48px; }
+    .greeting h1 { font-size: 24px; }
+    .page-head { margin-bottom: 18px; }
+    .page-tools { flex-wrap: wrap; margin-left: 0; width: 100%; gap: 10px; }
+    .page-tools .filter { flex: 1 1 100%; width: 100%; }
+    .actions { flex-wrap: wrap; }
+    dialog, dialog:has(form.wide) { width: 94vw; padding: 16px; }
+    .login { margin-top: 8vh; }
+}
+/* The little monochrome icons of the menu: strokes in the colour of the text. */
+.ico { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* A newer release exists (shown to whoever is at this computer). */
+.update-note { display: block; padding: 6px 8px; border-radius: var(--radius); color: var(--accent); font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.update-note:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+
+/* The new-version sentence in Settings is a link to the release page. */
+/* Links in the settings and in messages: the accent colour and an underline, so
+   they read as links (elsewhere links stay plain, as in the menu). */
+.settings-body a, .notice a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.settings-body a:hover, .notice a:hover { text-decoration-thickness: 2px; }

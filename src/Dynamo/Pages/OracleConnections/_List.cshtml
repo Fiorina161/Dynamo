@@ -1,0 +1,71 @@
+@model List<OracleConnectionInfo>
+@{
+    string Handler(string name, object? values = null) =>
+        Url.Page("/OracleConnections/Index", name, values)!;
+    var todo = Model.Count(c => !c.Complete);
+
+    // The second line of a row: what is missing, then schema@host:port/service.
+    string Missing(OracleConnectionInfo c) =>
+        c.Username.Length == 0 && c.Password.Length == 0 ? "no schema or password yet"
+        : c.Username.Length == 0 ? "no schema yet"
+        : c.Password.Length == 0 ? "no password yet"
+        : "";
+}
+
+@* Every action inside replaces the list; dialog buttons override the target.
+   data-selectable: the checkboxes, select-all and the count are driven by site.js. *@
+<div id="connections" hx-target="#connections" hx-swap="outerHTML" data-selectable>
+    @if (Model.Count == 0)
+    {
+        <p class="empty">No connections yet. Use “New connection” to add the first one.</p>
+    }
+    else
+    {
+        <section class="group wide">
+            <header>
+                <input type="checkbox" class="pick" data-select-all
+                       title="Select all the connections shown" aria-label="Select all shown" />
+                <h2>Connections</h2>
+                <span class="count">@Model.Count@(todo > 0 ? $" · {todo} to fill in" : "")</span>
+                <span class="batch">
+                    <span class="selected-count" data-select-count></span>
+                    <button type="button" class="ghost small danger" data-select-action disabled
+                            hx-post="@Handler("ConfirmDelete")"
+                            hx-include="#connections input[name=ids]:checked"
+                            hx-target="#dlg" hx-swap="innerHTML">Delete selected</button>
+                </span>
+            </header>
+            <ul class="items plain">
+                @foreach (var c in Model)
+                {
+                    var missing = Missing(c);
+                    <li class="item@(c.Pinned ? " pinned" : "")">
+                        <input type="checkbox" class="pick" name="ids" value="@c.Id" data-select-item
+                               aria-label="Select @c.Name" />
+                        <a class="link" href="#"
+                           hx-get="@Handler("Form", new { id = c.Id })"
+                           hx-target="#dlg" hx-swap="innerHTML">
+                            <span class="title">@c.Name</span>
+                            <span class="hint">
+                                @if (missing.Length > 0)
+                                {
+                                    <span class="todo">@missing</span>
+                                    <text> · </text>
+                                }
+                                @(c.Username.Length > 0 ? c.Username + "@" : "")@c.Summary
+                            </span>
+                        </a>
+                        <button type="button" class="pin@(c.Pinned ? " on" : "")"
+                                title="@(c.Pinned ? "Unpin" : "Pin to the top")"
+                                aria-pressed="@(c.Pinned ? "true" : "false")"
+                                aria-label="@(c.Pinned ? "Unpin" : "Pin") @c.Name"
+                                hx-post="@Handler("TogglePin", new { id = c.Id })">@(c.Pinned ? "★" : "☆")</button>
+                        <button type="button" class="ghost small row-btn"
+                                hx-post="@Handler("Test", new { id = c.Id })"
+                                hx-swap="none">Test</button>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+</div>

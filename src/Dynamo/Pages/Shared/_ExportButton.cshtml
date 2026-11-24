@@ -1,0 +1,8 @@
+@* The "Export CSV" button, the same on the Queries page and in the workspace
+   panels. It posts its own form natively (site.js, data-post-form), plus the
+   fields of IncludeSelector when the values live outside that form. *@
+@model Dynamo.Pages.Shared.ExportButtonModel
+<button type="button" class="ghost"
+        data-post-form="@Model.Url"
+        data-post-include="@Model.IncludeSelector"
+        title="Run again and download every row (up to 100,000) as CSV">Export CSV</button>

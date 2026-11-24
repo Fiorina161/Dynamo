@@ -1,0 +1,65 @@
+@* Picks queries to copy from another workspace into this one. Each ticked panel
+   becomes this workspace's own copy (query, connection, refresh interval, row
+   limits and starting values), which can be changed without touching the
+   original. The form is the data-selectable root: select-all, the count, the
+   filter and the Import button's enabled state come from site.js. Changing the
+   workspace in the list asks the server for the dialog again. *@
+@model Dynamo.Pages.Workplaces.ImportModel
+<form id="import-pick" class="wide" data-selectable
+      hx-post="@Url.Page("/Workplaces/View", "Import", new { id = Model.Target.Id })" hx-swap="none">
+    <h2>Import queries into “@Model.Target.Name”</h2>
+
+    @if (Model.Source is null)
+    {
+        <p class="empty">No other workspace has a query to import yet.</p>
+        <footer>
+            <span class="spacer"></span>
+            <button type="button" class="ghost" data-close>Close</button>
+        </footer>
+    }
+    else
+    {
+        <p class="hint-text">
+            Each ticked query is <b>copied</b> here with its connection and settings. Change or rename the
+            copy from its panel (⚙, Edit query): the original and the other workspaces stay as they are.
+        </p>
+
+        <label>From the workspace
+            <select name="from"
+                    hx-get="@Url.Page("/Workplaces/View", "ImportForm", new { id = Model.Target.Id })"
+                    hx-trigger="change" hx-target="#dlg" hx-swap="innerHTML">
+                @foreach (var w in Model.Others)
+                {
+                    <option value="@w.Id" selected="@(w.Id == Model.Source.Id)">@w.Name (@w.PanelCount)</option>
+                }
+            </select>
+        </label>
+
+        <div class="tns-tools">
+            <input type="checkbox" class="pick" data-select-all
+                   title="Select all the queries shown" aria-label="Select all shown" />
+            <input type="search" class="filter" placeholder="Filter…" aria-label="Filter the queries"
+                   data-filter="#import-pick" autocomplete="off"
+                   onkeydown="if (event.key === 'Enter') event.preventDefault()" />
+            <span class="selected-count" data-select-count></span>
+        </div>
+        <ul class="items plain tns-list">
+            @foreach (var p in Model.Source.Panels)
+            {
+                <li class="item">
+                    <label class="tns-row">
+                        <input type="checkbox" class="pick" name="panel" value="@p.Id" data-select-item />
+                        <span class="title">@p.QueryName</span>
+                        <span class="hint">@(p.Connection.Length > 0 ? p.Connection : "no connection chosen")</span>
+                    </label>
+                </li>
+            }
+        </ul>
+
+        <footer>
+            <span class="spacer"></span>
+            <button type="button" class="ghost" data-close>Cancel</button>
+            <button type="submit" data-select-action disabled>Import selected</button>
+        </footer>
+    }
+</form>

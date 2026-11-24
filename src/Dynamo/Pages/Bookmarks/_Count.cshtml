@@ -1,0 +1,8 @@
+@model Board
+@{
+    var total = Model.Ungrouped.Count + Model.Groups.Sum(g => g.Bookmarks.Count);
+}
+@* Replaced in place by htmx whenever the board is swapped (out-of-band). *@
+<div class="count" id="count" @(Context.Request.Headers.ContainsKey("HX-Request") ? "hx-swap-oob=true" : "")>
+    @total bookmarks in @Model.Groups.Count groups
+</div>

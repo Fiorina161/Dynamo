@@ -1,0 +1,32 @@
+@model Dynamo.Pages.OracleConnections.DeleteManyModel
+@{
+    var many = Model.Connections.Count;
+}
+<form hx-post="@Url.Page("/OracleConnections/Index", "DeleteMany")" hx-target="#connections" hx-swap="outerHTML">
+    <h2>Delete @many @(many == 1 ? "connection" : "connections")?</h2>
+
+    @foreach (var c in Model.Connections)
+    {
+        <input type="hidden" name="ids" value="@c.Id" />
+    }
+
+    <ul class="names">
+        @foreach (var c in Model.Connections)
+        {
+            <li>
+                @c.Name
+                <span class="hint-inline">@(c.Username.Length > 0 ? c.Username + "@" : "")@c.Summary</span>
+            </li>
+        }
+    </ul>
+    <p class="hint-text">
+        This cannot be undone. Queries that use @(many == 1 ? "it" : "one of them") as their
+        default connection will ask for another one the next time they run.
+    </p>
+
+    <footer>
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit" class="btn-danger" autofocus>Delete @many</button>
+    </footer>
+</form>

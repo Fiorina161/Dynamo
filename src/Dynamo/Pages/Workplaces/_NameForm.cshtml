@@ -1,0 +1,29 @@
+@* Names a workplace: a new one (Id 0) or a rename. *@
+@model Dynamo.Pages.Workplaces.WorkplaceNameModel
+<form hx-post="@(Model.DuplicateOf != 0
+        ? Url.Page("/Workplaces/View", "Duplicate", new { id = Model.DuplicateOf })
+        : Model.Id == 0
+            ? Url.Page("/Workplaces/Index", "Create")
+            : Url.Page("/Workplaces/View", "Rename", new { id = Model.Id }))"
+      hx-swap="none">
+    <h2>@(Model.DuplicateOf != 0 ? "Duplicate workspace" : Model.Id == 0 ? "New workspace" : "Rename workspace")</h2>
+    @if (Model.DuplicateOf != 0)
+    {
+        <p class="hint-text">Same queries, connections, refresh intervals, row limits and values. Nothing is created until you save.</p>
+    }
+
+    <label>Name
+        <input name="name" value="@Model.Name" autocomplete="off" autofocus placeholder="Order debugging" />
+    </label>
+
+    @if (Model.Error is not null)
+    {
+        <p class="error">@Model.Error</p>
+    }
+
+    <footer>
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit">@(Model.Id == 0 ? (Model.DuplicateOf != 0 ? "Duplicate" : "Create") : "Save")</button>
+    </footer>
+</form>

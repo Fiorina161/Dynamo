@@ -1,0 +1,54 @@
+@* The query of a workspace panel: a new one written here (PanelId 0) or the
+   edit of the panel's own. It belongs to this workspace only: it is not in the
+   Queries list, and changing it never changes a saved query or another panel. *@
+@model Dynamo.Pages.Workplaces.PanelQueryModel
+@{
+    var creating = Model.PanelId == 0;
+}
+<form class="wide"
+      hx-post="@(creating
+        ? Url.Page("/Workplaces/View", "CreateQuery", new { id = Model.Workplace.Id })
+        : Url.Page("/Workplaces/View", "EditQuery", new { id = Model.Workplace.Id, panel = Model.PanelId }))"
+      hx-swap="none">
+    <h2>@(creating ? "New query" : "Edit query") — “@Model.Workplace.Name”</h2>
+    <p class="hint-text">
+        @(creating
+            ? "This query lives in this workspace only; it is not added to the Queries list."
+            : "Only this workspace's copy changes: the saved query it came from, and any other workspace, are not affected.")
+    </p>
+
+    <label>Name
+        <input name="name" value="@Model.Name" autocomplete="off" autofocus placeholder="Stuck orders" />
+    </label>
+
+    @if (creating)
+    {
+        <label>Connection
+            <select name="connection">
+                @if (Model.Connection.Length == 0)
+                {
+                    <option value="" selected>(choose later)</option>
+                }
+                <partial name="_ConnectionOptions"
+                         model="new ConnectionOptionsModel(Model.Connections, Model.Connection.Length > 0 ? Model.Connection : null)" />
+            </select>
+        </label>
+    }
+
+    <label>SQL
+        <textarea name="sql" class="sql-edit" rows="12" spellcheck="false"
+                  placeholder="SELECT … FROM … WHERE col = :value">@Model.Sql</textarea>
+    </label>
+    <p class="hint-text">One SELECT. Write <code>:name</code> for a value shared by the panels that use the same name.</p>
+
+    @if (Model.Error is not null)
+    {
+        <p class="error">@Model.Error</p>
+    }
+
+    <footer>
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit">@(creating ? "Add to the workspace" : "Save")</button>
+    </footer>
+</form>

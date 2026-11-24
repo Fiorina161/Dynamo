@@ -1,0 +1,7 @@
+@* The button that gives a result all the width it can have, and takes it back: in a
+   workspace the panel takes the whole row of the grid; on the Queries page the menu
+   folds away so the result gets the whole window (site.js, "Wide results"). The
+   model names the result, for screen readers. *@
+@model string
+<button type="button" class="ghost small wide-toggle" data-wide-toggle aria-pressed="false"
+        title="Use the full width" aria-label="Full width: @Model">↔</button>

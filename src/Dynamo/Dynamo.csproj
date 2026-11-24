@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Dynamo</RootNamespace>
+    <AssemblyName>Dynamo</AssemblyName>
+    <!-- The version of releases (tag v1.0.0): the update notice compares with it. -->
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dynamo.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The script that swaps the program's files during "Update now". -->
+    <EmbeddedResource Include="Modules/Settings/apply-update.ps1" LogicalName="apply-update.ps1" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.89" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="11.0.0" />
+    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.26.400" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="11.0.0" />
+  </ItemGroup>
+</Project>

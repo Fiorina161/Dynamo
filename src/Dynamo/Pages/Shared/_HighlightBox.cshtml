@@ -1,0 +1,29 @@
+@* Up to three boxes to highlight pieces of text in the results below them, each in
+   its own colour (yellow, sky blue, green-yellow), so up to three different
+   things can be followed at once. How many show (0 to 3, default 1) is a setting;
+   with 0 nothing is rendered. The same on the Queries page and in a workspace
+   (site.js, "Highlighting"). The model is the selector of the element that
+   holds the results to mark. *@
+@model string
+@inject Dynamo.Modules.Settings.ResultOptions Options
+@{
+    var colours = new[] { "yellow", "sky blue", "green-yellow" };
+    var boxes = Options.HighlightBoxes;
+}
+@if (boxes > 0)
+{
+<div class="highlight-box">
+    @for (var slot = 1; slot <= boxes; slot++)
+    {
+        <div class="highlight-field">
+            <input type="text" class="hl-input hl@(slot)" data-slot="@slot" data-highlight-scope="@Model"
+                   placeholder="Highlight"
+                   autocomplete="off" spellcheck="false"
+                   aria-label="Text to highlight in @colours[slot - 1]" />
+            <button type="button" class="ghost small" data-highlight-clear hidden
+                    title="Clear this highlight (Escape)">×</button>
+            <span class="count" data-highlight-count role="status"></span>
+        </div>
+    }
+</div>
+}

@@ -1,0 +1,42 @@
+@model Dynamo.Pages.Bookmarks.BookmarkFormModel
+@{
+    var b = Model.Bookmark;
+}
+<form hx-post="@Url.Page("/Bookmarks/Index", "SaveBookmark")" hx-target="#board" hx-swap="outerHTML">
+    <h2>@(b.Id == 0 ? "New bookmark" : "Edit bookmark")</h2>
+    <input type="hidden" name="id" value="@b.Id" />
+
+    <label>Label
+        <input name="label" value="@b.Label" autocomplete="off" autofocus />
+    </label>
+    <label>Target
+        <input name="target" value="@b.Target" autocomplete="off"
+               placeholder="https://…  ·  C:\folder\file.txt  ·  \\server\share" />
+    </label>
+    <label>Group
+        <select name="groupId">
+            <option value="">(none)</option>
+            @foreach (var g in Model.Groups)
+            {
+                <option value="@g.Id" selected="@(b.GroupId == g.Id)">@g.Name</option>
+            }
+        </select>
+    </label>
+
+    @if (Model.Error is not null)
+    {
+        <p class="error">@Model.Error</p>
+    }
+
+    <footer>
+        @if (b.Id != 0)
+        {
+            <button type="button" class="ghost danger"
+                    hx-post="@Url.Page("/Bookmarks/Index", "DeleteBookmark", new { id = b.Id })"
+                    hx-confirm="Delete this bookmark?">Delete</button>
+        }
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit">Save</button>
+    </footer>
+</form>

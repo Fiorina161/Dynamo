@@ -1,0 +1,6 @@
+@* The line that says what a run returned: rows and duration, nothing else (no
+   clock: the panel's details say when it last ran; no "more rows exist" hint:
+   the details still say when the row limit was reached). It goes in a panel's
+   title bar. *@
+@model Dynamo.Modules.Queries.QueryResult
+@Model.Rows.Count @(Model.Rows.Count == 1 ? "row" : "rows") · @Model.ElapsedMs ms

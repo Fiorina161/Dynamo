@@ -1,0 +1,333 @@
+@page "/Settings"
+@model Dynamo.Pages.Settings.IndexModel
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<header class="page-head">
+    <div class="greeting">
+        <h1>Settings</h1>
+        <p>Preferences and options for Dynamo.</p>
+    </div>
+</header>
+
+@* What the last action said, for every section below. *@
+@if (Model.Message is not null)
+{
+    <p class="notice">@Model.Message</p>
+}
+@if (Model.Error is not null)
+{
+    <p class="error">@Model.Error</p>
+}
+
+@* One column of sections, Updates first; inside a section, forms sit side by side
+   when there is room (.settings-row). *@
+<div class="settings-cards">
+
+<section class="group wide settings" id="updates">
+    <header>
+        <h2>Updates</h2>
+        <span class="count">@(Model.UpdateAvailable ? "new version available" : "version " + Model.CurrentVersion)</span>
+    </header>
+
+    <div class="settings-body">
+        @* Left: the manual look. Right: what is installed, and what a new version brings. *@
+        <div class="settings-row updates-row">
+        <form method="post" asp-page-handler="CheckUpdates" class="settings-form">
+            <h3>Look for a new version</h3>
+            <p class="hint-text">Asks GitHub's public releases of the project. Nothing about this computer or its user is sent, and nothing is downloaded or installed.</p>
+            <footer>
+                <button type="submit">Check now</button>
+            </footer>
+        </form>
+        <div class="settings-cell updates-info">
+        <p class="hint-text">
+            Installed version: <b>@Model.CurrentVersion</b>.
+            @if (Model.UpdateStatus.Latest is { } latest)
+            {
+                <text>Latest published: <b>@UpdateChecker.ToText(latest)</b>@(latest.PublishedAt is { } when ? $" ({when:yyyy-MM-dd})" : "").</text>
+            }
+            @if (Model.UpdateStatus.CheckedAt is { } at)
+            {
+                <text> Last checked @at.ToLocalTime().ToString("yyyy-MM-dd HH:mm").</text>
+            }
+            else
+            {
+                <text> Not checked yet.</text>
+            }
+        </p>
+
+        <p class="hint-text">
+            Project:
+            <a href="@UpdateChecker.RepositoryUrl" target="_blank" rel="noopener">github.com/@UpdateChecker.Repository</a>
+            · <a href="@UpdateChecker.ReleasesPage" target="_blank" rel="noopener">All releases</a>
+        </p>
+
+        @if (Model.Installing is not null)
+        {
+            <p class="notice" data-wait-restart="/Settings#updates" data-wait-version="@Model.Installing">
+                Installing Dynamo @Model.Installing… the service is restarting. This page comes back by itself.
+            </p>
+            <p class="hint-text" data-wait-status></p>
+        }
+        @if (Model.LastUpdateFailure is not null)
+        {
+            <p class="error">The last update did not go through: @Model.LastUpdateFailure</p>
+        }
+
+        @if (Model.UpdateStatus.Error is not null)
+        {
+            <p class="error">@Model.UpdateStatus.Error</p>
+        }
+
+        @if (Model.UpdateAvailable && Model.Installing is null && Model.UpdateStatus.Latest is { } update)
+        {
+            <p class="notice">A new version is available:
+                <a href="@update.PageUrl" target="_blank" rel="noopener" title="Open the release page on GitHub"><b>@update.Name</b></a>.</p>
+
+            @* What changed since the running version: plain text from the project's changelog. *@
+            @if (update.Changes is { Count: > 0 } changes)
+            {
+                <div class="whats-new">
+                    <h3>What's new since @Model.CurrentVersion</h3>
+                    @foreach (var entry in changes)
+                    {
+                        <p class="whats-new-version"><b>@AppVersion.Format(entry.Version)</b>@(entry.Date is null ? "" : " · " + entry.Date)</p>
+                        <ul>
+                            @foreach (var item in entry.Items)
+                            {
+                                <li>@item</li>
+                            }
+                        </ul>
+                    }
+                </div>
+            }
+
+            @if (Model.CanInstallUpdate)
+            {
+                <form method="post" asp-page-handler="InstallUpdate" class="settings-form"
+                      data-busy-text="Downloading and installing…">
+                    <p class="hint-text">
+                        Downloads the new version from GitHub, checks it, replaces Dynamo's files and restarts
+                        the service. It takes a few seconds and this page comes back by itself. Your data is kept,
+                        and if the new version does not start, the old one is put back.
+                    </p>
+                    <footer>
+                        <button type="submit"
+                                onclick="return confirm('Download and install Dynamo @UpdateChecker.ToText(update) now? The service restarts for a few seconds.')">Update now to @UpdateChecker.ToText(update)</button>
+                    </footer>
+                </form>
+            }
+            else if (Model.UpdateSupported)
+            {
+                <p class="hint-text">Updating is done from the computer where Dynamo runs, not from another one.</p>
+            }
+            else
+            {
+                <p class="hint-text">
+                    Dynamo is running as a console program here, not as a Windows service, so it cannot replace
+                    itself: download the new version and install it by hand.
+                </p>
+            }
+
+            <p class="hint-text">
+                By hand instead: <a href="@(update.DownloadUrl ?? update.PageUrl)" rel="noopener">Download @UpdateChecker.ToText(update)</a>,
+                extract the zip and run <code>Installer.cmd</code> (it keeps your data).
+                · <a href="@update.PageUrl" rel="noopener" target="_blank">Release notes</a>
+            </p>
+        }
+        </div>
+        </div>
+    </div>
+</section>
+
+<section class="group wide settings">
+    <header>
+        <h2>Menu</h2>
+        <span class="count">@(Model.ShowBookmarks ? "all sections shown" : "Bookmarks hidden")</span>
+    </header>
+
+    <div class="settings-body">
+        <form method="post" asp-page-handler="MenuOptions" class="settings-form">
+            <label class="check">
+                <input type="checkbox" name="showBookmarks" value="on" checked="@Model.ShowBookmarks" />
+                Show Bookmarks in the menu
+            </label>
+            <p class="hint-text">
+                Hiding it only removes the menu entry (and the landing page then opens the next section);
+                the Bookmarks page still opens at /Bookmarks and nothing in it is lost.
+            </p>
+            <footer>
+                <button type="submit">Save</button>
+            </footer>
+        </form>
+    </div>
+</section>
+
+<section class="group wide settings">
+    <header>
+        <h2>Results</h2>
+        <span class="count">@(Model.HighlightBoxes == 0 ? "no highlight box" : Model.HighlightBoxes == 1 ? "1 highlight box" : Model.HighlightBoxes + " highlight boxes")</span>
+    </header>
+
+    <div class="settings-body">
+        <form method="post" asp-page-handler="ResultOptions" class="settings-form spread">
+            <div class="settings-row">
+            <div class="settings-cell">
+            <label>Highlight boxes above the results
+                <select name="highlightBoxes">
+                    @for (var n = 0; n <= ResultOptions.MaxHighlightBoxes; n++)
+                    {
+                        <option value="@n" selected="@(n == Model.HighlightBoxes)">@(n == 0 ? "None" : n.ToString())</option>
+                    }
+                </select>
+            </label>
+            <p class="hint-text">
+                Each box highlights what you type in its own colour (yellow, sky blue, green-yellow) in every
+                panel of a workspace: pick as many as you follow at once, or none to hide them.
+            </p>
+            </div>
+            <div class="settings-cell">
+            <label>Default number of rows displayed
+                <input type="number" name="defaultRows" value="@Model.DefaultRows"
+                       min="@ResultOptions.MinDefaultRows" max="@ResultOptions.MaxDefaultRows" inputmode="numeric" />
+            </label>
+            <p class="hint-text">
+                How tall a panel is, in rows, when its own <b>Visible rows</b> (in its ⚙ details) is 0: a longer
+                result scrolls, a shorter one leaves blank space. Panels start at 0, so they all follow this number;
+                give one panel its own number to make it different.
+            </p>
+            </div>
+            </div>
+            <footer>
+                <button type="submit">Save</button>
+            </footer>
+        </form>
+    </div>
+</section>
+
+<section class="group wide settings">
+    <header>
+        <h2>Remote access</h2>
+        <span class="count">@(Model.HasPassword ? "password set" : "off")</span>
+    </header>
+
+    <div class="settings-body">
+        <p class="hint-text">
+            On the computer where Dynamo runs, it never asks for anything. From another computer it asks for
+            this password, and remembers it until the browser is closed. Without a password, other computers
+            are refused.
+        </p>
+
+        <div class="settings-row">
+        <form method="post" asp-page-handler="SetPassword" class="settings-form">
+            <h3>@(Model.HasPassword ? "Change the password" : "Set a password")</h3>
+            <div class="settings-fields">
+            @if (Model.HasPassword && Model.IsRemote)
+            {
+                <label>Current password
+                    <input type="password" name="current" autocomplete="current-password" />
+                </label>
+            }
+            <label>@(Model.HasPassword ? "New password" : "Password")
+                <input type="password" name="password" autocomplete="new-password" />
+            </label>
+            <label>Confirm the password
+                <input type="password" name="confirm" autocomplete="new-password" />
+            </label>
+            </div>
+            <p class="hint-text">At least @Dynamo.Modules.Settings.PasswordService.MinLength characters. It is stored in the database as a salted hash, never in clear.</p>
+            <footer>
+                <button type="submit">@(Model.HasPassword ? "Change the password" : "Set the password")</button>
+            </footer>
+        </form>
+
+        @if (Model.HasPassword)
+        {
+            <form method="post" asp-page-handler="ClearPassword" class="settings-form">
+                <h3>Turn remote access off</h3>
+                @if (Model.IsRemote)
+                {
+                    <label>Current password
+                        <input type="password" name="current" autocomplete="current-password" />
+                    </label>
+                }
+                <p class="hint-text">Removes the password: other computers are refused again@(Model.IsRemote ? ", including this one" : "").</p>
+                <footer>
+                    <button type="submit" class="ghost danger"
+                            onclick="return confirm('Remove the password and refuse other computers?')">Remove the password</button>
+                </footer>
+            </form>
+        }
+        </div>
+    </div>
+</section>
+
+<section class="group wide settings">
+    <header>
+        <h2>Secure connection (https)</h2>
+        <span class="count">@(Model.HttpsEnabled ? $"port {Model.HttpsPort}" : "off")</span>
+    </header>
+
+    <div class="settings-body">
+        @if (!Model.HttpsEnabled)
+        {
+            <p class="hint-text">
+                https is off: Dynamo listens on this computer only, or the https port is set to 0
+                (the DYNAMO_HTTPS_PORT variable).
+            </p>
+        }
+        else
+        {
+            <p class="hint-text">
+                Other computers can reach Dynamo over https on port @Model.HttpsPort, with a certificate
+                Dynamo made itself. It is signed by a small authority of its own, created once: trust that
+                authority <b>once</b> on each computer you browse from, and the yearly renewals, done
+                automatically, need nothing more. Until then the browser shows a warning.
+            </p>
+
+            <p class="hint-text">
+                <b>Server certificate</b> valid until @Model.CertificateExpires?.ToString("yyyy-MM-dd"),
+                for: @string.Join(", ", Model.CertificateNames).
+            </p>
+
+            <p class="hint-text">
+                <b>To trust it</b>, on the computer you browse from: download
+                <a href="/dynamo-certificate.cer">the certificate</a>, open it, choose <i>Install Certificate</i>
+                and place it in <i>Trusted Root Certification Authorities</i> (in Firefox: Settings,
+                Certificates, Authorities, Import). Check that its SHA-256 fingerprint is the one shown here,
+                since the download itself may come over http:
+            </p>
+            <p><code class="fingerprint">@Model.Fingerprint</code></p>
+
+            <div class="settings-row">
+            <form method="post" asp-page-handler="HttpsOptions" class="settings-form">
+                <h3>Plain http from other computers</h3>
+                <label class="check">
+                    <input type="checkbox" name="requireHttps" value="on" checked="@Model.RequireHttps" />
+                    Send other computers using http to https (recommended)
+                </label>
+                <p class="hint-text">The certificate download stays on http. This computer is never redirected.</p>
+                <footer>
+                    <button type="submit">Save</button>
+                </footer>
+            </form>
+
+            <form method="post" asp-page-handler="RenewCertificate" class="settings-form">
+                <h3>Issue a new server certificate</h3>
+                <p class="hint-text">
+                    Normally unnecessary: it renews itself 30 days before it expires, and when the names
+                    or addresses of this computer change. The new one is signed by the same authority.
+                </p>
+                <footer>
+                    <button type="submit" class="ghost">Issue a new certificate</button>
+                </footer>
+            </form>
+            </div>
+        }
+    </div>
+</section>
+
+
+</div>

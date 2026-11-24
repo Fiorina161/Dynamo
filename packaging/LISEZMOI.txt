@@ -1,0 +1,449 @@
+==============================================================================
+  DYNAMO — Tableau de bord local pour développeurs
+  Guide d'installation et d'utilisation
+==============================================================================
+
+Dynamo est un petit site Web qui s'exécute sur votre poste de travail, et
+seulement sur lui, pour regrouper ce que vous utilisez tous les jours :
+
+  - Bookmarks ........... vos signets (sites Web, mais aussi fichiers, dossiers
+                          et programmes locaux), classés en groupes
+  - Connections ......... vos connexions à des bases de données Oracle
+  - Workspaces .......... des « espaces de travail » : vos requêtes SQL
+                          (SELECT) avec leurs résultats, leur export et leur
+                          rafraîchissement automatique, une ou plusieurs
+                          côte à côte, pour surveiller quelques éléments en
+                          même temps
+
+L'interface du site est en anglais; ce guide en explique l'usage en français.
+
+
+1. CE QU'IL FAUT AVOIR
+----------------------
+
+  - Windows 10 ou 11, 64 bits.
+  - Les droits d'administrateur sur le poste (pour installer le service).
+  - Rien d'autre à installer : .NET est déjà inclus dans le dossier « app ».
+    Aucun client Oracle n'est requis non plus.
+  - Le port 4040 libre sur le poste (sinon, voir « Dépannage »).
+  - Pour utiliser les connexions Oracle : un accès réseau aux bases de
+    données et un compte (schéma et mot de passe) pour chacune.
+
+
+2. INSTALLATION
+---------------
+
+  a) Extrayez TOUT le contenu de l'archive (.zip) dans un dossier de votre
+     choix, par exemple C:\Temp\Dynamo (clic droit sur le fichier .zip, puis
+     « Extraire tout... »). N'exécutez pas les fichiers depuis l'intérieur
+     de l'archive.
+
+  b) Double-cliquez sur « Installer.cmd ».
+
+  c) Windows demande l'autorisation de continuer (fenêtre UAC) : acceptez.
+
+  d) Une fenêtre affiche la progression. À la fin, elle indique que Dynamo
+     fonctionne et ouvre votre navigateur sur http://localhost:4040.
+
+  Dynamo est alors un service Windows : il démarre tout seul avec Windows,
+  sans que vous ayez à ouvrir une session particulière ni à lancer quoi que
+  ce soit. Ajoutez http://localhost:4040 à vos favoris du navigateur.
+
+  Si Windows affiche « Windows a protégé votre ordinateur » (SmartScreen)
+  en double-cliquant sur Installer.cmd : cliquez sur « Informations
+  complémentaires », puis « Exécuter quand même ».
+
+  Options pour utilisateurs avancés (dans une fenêtre PowerShell, depuis le
+  dossier extrait) :
+
+      .\Installer-Dynamo.ps1 -Port 4041
+      .\Installer-Dynamo.ps1 -DossierDonnees D:\MesDonnees\Dynamo
+      .\Installer-Dynamo.ps1 -DossierInstallation "D:\Programmes\Dynamo"
+      .\Installer-Dynamo.ps1 -OuvrirPareFeu      (voir « Accès à distance »)
+
+
+3. PREMIERS PAS
+---------------
+
+Le menu de gauche donne accès aux quatre sections. Le bouton « Theme » en bas
+du menu alterne entre les thèmes clair, sombre et celui du système.
+
+3.1 Bookmarks (signets)
+
+  - « New group » crée un groupe; « New bookmark » ajoute un signet (un
+    libellé et une cible).
+  - La cible peut être une adresse Web (https://...), un fichier, un dossier,
+    un chemin réseau (\\serveur\partage\...) ou un lien d'une application
+    (par exemple mailto:...). Les adresses Web s'ouvrent dans un nouvel
+    onglet; tout le reste est ouvert par Dynamo sur votre bureau.
+  - Glissez-déposez les signets et les groupes pour les réorganiser. Le titre
+    d'un groupe sert à le replier ou à le déplier.
+  - Le bouton « Edit » d'un groupe permet de le renommer et de lui donner une
+    teinte (six couleurs douces au choix, ou aucune).
+
+3.2 Connections (connexions Oracle)
+
+  C'est ici qu'on enregistre les accès aux bases de données. Les autres
+  sections s'en servent en choisissant la connexion par son nom.
+
+  - « New connection » demande :
+      Name ............ un nom unique (par exemple PROD, TEST)
+      Data source ..... l'une de ces trois formes :
+                          * un alias TNS (par exemple MABASE), défini dans un
+                            fichier tnsnames.ora;
+                          * une adresse « Easy Connect » :
+                            serveur:1521/nom_du_service;
+                          * un descripteur complet :
+                            (DESCRIPTION=(ADDRESS=...)(CONNECT_DATA=...))
+      Schema .......... l'utilisateur Oracle avec lequel se connecter
+      Password ........ son mot de passe (jamais réaffiché ensuite; en
+                        modification, le laisser vide conserve l'ancien)
+  - « Test » vérifie qu'on peut se connecter (sur chaque ligne, et dans la
+    fenêtre de saisie, même avant d'enregistrer).
+  - « Duplicate » (dans la fenêtre de modification) prépare une nouvelle
+    connexion à partir d'une existante; rien n'est créé avant « Save ».
+  - L'étoile à droite d'une ligne « épingle » la connexion : elle passe en
+    haut de la liste et dans les listes déroulantes des autres sections.
+  - Les cases à cocher permettent de supprimer plusieurs connexions à la fois.
+  - Un filtre permet de retrouver rapidement une connexion parmi beaucoup.
+
+  Importer depuis votre fichier tnsnames.ora (facultatif) : si ce fichier existe
+  (dans le dossier désigné par TNS_ADMIN), un bouton « Import tnsnames.ora »
+  apparaît à côté de « New connection ». Il ouvre la liste des alias qui ne sont
+  pas encore des connexions, sans rien de coché : cochez ceux que vous voulez
+  (la case en haut coche tout ce qui est affiché; le filtre permet de
+  chercher), puis cliquez « Import selected ». Chaque alias coché devient une
+  connexion du même nom; il reste à remplir le schéma et le mot de passe de
+  celles dont vous vous servez.
+
+  Pour tout importer d'un coup, dans une invite de commandes :
+
+      "C:\Program Files\Dynamo\Dynamo.exe" import-tnsnames
+      "C:\Program Files\Dynamo\Dynamo.exe" import-tnsnames C:\chemin\tnsnames.ora
+
+  Sans chemin, le fichier lu est %TNS_ADMIN%\tnsnames.ora. Les connexions
+  déjà présentes ne sont jamais modifiées : on peut donc refaire l'importation
+  sans rien perdre.
+
+  Important : pour que le service retrouve vos alias TNS, la variable
+  d'environnement TNS_ADMIN doit être définie au niveau du SYSTÈME (variables
+  d'environnement système), et non seulement pour votre utilisateur. Sinon,
+  utilisez plutôt le format Easy Connect ou un descripteur complet.
+
+3.3 Workspaces (espaces de travail)
+
+  Les requêtes SQL vivent dans des espaces de travail. Un espace affiche
+  plusieurs requêtes sur une même page, chacune se rafraîchissant d'elle-même,
+  pour suivre quelques éléments en même temps, par exemple en déboguant. Un
+  espace d'une seule requête sert à en exécuter une seule.
+
+  (La page « Queries » des versions précédentes a été retirée. Lors de la mise
+  à jour, les requêtes qui y étaient enregistrées ont été copiées dans un
+  espace nommé « Saved queries », un panneau par requête, sous le nom
+  « Catégorie / Nom » quand elles avaient une catégorie. Rien n'est supprimé de
+  la base de données.)
+
+  - « New workspace » crée un espace. On le remplit de deux façons :
+      * « New query » : on écrit une requête directement dans l'espace : un
+        nom, une connexion et le SQL.
+      * « Import from workspace » : on COPIE des requêtes d'un autre espace.
+        On choisit l'espace, on coche les panneaux voulus (case « tout
+        sélectionner » et zone de filtre) et chacun devient la copie propre de
+        cet espace, avec sa connexion et ses réglages. Modifier la copie ne
+        change pas l'original, et inversement. On peut importer la même
+        requête deux fois (par exemple pour deux connexions différentes).
+    Chaque requête devient un panneau.
+  - Seules les requêtes de lecture sont acceptées : un seul SELECT (ou
+    WITH ... SELECT). Elles s'exécutent dans une transaction en lecture
+    seule, toujours annulée : rien ne peut être modifié dans la base.
+  - Écrivez :nom dans le SQL pour une valeur à saisir (par exemple
+    WHERE id = :id). Les valeurs sont saisies une seule fois, en haut de la
+    page, pour tous les panneaux qui utilisent le même nom; « Apply » (ou la
+    touche Entrée) les enregistre et relance tous les panneaux. Les valeurs
+    sont envoyées comme du texte : pour une date, écrivez par exemple
+    TO_DATE(:depuis, 'YYYY-MM-DD').
+  - Disposition : les panneaux s'écoulent le long des colonnes de la page
+    (autant de colonnes que la largeur en permet, d'au moins 560 px chacune),
+    de sorte qu'un petit panneau ne laisse pas de vide : le suivant prend sa
+    place. Un panneau a toujours exactement la hauteur de ses « lignes visibles »
+    (par défaut, le nombre de lignes réglé dans « Settings », section « Results »,
+    10 au départ, sauf si le panneau a son propre nombre) : un résultat plus long défile, un résultat plus court, une
+    erreur ou aucune ligne laisse de l'espace vide; le nombre réglé est donc le
+    nombre obtenu, et la disposition ne saute pas à un rafraîchissement. L'ordre est
+    une suite (on descend la première colonne, puis la suivante), pas une
+    position sur l'écran.
+  - Réordonner : glissez la poignée ⠿ du titre d'un panneau pour le placer
+    ailleurs dans l'ordre (un trait indique où il se posera; la page défile
+    près des bords; Échap annule), à la souris, au stylet ou au doigt. Sur la
+    poignée, les touches ↑ et ↓ déplacent le panneau d'un cran, et les détails
+    (⚙) ont aussi des boutons « plus tôt / plus tard ».
+  - Pleine largeur : le bouton ↔ du titre d'un panneau lui donne toute la
+    largeur de la page (il occupe toutes les colonnes), pour voir une requête
+    qui a beaucoup de colonnes. Retenu par ce navigateur, panneau par panneau.
+  - Réduire un panneau : la flèche ▾ du titre (ou un clic sur le titre) réduit le
+    panneau à sa ligne de titre; un autre clic le rouvre. « Collapse all » et
+    « Expand all », en haut de la page, le font pour tous les panneaux. Un panneau
+    réduit continue de se rafraîchir : sa ligne de titre reste à jour (le point
+    d'état, le nombre de lignes et la durée) et indique en
+    plus son rythme de rafraîchissement (« every 10 s », « paused » ou « stopped »),
+    la variation du nombre de lignes (« +3 rows ») et « Showing 4 of 6 rows »
+    quand un filtre est actif. L'état est enregistré avec le panneau (une copie
+    d'espace le conserve, et tous les navigateurs le voient). L'engrenage ⚙ d'un
+    panneau réduit le rouvre.
+  - L'engrenage (⚙) du titre d'un panneau ouvre ses détails : connexion,
+    intervalle de rafraîchissement en secondes (0 = aucun), nombre maximal de
+    lignes lues (500 par défaut, jusqu'à 10 000), nombre de lignes visibles
+    (« Visible rows », de 0 à 1 000 : la hauteur du tableau, qui défile
+    au-delà; 0 = le nombre par défaut réglé dans « Settings », section « Results »,
+    « Default number of rows displayed » : les nouveaux panneaux commencent à 0,
+    donc changer ce seul nombre redimensionne tous les panneaux qui le suivent), « Run now », « Export CSV » (jusqu'à 100 000 lignes, un fichier
+    qui s'ouvre directement dans Excel), « Edit query » (modifier le nom et le
+    SQL du panneau), « plus tôt / plus tard » et « Remove ».
+  - Chaque panneau se rafraîchit à son rythme : la prochaine exécution part
+    quand la précédente est terminée. Les cellules qui ont changé depuis la
+    dernière fois clignotent brièvement, et la variation du nombre de lignes
+    est indiquée dans les détails. La barre de titre indique le nombre de
+    lignes et la durée de la dernière exécution (les détails disent à quelle
+    heure elle a eu lieu). Le point à gauche du titre
+    est coloré tant que le panneau se rafraîchit et devient rouge si une
+    exécution a échoué (mot de passe refusé, erreur Oracle, base
+    inaccessible) : seul ce panneau s'arrête, pour ne pas verrouiller un
+    compte à force d'essais; « Run now » le relance.
+  - « Pause all » suspend tous les rafraîchissements automatiques; « Run
+    all » exécute tout immédiatement. Rien ne s'exécute pendant que
+    l'onglet du navigateur est caché.
+  - « Rename », « Duplicate » (copie complète d'un espace) et « Delete »
+    permettent de gérer vos espaces. Ils sont conservés d'une fois à l'autre.
+
+  Dans les tableaux de résultats (tout se passe dans le navigateur, sur les
+  lignes lues) :
+
+  - Les lignes sont numérotées de 1 à n dans la première colonne (la
+    numérotation suit l'ordre affiché).
+  - Tri : cliquez sur l'en-tête d'une colonne pour trier selon cette colonne,
+    cliquez de nouveau pour inverser l'ordre (▲ ou ▼ indique la colonne
+    triée). Les colonnes numériques sont triées comme des nombres, les autres
+    comme du texte (item2 avant item10, sans tenir compte des majuscules); les
+    valeurs NULL restent toujours à la fin. Maj + clic (ou la touche Échap sur
+    l'en-tête) rétablit l'ordre d'origine de la requête. Le tri est conservé à
+    chaque rafraîchissement tant que les colonnes sont les mêmes.
+  - Filtrer les lignes (comme dans un tableur) : la petite flèche ▾ dans
+    l'en-tête de chaque colonne ouvre la liste des valeurs de cette colonne,
+    avec le nombre de lignes pour chacune. Décochez les valeurs à cacher; la
+    zone de recherche réduit la liste, « (Select all) » coche ou décoche toutes
+    les valeurs affichées, « Clear this filter » retire le filtre de la colonne.
+    Les valeurs NULL et le texte vide sont des valeurs à part. Les filtres de
+    plusieurs colonnes se combinent. Les lignes cachées ne comptent plus dans la
+    numérotation, et la ligne « Showing X of Y rows » indique combien de lignes
+    sont affichées; « Clear filters » retire tous les filtres. Un filtre garde
+    les valeurs décochées : une nouvelle valeur qui apparaît à un
+    rafraîchissement est donc visible. Les filtres sont refaits à chaque
+    rafraîchissement et retenus par ce navigateur.
+  - Épingler des lignes : cliquez sur une ligne pour l'épingler (elle reste en
+    haut, en vidéo inversée, quel que soit le tri); cliquez de nouveau pour la
+    désépingler, ou sur « # » pour tout désépingler. Une ligne est reconnue
+    par la valeur de sa première colonne : l'épingle suit la ligne d'un
+    rafraîchissement à l'autre même si les autres valeurs changent.
+    Sélectionner du texte n'épingle pas la ligne. Retenu par ce navigateur.
+  - Surligner du texte : les zones « Highlight », au-dessus des panneaux,
+    surlignent le texte tapé (sans tenir compte des majuscules) dans toutes les
+    cellules de tous les panneaux, chacune de sa couleur (jaune, bleu ciel,
+    vert jaune), pour suivre jusqu'à trois choses à la fois. Le nombre de zones
+    affichées (0 à 3, une par défaut) se règle dans « Settings », section
+    « Results ». Le nombre d'occurrences trouvées est indiqué à côté de chaque
+    zone. Touche Échap ou « × » pour effacer une zone. Le surlignage est refait
+    à chaque rafraîchissement et retenu par ce navigateur. Si deux textes se
+    chevauchent, la première zone l'emporte.
+
+Menu. Si vous n'utilisez pas les signets, « Settings » (section « Menu »)
+permet de retirer « Bookmarks » du menu; la page d'accueil ouvre alors la
+section suivante. La page reste accessible à l'adresse /Bookmarks et rien n'est
+perdu: il suffit de recocher l'option pour la remettre dans le menu.
+
+
+4. VOS DONNÉES ET LA SÉCURITÉ
+-----------------------------
+
+  - Tout est enregistré dans un seul fichier : C:\dynamo\dynamo.db (ou le
+    dossier donné avec -DossierDonnees à l'installation).
+  - Sauvegarde : copiez ce fichier (idéalement service arrêté : « Services »
+    de Windows, clic droit sur « Dynamo », « Arrêter »).
+  - Les mots de passe Oracle y sont enregistrés EN CLAIR. Ne transmettez donc
+    jamais ce fichier à quelqu'un d'autre et ne le placez pas sur un partage.
+  - Depuis l'ordinateur où il s'exécute, Dynamo ne demande jamais rien : toute
+    personne qui ouvre une session sur ce poste peut s'en servir. Verrouillez
+    votre session quand vous vous absentez. Depuis un autre ordinateur, il
+    faut un mot de passe (voir « Accès à distance »).
+  - Le service s'exécute avec le compte système (LocalSystem) : c'est ce qui
+    lui permet d'ouvrir vos fichiers et dossiers sur votre bureau. Cela ne
+    fonctionne que pour la session ouverte devant l'écran du poste (pas
+    depuis une connexion Bureau à distance seule, et il faut que quelqu'un
+    soit connecté).
+
+
+4.1 ACCÈS À DISTANCE (Dynamo sur un serveur ou une machine virtuelle)
+---------------------------------------------------------------------
+
+Dynamo peut s'exécuter sur une autre machine (par exemple une machine
+virtuelle qui a accès à Oracle) et s'utiliser depuis le navigateur de votre
+propre ordinateur : les requêtes s'exécutent alors sur cette machine.
+
+  1. Installez Dynamo sur la machine (Installer.cmd). Aucune session n'a besoin
+     d'y rester ouverte : c'est un service Windows.
+
+  2. Sur cette machine, ouvrez http://localhost:4040, puis « Settings » (le
+     dernier élément du menu) et choisissez un mot de passe (au moins 8
+     caractères; choisissez-en un long). Tant qu'aucun mot de passe n'est
+     défini, Dynamo REFUSE tout ordinateur autre que celui où il s'exécute.
+
+  3. Ouvrez le port dans le Pare-feu Windows de la machine. Rien n'est ouvert
+     par défaut. Dans une fenêtre PowerShell, depuis le dossier extrait :
+
+         .\Installer-Dynamo.ps1 -OuvrirPareFeu
+
+     Par défaut, le port n'est ouvert qu'aux ordinateurs du même sous-réseau,
+     sur les réseaux de profil « Domaine » et « Privé ». Pour limiter à votre
+     portable ou à une plage d'adresses, ou si le réseau de la machine est de
+     profil « Public » :
+
+         .\Installer-Dynamo.ps1 -OuvrirPareFeu -AdressesPareFeu 10.1.2.30
+         .\Installer-Dynamo.ps1 -OuvrirPareFeu -ProfilsPareFeu Any
+
+     (Relancer l'installateur met à jour Dynamo : vos données sont conservées.)
+
+  4. Sur votre portable, ouvrez https://NOM-DE-LA-MACHINE:4343 (ou son adresse
+     IP; l'adresse http://NOM-DE-LA-MACHINE:4040 y redirige). Dynamo demande le
+     mot de passe, puis s'en souvient tant que le navigateur reste ouvert (ou
+     jusqu'à « Log out », en bas du menu). Au premier accès, suivez les étapes
+     « Faire confiance à l'autorité » plus bas pour supprimer l'avertissement.
+
+  À savoir :
+  - Depuis la machine elle-même, Dynamo ne demande jamais rien.
+  - Les signets vers des fichiers, des dossiers ou des programmes sont
+    désactivés (affichés en grisé, « this computer only ») quand vous utilisez
+    Dynamo depuis un autre ordinateur : le fichier n'y est pas, et l'ouvrir
+    démarrerait un programme sur le bureau de la machine. Les signets vers des
+    adresses Web fonctionnent partout.
+  - Connexion chiffrée (https) : Dynamo crée lui-même son certificat. Une petite
+    « autorité » locale, créée une seule fois (valide 10 ans), signe le
+    certificat du serveur (valide un peu plus d'un an), qui se RENOUVELLE tout
+    seul 30 jours avant son expiration, et chaque fois que les noms ou les
+    adresses de la machine changent. L'accès se fait sur le port 4343 :
+    https://NOM-DE-LA-MACHINE:4343. Un ordinateur qui se connecte en http est
+    redirigé vers https (option de « Settings », activée par défaut).
+  - Pour que votre navigateur ne signale rien, faites confiance à l'autorité UNE
+    SEULE FOIS, sur chaque ordinateur d'où vous vous connectez :
+      1. Téléchargez http://NOM-DE-LA-MACHINE:4040/dynamo-certificate.cer
+         (seule la partie publique est téléchargeable).
+      2. Comparez son empreinte SHA-256 avec celle affichée dans « Settings »
+         (section « Secure connection (https) ») sur la machine elle-même.
+      3. Ouvrez le fichier, « Installer le certificat », et placez-le dans
+         « Autorités de certification racines de confiance » (Firefox :
+         Paramètres, Certificats, Autorités, Importer).
+    Les renouvellements suivants sont reconnus sans rien refaire. Avant cette
+    étape, le navigateur affiche un avertissement : ne l'ignorez pas sans avoir
+    comparé l'empreinte.
+  - Let's Encrypt n'est pas utilisé : il ne délivre de certificats que pour des
+    noms de domaine publics, ce qui ne convient pas à une machine virtuelle sur
+    un réseau privé.
+  - Le pare-feu doit laisser passer le port http (4040) ET le port https (4343)
+    : « -OuvrirPareFeu » ouvre les deux. Pour changer le port https :
+    .\Installer-Dynamo.ps1 -PortHttps 4444 (ou -PortHttps 0 pour désactiver
+    https).
+  - Changer ou retirer le mot de passe déconnecte tout le monde. Depuis un
+    autre ordinateur, il faut donner le mot de passe actuel pour le changer.
+  - 5 mots de passe erronés de suite bloquent l'adresse pendant une minute.
+  - Pour que Dynamo n'écoute que sur la machine elle-même (aucun accès à
+    distance possible), définissez la variable d'environnement système
+    DYNAMO_LOCAL_ONLY à 1 puis redémarrez le service.
+  - « Desinstaller.cmd » retire aussi la règle du pare-feu.
+
+
+5. MISE À JOUR
+--------------
+
+Dynamo ne cherche jamais de lui-même : quand vous cliquez « Check now » dans
+« Settings », section « Updates », il consulte les versions publiées sur la page
+GitHub du projet. S'il en existe une plus récente, le menu affiche « Version X
+available ». « Settings », section « Updates », donne alors la liste de ce qui
+a changé depuis la version que vous utilisez (« What's new since ... »), version
+par version, de la plus récente à la plus ancienne, même si vous en avez sauté
+plusieurs; elle vient du fichier CHANGELOG.md du projet sur GitHub (ou, à défaut,
+des notes de la dernière version) et s'affiche toujours comme du simple texte.
+Cette consultation ne transmet rien sur votre ordinateur ni sur
+vous; elle demande un accès à Internet (sans accès, « Settings » indique
+simplement qu'il n'a pas pu joindre GitHub). On peut la désactiver dans
+« Settings ».
+
+Mise à jour en un clic. Dans « Settings », section « Updates », cliquez
+« Update now to X » (depuis l'ordinateur où Dynamo fonctionne): Dynamo télécharge
+la nouvelle version depuis la page GitHub du projet, la vérifie, remplace ses
+fichiers et redémarre le service. Cela prend quelques secondes; la page se
+rafraîchit d'elle-même. Vos données sont conservées. Précautions:
+  - le fichier n'est installé que si sa somme de contrôle SHA-256, publiée avec
+    la version, correspond, et que la version est plus récente que la vôtre;
+  - une copie de l'ancienne version est gardée pendant la mise à jour: si la
+    nouvelle ne démarre pas, l'ancienne est remise en place automatiquement et
+    « Settings » l'indique; le déroulement est noté dans le fichier update.log
+    du dossier de données (C:\dynamo par défaut);
+  - le bouton n'existe que sur l'ordinateur où Dynamo fonctionne (pas depuis un
+    autre ordinateur), et seulement si Dynamo est installé comme service.
+Remarque: les versions publiées ne sont pas signées numériquement; la somme de
+contrôle protège contre un fichier corrompu ou modifié en route, pas contre un
+compte GitHub compromis. La première version qui offre ce bouton doit être
+installée à la main.
+
+Mise à jour à la main (au besoin): extrayez la nouvelle version dans un nouveau
+dossier, puis double-cliquez sur « Installer.cmd » : le service est remplacé par
+la nouvelle version, et vos données sont conservées. Le lien vers le fichier
+.zip, les notes de version et le dépôt GitHub restent dans « Settings ».
+
+
+6. DÉSINSTALLATION
+------------------
+
+Double-cliquez sur « Desinstaller.cmd » (dans le dossier extrait). Le service
+et les fichiers du programme sont retirés. Vos données (C:\dynamo) ne sont
+PAS supprimées : réinstaller Dynamo plus tard les retrouvera. Pour tout
+effacer, supprimez vous-même le dossier C:\dynamo.
+
+
+7. DÉPANNAGE
+------------
+
+  Le site ne répond pas sur http://localhost:4040
+      Ouvrez « Services » (touche Windows, tapez « services »), cherchez
+      « Dynamo » et vérifiez qu'il est « En cours d'exécution »; sinon,
+      clic droit, « Démarrer ». Le journal des événements Windows
+      (Observateur d'événements, Journaux Windows, Application, source
+      « Dynamo ») donne la raison d'un échec de démarrage.
+
+  « Le port 4040 est déjà utilisé » à l'installation
+      Un autre programme se sert de ce port. Réinstallez avec un autre port :
+      .\Installer-Dynamo.ps1 -Port 4041 (puis ouvrez http://localhost:4041).
+
+  Un signet vers un fichier ou un dossier local « ne fait rien »
+      Vérifiez qu'une personne est connectée à la session affichée à l'écran
+      du poste. Le service doit avoir été installé avec Installer.cmd (compte
+      LocalSystem). Cela ne fonctionne pas depuis une session Bureau à
+      distance seulement.
+
+  « Test » d'une connexion Oracle échoue
+      Lisez le message affiché : il vient d'Oracle (par exemple ORA-01017 :
+      identifiant ou mot de passe invalide; ORA-12154 : alias TNS introuvable;
+      ORA-12541 : aucun écouteur). Pour un alias TNS, voir plus haut la
+      variable TNS_ADMIN au niveau du système.
+      Après avoir changé une variable d'environnement système, redémarrez le
+      service Dynamo (Services, clic droit, « Redémarrer »).
+
+  Un rafraîchissement automatique s'est arrêté
+      C'est voulu : une exécution a échoué (le message s'affiche à la place
+      des résultats). Corrigez la cause, puis relancez.
+
+  L'antivirus bloque ou supprime des fichiers
+      Le dossier « app » contient .NET et les composants de Dynamo, non signés.
+      Au besoin, demandez à votre service informatique d'autoriser le dossier
+      d'installation (C:\Program Files\Dynamo).
+
+
+Bonne utilisation!
