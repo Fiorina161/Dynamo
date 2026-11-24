@@ -316,6 +316,13 @@ layout jump. The order is a sequence, not a position:
   `Showing 4 of 6 rows` when a filter is on. It is saved with the panel (so a
   duplicate and every browser agree), and the ⚙ of a collapsed panel expands it.
 
+**Resizing:** drag the bar at the bottom edge of a panel up or down. The height
+follows the mouse and snaps to **whole rows**; the number is the panel's *Visible
+rows*, saved like any change in its details (the refresh interval and the other settings
+are untouched). A tag shows the number while you drag, Escape cancels, the up and down
+arrow keys on the bar change it by one row, and a double-click goes back to the default
+number of rows (Settings, *Results*).
+
 The **gear** opens a panel's details: connection, refresh interval, **max rows**
 (1 to 10,000, rows fetched), **visible rows** (0 to 1,000, the height of the
 table before it scrolls; **0 = the default number of rows set in Settings, Results**,

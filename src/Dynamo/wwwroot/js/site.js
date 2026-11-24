@@ -1584,6 +1584,89 @@
         count();
     })();
 
+    // ---- Resizing a panel with the mouse ---------------------------------------------------------
+    // The bar at the bottom edge of a panel: drag it up or down and the panel grows or shrinks by whole
+    // rows (a panel is always exactly as tall as its Visible rows, so this sets that number: the one in
+    // its details, saved like any change there). Mouse, pen or finger (pointer events); Escape cancels;
+    // on the bar the up and down arrow keys change it by one row; a double-click goes back to the default
+    // number of rows (Settings, Results). The saving is the details' own: the "visible rows" input gets
+    // the value and its change event makes htmx post the panel's settings.
+    (function () {
+        var drag = null;
+
+        function inputOf(panel) { return panel.querySelector('input[data-view-rows-for]'); }
+
+        // The number of rows whose height reaches the pointer (fitResults: head + rows + 1 + scrollbar).
+        function rowsAt(panel, clientY) {
+            var target = panel.querySelector('.panel-results');
+            var m = savedMetrics();
+            var top = target.getBoundingClientRect().top;
+            var n = Math.round((clientY - top - m.head - 1 - scrollbarThickness()) / m.row);
+            return Math.max(1, Math.min(1000, n));
+        }
+
+        function setRows(panel, n, save) {
+            var input = inputOf(panel);
+            if (!input) return;
+            input.value = String(n);
+            input.dispatchEvent(new Event('input', { bubbles: true }));         // the height follows at once
+            if (save) input.dispatchEvent(new Event('change', { bubbles: true }));   // htmx saves it
+        }
+
+        function rowsText(n) { return n + (n === 1 ? ' row' : ' rows'); }
+
+        function end(save) {
+            if (!drag) return;
+            var d = drag;
+            drag = null;
+            d.grip.classList.remove('active');
+            d.grip.removeAttribute('data-rows');
+            document.body.classList.remove('panel-resizing');
+            if (save && d.last !== null && String(d.last) !== d.original) setRows(d.panel, d.last, true);
+            else {
+                d.input.value = d.original;                                      // cancelled, or nothing changed
+                d.input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
+
+        document.addEventListener('pointerdown', function (e) {
+            var grip = e.target.closest && e.target.closest('[data-panel-resize]');
+            if (!grip || e.button) return;
+            var panel = grip.closest('.panel'), input = panel && inputOf(panel);
+            if (!input) return;
+            e.preventDefault();
+            drag = { panel: panel, grip: grip, input: input, original: input.value, last: null };
+            try { grip.setPointerCapture(e.pointerId); } catch (err) { }
+            grip.classList.add('active');
+            document.body.classList.add('panel-resizing');
+        });
+        document.addEventListener('pointermove', function (e) {
+            if (!drag) return;
+            var n = rowsAt(drag.panel, e.clientY);
+            if (n === drag.last) return;
+            drag.last = n;
+            drag.grip.setAttribute('data-rows', rowsText(n));
+            setRows(drag.panel, n, false);
+        });
+        document.addEventListener('pointerup', function () { end(true); });
+        document.addEventListener('pointercancel', function () { end(false); });
+        document.addEventListener('keydown', function (e) {
+            if (drag && e.key === 'Escape') { end(false); return; }
+            var grip = e.target.closest && e.target.closest('[data-panel-resize]');
+            if (!grip || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+            var panel = grip.closest('.panel'), target = panel && panel.querySelector('.panel-results');
+            if (!target) return;
+            e.preventDefault();
+            var n = Math.max(1, Math.min(1000, viewRowsOf(target) + (e.key === 'ArrowDown' ? 1 : -1)));
+            setRows(panel, n, true);
+        });
+        document.addEventListener('dblclick', function (e) {
+            var grip = e.target.closest && e.target.closest('[data-panel-resize]');
+            var panel = grip && grip.closest('.panel');
+            if (panel) setRows(panel, 0, true);
+        });
+    })();
+
     // ---- Panel title colour = its connection's colour ------------------------------------------
     // The server draws it (class conn-<colour> on the panel); when the connection is changed in
     // the panel's settings the class follows at once. Each <option> carries data-color.

@@ -275,6 +275,15 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     à chaque rafraîchissement et retenu par ce navigateur. Si deux textes se
     chevauchent, la première zone l'emporte.
 
+  Redimensionner un panneau : tirez la barre située au bas d'un panneau vers le
+  haut ou vers le bas. La hauteur suit la souris et se cale sur un nombre
+  ENTIER de lignes; ce nombre est celui de « Visible rows » du panneau,
+  enregistré comme tout changement fait dans ses détails (le rythme de
+  rafraîchissement et les autres réglages ne bougent pas). Une étiquette
+  indique le nombre de lignes pendant le glissement; Échap annule; les flèches
+  haut et bas sur la barre changent d'une ligne; un double-clic revient au
+  nombre de lignes par défaut (« Settings », section « Results »).
+
   Plus d'outils sur les résultats d'un panneau (tout se passe dans le
   navigateur) :
 

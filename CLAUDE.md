@@ -349,6 +349,22 @@ Then `git checkout master && git pull`, and delete the branch.
   needs 12c), the SYSDBA login, EXPLAIN PLAN through the driver (binds as text), the
   real `ALTER SYSTEM KILL SESSION`, and the health probe against a live database.
   Run them once on a test database before relying on them.
+- **Resizing a panel with the mouse (done, 24 Nov 2026).** A bar at the bottom of
+  every panel (`.panel-resize`, `data-panel-resize`) drags the height by **whole
+  rows**: it does not add a free pixel height, because a panel is exactly as tall as
+  its Visible rows (the owner's rule, see Workspaces). So a resize **sets
+  `view_rows`**: site.js ("Resizing a panel") puts the number in the details' own
+  `input[name=viewRows]` and dispatches `input` (the height follows at once) while
+  dragging and `change` on release, which makes the input's existing `hx-post`
+  (PanelSettings) save it: **no server code, and the form carries `seconds` and the
+  rest, so nothing else is reset** (PanelSettings sets the refresh to 0 when `seconds`
+  is missing: never post it alone). Rows = `round((pointerY - top of .panel-results -
+  head - 1 - scrollbar) / row)` from the remembered metrics, clamped 1..1000;
+  Escape or pointercancel restores the old value; arrow keys on the bar = one row;
+  double-click = 0 = the default. Verified with jsdom (18 checks, `resize.js` in the
+  scratch dir) and a real Edge with real mouse events (`cdp-resize.js`: drag 160 px,
+  server value, refresh unchanged, arrow key, double-click). Hidden when a panel is
+  collapsed.
 - Sortable results (done, 12 Nov 2026): **client side only**, in site.js, for
   every `.results table` (the shared `_ResultTable` in the workspace panels).
   Click a header = ascending, again = descending

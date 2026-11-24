@@ -178,6 +178,11 @@
             </form>
 
             <div class="panel-results" id="panel-out-@p.Id"><p class="empty">Loading…</p></div>
+
+            @* Drag to resize by whole rows (it sets "Visible rows"); arrow keys: one row; double-click: the default. *@
+            <div class="panel-resize" data-panel-resize role="separator" aria-orientation="horizontal" tabindex="0"
+                 title="Drag to change the number of visible rows (double-click: the default)"
+                 aria-label="Resize @p.QueryName: drag, or use the up and down arrow keys"></div>
         </section>
     }
 </div>
