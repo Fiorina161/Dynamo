@@ -150,6 +150,40 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
   d'environnement système), et non seulement pour votre utilisateur. Sinon,
   utilisez plutôt le format Easy Connect ou un descripteur complet.
 
+3.2b Shared folders (dossiers partagés)
+
+  Pour lister et TÉLÉCHARGER les fichiers d'un dossier partagé d'un autre
+  ordinateur (par exemple \\10.10.10.7\ftp\emgs\trace_archives).
+
+  - « New shared folder » demande :
+      Name ............ un nom unique (par exemple « Trace archives »)
+      Folder .......... le dossier réseau : \\serveur\partage ou
+                        \\serveur\partage\dossier (un dossier local n'est pas
+                        accepté : seuls les dossiers réseau le sont)
+      User ............ le compte avec lequel lire le dossier (utilisateur ou
+                        DOMAINE\utilisateur)
+      Password ........ son mot de passe (enregistré CHIFFRÉ, jamais réaffiché;
+                        en modification, le laisser vide conserve l'ancien)
+  - « Test » (dans la fenêtre) se connecte avec ce qui est saisi, même avant
+    d'enregistrer, et dit combien d'éléments le dossier contient.
+  - Cliquez un dossier de la liste pour l'ouvrir : on y voit les sous-dossiers
+    et les fichiers (nom, taille, date). On peut filtrer par nom, trier par
+    nom, taille ou date (cliquez l'en-tête; cliquez de nouveau pour inverser),
+    et parcourir les longs dossiers page par page (200 éléments par page). Le
+    fil d'Ariane au-dessus du tableau permet de remonter.
+  - « Download » (ou le nom du fichier) télécharge le fichier par le
+    navigateur; un téléchargement interrompu peut reprendre. Dynamo ne fait que
+    LIRE : il n'écrit, ne supprime et ne renomme rien sur le partage.
+  - Dynamo lit le dossier depuis l'ordinateur où il s'exécute, avec le compte
+    enregistré : ce compte doit pouvoir lire le partage depuis cet ordinateur.
+    Windows n'accepte qu'un seul compte par serveur à la fois pour un
+    programme : si deux dossiers du même serveur utilisent des comptes
+    différents, ils se remplacent l'un l'autre à chaque accès (utilisez le
+    même compte).
+  - Si la base de données a été copiée d'un autre ordinateur, le mot de passe
+    enregistré ne peut plus être lu : la liste l'indique, il suffit de le
+    saisir de nouveau (« Edit »).
+
 3.3 Workspaces (espaces de travail)
 
   Les requêtes SQL vivent dans des espaces de travail. Un espace affiche

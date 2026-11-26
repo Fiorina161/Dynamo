@@ -1,0 +1,32 @@
+@model List<Dynamo.Modules.Shares.SharedFolder>
+@* Every action inside replaces the list; the dialog's buttons override the target. *@
+<div id="shares" hx-target="#shares" hx-swap="outerHTML">
+    @if (Model.Count == 0)
+    {
+        <p class="empty">No shared folder yet. Use “New shared folder” to add one, for example <code>\\server\share\folder</code>.</p>
+    }
+    else
+    {
+        <ul class="items plain share-list">
+            @foreach (var f in Model)
+            {
+                <li class="item">
+                    <a class="link" href="@Url.Page("/Shares/Browse", new { id = f.Id })">
+                        <span class="title">@f.Name</span>
+                        <span class="hint">
+                            @if (f.PasswordUnreadable)
+                            {
+                                <span class="todo">password cannot be read here: edit it and enter it again</span>
+                                <text> · </text>
+                            }
+                            @f.Path · @f.Username
+                        </span>
+                    </a>
+                    <button type="button" class="ghost small row-btn"
+                            hx-get="@Url.Page("/Shares/Index", "Form", new { id = f.Id })"
+                            hx-target="#dlg" hx-swap="innerHTML">Edit</button>
+                </li>
+            }
+        </ul>
+    }
+</div>

@@ -1,0 +1,128 @@
+@page "/Shares/{id:long}"
+@model Dynamo.Pages.Shares.BrowseModel
+@using Dynamo.Modules.Shares
+@{
+    ViewData["Title"] = Model.Folder.Name;
+    var listing = Model.Listing;
+
+    string Link(string? path, string? sort = null, bool? desc = null, int page = 1) =>
+        Url.Page("/Shares/Browse", new
+        {
+            id = Model.Folder.Id,
+            path = string.IsNullOrEmpty(path) ? null : path,
+            q = Model.Query.Length == 0 ? null : Model.Query,
+            sort = (sort ?? Model.Sort) == "name" ? null : (sort ?? Model.Sort),
+            dir = (desc ?? Model.Descending) ? "desc" : null,
+            p = page > 1 ? page : (int?)null,
+        })!;
+
+    // A column header: sorts by it; again reverses.
+    string SortLink(string key) =>
+        Link(listing?.Relative, key, Model.Sort == key && !Model.Descending);
+    string Arrow(string key) => Model.Sort == key ? (Model.Descending ? " ▼" : " ▲") : "";
+
+    string HumanSize(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        double v = bytes;
+        var i = 0;
+        while (v >= 1024 && i < units.Length - 1) { v /= 1024; i++; }
+        return i == 0 ? $"{bytes} B" : $"{v:0.##} {units[i]}";
+    }
+}
+
+<header class="page-head">
+    <div class="greeting">
+        <p><a class="back" href="@Url.Page("/Shares/Index")">← Shared folders</a></p>
+        <h1>@Model.Folder.Name</h1>
+        <p><code>@Model.Folder.Path</code> · read as @Model.Folder.Username</p>
+    </div>
+</header>
+
+@if (Model.Error is not null)
+{
+    <p class="error">@Model.Error</p>
+    <p class="hint-text">The account and the folder are changed from the <a href="@Url.Page("/Shares/Index")">list</a> (Edit).</p>
+}
+else if (listing is not null)
+{
+    <nav class="crumbs" aria-label="Where you are">
+        <a href="@Link(null)">@Model.Folder.Name</a>
+        @foreach (var crumb in listing.Breadcrumb)
+        {
+            <span aria-hidden="true">/</span>
+            <a href="@Link(crumb.Relative)">@crumb.Name</a>
+        }
+    </nav>
+
+    <form method="get" class="files-tools" action="@Url.Page("/Shares/Browse", new { id = Model.Folder.Id })">
+        <input type="hidden" name="path" value="@listing.Relative" />
+        @if (Model.Sort != "name") { <input type="hidden" name="sort" value="@Model.Sort" /> }
+        @if (Model.Descending) { <input type="hidden" name="dir" value="desc" /> }
+        <input type="search" name="q" value="@Model.Query" placeholder="Filter by name…" aria-label="Filter by name" autocomplete="off" />
+        <button type="submit" class="ghost">Filter</button>
+        @if (Model.Query.Length > 0)
+        {
+            <a class="button ghost" href="@Link(listing.Relative, null, null, 1).Replace("q=" + Uri.EscapeDataString(Model.Query), "").TrimEnd('&', '?')">Clear</a>
+        }
+        <span class="count">
+            @listing.Total @(listing.Total == 1 ? "entry" : "entries")@(listing.Capped ? " (the first " + ShareBrowser.MaxEntries + "; filter to narrow)" : "")
+        </span>
+    </form>
+
+    @if (listing.Total == 0)
+    {
+        <p class="empty">@(Model.Query.Length > 0 ? "Nothing matches the filter." : "This folder is empty.")</p>
+    }
+    else
+    {
+        <section class="group files-group">
+            <table class="files-table">
+                <thead>
+                    <tr>
+                        <th><a href="@SortLink("name")">Name@(Arrow("name"))</a></th>
+                        <th class="num"><a href="@SortLink("size")">Size@(Arrow("size"))</a></th>
+                        <th><a href="@SortLink("date")">Modified@(Arrow("date"))</a></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in listing.Entries)
+                    {
+                        <tr>
+                            <td>
+                                @if (e.IsDirectory)
+                                {
+                                    <a class="file-folder" href="@Link(e.Relative)">@e.Name</a>
+                                }
+                                else
+                                {
+                                    <a href="@Url.Page("/Shares/Browse", "Download", new { id = Model.Folder.Id, path = e.Relative })"
+                                       title="Download">@e.Name</a>
+                                }
+                            </td>
+                            <td class="num">@(e.IsDirectory ? "—" : HumanSize(e.Size))</td>
+                            <td>@e.Modified.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td class="num">
+                                @if (!e.IsDirectory)
+                                {
+                                    <a class="button ghost small-link"
+                                       href="@Url.Page("/Shares/Browse", "Download", new { id = Model.Folder.Id, path = e.Relative })">Download</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+
+        @if (listing.Pages > 1)
+        {
+            <nav class="pager" aria-label="Pages">
+                @if (listing.Page > 1) { <a class="button ghost" href="@Link(listing.Relative, null, null, listing.Page - 1)">← Previous</a> }
+                <span>Page @listing.Page of @listing.Pages</span>
+                @if (listing.Page < listing.Pages) { <a class="button ghost" href="@Link(listing.Relative, null, null, listing.Page + 1)">Next →</a> }
+            </nav>
+        }
+    }
+}

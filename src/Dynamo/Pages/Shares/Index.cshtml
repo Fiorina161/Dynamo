@@ -1,0 +1,19 @@
+@page "/Shares"
+@model Dynamo.Pages.Shares.IndexModel
+@{
+    ViewData["Title"] = "Shared folders";
+}
+
+<header class="page-head">
+    <div class="greeting">
+        <h1>Shared folders</h1>
+        <p>Network folders to list and download files from. Each one is read with the account saved with it.</p>
+    </div>
+    <div class="actions">
+        <button type="button"
+                hx-get="@Url.Page("/Shares/Index", "Form")"
+                hx-target="#dlg">New shared folder</button>
+    </div>
+</header>
+
+<partial name="_List" model="Model.Folders" />

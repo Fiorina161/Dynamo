@@ -53,7 +53,7 @@ public class LayoutTests
             // Each menu entry has its own little icon, drawn inline (no icon site: Dynamo works offline).
             var menuHtml = await client.GetStringAsync("/Bookmarks");
             var icons = System.Text.RegularExpressions.Regex.Matches(menuHtml, "<svg class=\"ico\" viewBox=\"0 0 24 24\" aria-hidden=\"true\">");
-            Assert.That(icons, Has.Count.EqualTo(4), "Bookmarks, Connections, Workspaces, Settings");
+            Assert.That(icons, Has.Count.EqualTo(5), "Bookmarks, Connections, Shared folders, Workspaces, Settings");
             Assert.That(menuHtml, Does.Not.Contain("cdn.").And.Not.Contain("fontawesome"));
             // (A module without a page, such as the leftover tables of the removed Queries section, has no entry.)
             foreach (var module in factory.Services.GetServices<Dynamo.Core.IModule>().Where(m => m.Href.Length > 0))

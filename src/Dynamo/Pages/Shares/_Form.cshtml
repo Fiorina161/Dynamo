@@ -1,0 +1,49 @@
+@model Dynamo.Pages.Shares.ShareFormModel
+@{
+    var f = Model.Folder;
+    string Handler(string name, object? values = null) => Url.Page("/Shares/Index", name, values)!;
+}
+<form hx-post="@Handler("Save")" hx-target="#shares" hx-swap="outerHTML">
+    <h2>@(f.Id == 0 ? "New shared folder" : "Edit shared folder")</h2>
+    <input type="hidden" name="id" value="@f.Id" />
+
+    <label>Name
+        <input name="name" value="@f.Name" autocomplete="off" autofocus placeholder="Trace archives" />
+    </label>
+    <label>Folder
+        <input name="path" value="@f.Path" autocomplete="off" spellcheck="false"
+               placeholder="\\10.10.10.7\ftp\emgs\trace_archives" />
+    </label>
+    <label>User
+        <input name="username" value="@f.Username" autocomplete="off" spellcheck="false"
+               placeholder="user  or  DOMAIN\user" />
+    </label>
+    <label>Password
+        <input name="password" type="password" autocomplete="new-password"
+               placeholder="@(f.Id == 0 || f.PasswordUnreadable ? "" : "unchanged")" />
+    </label>
+    <p class="hint-text">
+        Dynamo reads the folder from the computer where it runs, with this account, and only ever reads (it lists and
+        downloads, it never writes). The password is stored encrypted.
+    </p>
+
+    @if (Model.Error is not null)
+    {
+        <p class="error">@Model.Error</p>
+    }
+
+    <footer>
+        @if (f.Id != 0)
+        {
+            <button type="button" class="ghost danger"
+                    hx-post="@Handler("Delete", new { id = f.Id })"
+                    hx-confirm="Delete the shared folder “@f.Name”? Nothing on the share is touched.">Delete</button>
+        }
+        <button type="button" class="ghost"
+                title="Connect with these values (saved or not) and read the folder"
+                hx-post="@Handler("TestForm")" hx-include="closest form" hx-swap="none">Test</button>
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit">Save</button>
+    </footer>
+</form>

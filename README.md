@@ -22,6 +22,12 @@ web interface and stored in a local Sqlite database; it works fully offline.
   used for the title bar of its panels so production never looks like test.
 - A **health page**: every connection's state, login time and Oracle version.
 
+**Shared folders**
+- List and **download** the files of a network folder (`\\server\share\folder`),
+  read with an account you save with it (the password is stored encrypted).
+- Browse sub-folders, filter by name, sort by name, size or date, page through
+  long folders; downloads can be resumed. Read only: it never writes or deletes.
+
 **Workspaces**
 - A workspace shows several saved queries as panels, each refreshing on its own;
   bind variables are shared across panels.

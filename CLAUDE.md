@@ -136,6 +136,39 @@ Then `git checkout master && git pull`, and delete the branch.
   ignored on purpose. **Rehearsed on a copy of the real database** (4 connections: all
   converted, each decrypts to the same SHA-256 as before, both certificate keys read
   back; the real database was not touched). Tests: `SecretsTests` (14).
+- **Shared folders (done, 26 Nov 2026; the owner's request: "list and download files
+  in a shared folder, ask for user and password and save them"; first candidate
+  `\\10.10.10.7\ftp\emgs\trace_archives`, which is the example in the dialog).**
+  `Modules/Shares`, pages `/Shares` (list + dialog) and `/Shares/{id}` (browse; handler
+  `Download`), menu "Shared folders" (order 25). Table `shared_folder` (name, path,
+  username, password); **the password is protected like the Oracle ones** (`Secrets`,
+  `Reveal` / `PasswordUnreadable` in `SharedFolderRepository`, same "enter it again"
+  behaviour). **Network paths only (`SharePath.Parse`): `\\server\share[\folder]`, a user
+  and a password are required.** This is a security decision: Dynamo can run as LocalSystem
+  and anyone logged in can add a folder, so a local path (`C:\`) would let a remote user
+  download anything LocalSystem can read (including `dynamo.db`); with an explicit
+  account the reach is what that account can read over the network. Never relax it. `Resolve`
+  makes every path from the address bar safe (no `..`, no `.`/`...`, no drive, no `:` so no
+  stream names, no wildcard; a leading `\` is read as relative, so it stays inside; the result
+  must start with the root). **Login:** `ShareConnector` (`IShareConnector`, faked in tests)
+  = `WNetAddConnection2` to `\\server\share` with the saved account, no drive letter, before
+  each listing or download (this is how a LocalSystem service reads a share); on error 1219
+  (one account per server per process) it drops the connections it made to that server and
+  retries; any other Windows error becomes a message (`Describe`). `ShareBrowser`
+  (`IShareBrowser`): `ListAsync` (folders first, then name/size/date, filter, pages of 200,
+  at most 50,000 entries read, breadcrumb), `OpenAsync` (`FileShare.ReadWrite | Delete` so
+  a trace still being written can be read, range requests on), `TestAsync` (the dialog's Test:
+  connect + count). Read only by construction (no write, delete or rename code exists).
+  Downloads are logged with the client address. A non-UNC path skips the login (only the
+  tests use that: they register local temp folders directly in the repository, because the
+  dialog refuses them). Tests: `SharedFolderTests` (60: path parsing and traversal, listing,
+  sort, filter, paging, open, login with the fake connector, the dialog's validation, the
+  encrypted password, pages, real HTTP range download). A smoke test calls the real
+  `WNetAddConnection2` against a share that does not exist, to prove the Windows call works.
+  **Not verified: a real network share** (no account to one was available): the login with real
+  credentials, listing and downloading from a real `\\server\share`, and the LocalSystem
+  service reading it. Try it once with the real folder. Verified in a real Edge on a local demo
+  folder (list, browse, sort, paging, dialog; download, range and traversal over real HTTP).
 - Fonts (24 Nov 2026, owner's choice after trying Saira Semi Condensed, then
   Iosevka + Michroma, which "did not look good on my screen"): **plain system
   fonts, no font files**: `--font: sans-serif` for the text, `--font-title:
