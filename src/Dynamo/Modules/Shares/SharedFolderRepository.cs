@@ -26,8 +26,19 @@ public sealed class SharedFolder
     public bool PasswordUnreadable { get; set; }
 }
 
+/// <summary>One substring of a folder's filter list; ticked (active) ones narrow the file list.</summary>
+public sealed class SharedFolderFilter
+{
+    public long Id { get; set; }
+    public long FolderId { get; set; }
+    public string Text { get; set; } = "";
+    public bool Active { get; set; }
+}
+
 public sealed class SharedFolderRepository(Db db)
 {
+    public const int MaxFilterLength = 100;
+
     private const string Columns = "id, name, path, username, password";
 
     private static SharedFolder? Reveal(SharedFolder? f)
@@ -83,6 +94,73 @@ public sealed class SharedFolderRepository(Db db)
     {
         using var conn = db.Open();
         conn.Execute("DELETE FROM shared_folder WHERE id = @id", new { id });
+    }
+
+    // ---- The substring filters of a folder ---------------------------------------------------------------
+
+    public List<SharedFolderFilter> GetFilters(long folderId)
+    {
+        using var conn = db.Open();
+        return conn.Query<SharedFolderFilter>("""
+            SELECT id, folder_id AS FolderId, text, active
+              FROM shared_folder_filter WHERE folder_id = @folderId ORDER BY position, id
+            """, new { folderId }).ToList();
+    }
+
+    public SharedFolderFilter? GetFilter(long id)
+    {
+        using var conn = db.Open();
+        return conn.QuerySingleOrDefault<SharedFolderFilter>(
+            "SELECT id, folder_id AS FolderId, text, active FROM shared_folder_filter WHERE id = @id", new { id });
+    }
+
+    /// <summary>Why this text cannot be a filter of the folder (empty, too long, already there), or null.</summary>
+    public string? FilterProblem(long folderId, string text, long exceptId)
+    {
+        if (text.Length == 0) return "Type a substring.";
+        if (text.Length > MaxFilterLength) return $"The substring is too long (max {MaxFilterLength}).";
+        // Case and accents do not matter when filtering, so "été" and "ETE" are the same substring.
+        var folded = TextMatch.Fold(text);
+        var same = GetFilters(folderId).FirstOrDefault(f => f.Id != exceptId && TextMatch.Fold(f.Text) == folded);
+        return same is null ? null : $"“{same.Text}” is already in the list (case and accents do not matter).";
+    }
+
+    /// <summary>Adds (id 0) or changes a filter, keeping its place and its tick; returns its id.</summary>
+    public long SaveFilter(long folderId, long id, string text)
+    {
+        using var conn = db.Open();
+        if (id != 0)
+        {
+            conn.Execute("UPDATE shared_folder_filter SET text = @text WHERE id = @id AND folder_id = @folderId",
+                new { id, folderId, text });
+            return id;
+        }
+        return conn.ExecuteScalar<long>("""
+            INSERT INTO shared_folder_filter (folder_id, text, position)
+            VALUES (@folderId, @text,
+                    (SELECT COALESCE(MAX(position), 0) + 1 FROM shared_folder_filter WHERE folder_id = @folderId));
+            SELECT last_insert_rowid();
+            """, new { folderId, text });
+    }
+
+    public void DeleteFilter(long id)
+    {
+        using var conn = db.Open();
+        conn.Execute("DELETE FROM shared_folder_filter WHERE id = @id", new { id });
+    }
+
+    public void SetFilterActive(long id, bool active)
+    {
+        using var conn = db.Open();
+        conn.Execute("UPDATE shared_folder_filter SET active = @active WHERE id = @id",
+            new { id, active = active ? 1 : 0 });
+    }
+
+    /// <summary>Unticks every filter of the folder (the whole list shows again).</summary>
+    public void ClearActiveFilters(long folderId)
+    {
+        using var conn = db.Open();
+        conn.Execute("UPDATE shared_folder_filter SET active = 0 WHERE folder_id = @folderId", new { folderId });
     }
 
     /// <summary>True if another folder already has this name.</summary>

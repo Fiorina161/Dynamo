@@ -1,0 +1,33 @@
+@* Adds a substring to a folder's filter list, or changes or deletes one. *@
+@model Dynamo.Pages.Shares.FilterFormModel
+@{
+    var f = Model.Filter;
+}
+<form hx-post="@Url.Page("/Shares/Browse", "SaveFilter", new { id = Model.Folder.Id, filter = f.Id })" hx-swap="none">
+    <h2>@(f.Id == 0 ? "Add a substring" : "Change the substring")</h2>
+    <p class="hint-text">
+        When some substrings are ticked, the list shows only the files whose name contains one of them. Case and
+        accents do not matter (é, è and E all match e). Folders always show.
+    </p>
+    <label>Substring
+        <input name="text" value="@f.Text" autocomplete="off" spellcheck="false" autofocus
+               maxlength="@Dynamo.Modules.Shares.SharedFolderRepository.MaxFilterLength" placeholder="e.g. _PROD_" />
+    </label>
+
+    @if (Model.Error is not null)
+    {
+        <p class="error">@Model.Error</p>
+    }
+
+    <footer>
+        @if (f.Id != 0)
+        {
+            <button type="button" class="ghost danger"
+                    hx-post="@Url.Page("/Shares/Browse", "DeleteFilter", new { id = Model.Folder.Id, filter = f.Id })"
+                    hx-swap="none" hx-confirm="Remove “@f.Text” from the list?">Remove</button>
+        }
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit">Save</button>
+    </footer>
+</form>

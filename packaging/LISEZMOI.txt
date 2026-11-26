@@ -153,7 +153,7 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
 3.2b Shared folders (dossiers partagés)
 
   Pour lister et TÉLÉCHARGER les fichiers d'un dossier partagé d'un autre
-  ordinateur (par exemple \\10.10.10.7\ftp\emgs\trace_archives).
+  ordinateur (par exemple \\fileserver\share\traces).
 
   - « New shared folder » demande :
       Name ............ un nom unique (par exemple « Trace archives »)
@@ -171,6 +171,15 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     nom, taille ou date (cliquez l'en-tête; cliquez de nouveau pour inverser),
     et parcourir les longs dossiers page par page (200 éléments par page). Le
     fil d'Ariane au-dessus du tableau permet de remonter.
+  - Sous-chaînes (« Substrings », au-dessus du tableau) : une liste de textes
+    propre à chaque dossier, que vous ajoutez (« + Add »), modifiez (le crayon
+    ✎ d'une pastille) ou retirez. Cochez-en une ou plusieurs : seuls les fichiers
+    dont le nom contient l'une des sous-chaînes cochées sont listés. Rien de
+    coché : tous les fichiers. Les majuscules et les accents ne comptent pas
+    (é, è et E correspondent tous à e). Les dossiers sont toujours affichés, pour
+    pouvoir les parcourir. Les cases cochées sont conservées (« Untick all » les
+    décoche toutes). La zone « Filter by name » ignore aussi majuscules et
+    accents, et se combine avec les sous-chaînes cochées.
   - « Download » (ou le nom du fichier) télécharge le fichier par le
     navigateur; un téléchargement interrompu peut reprendre. Dynamo ne fait que
     LIRE : il n'écrit, ne supprime et ne renomme rien sur le partage.

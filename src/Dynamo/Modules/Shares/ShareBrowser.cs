@@ -3,6 +3,42 @@ using System.Runtime.InteropServices;
 
 namespace Dynamo.Modules.Shares;
 
+/// <summary>
+/// How names are compared when filtering: case and accents do not matter, so <c>é</c>, <c>è</c>, <c>E</c> and <c>e</c>
+/// all match <c>e</c>. Each text is decomposed (<c>é</c> becomes <c>e</c> and an accent mark), the marks are dropped and
+/// the case is folded; it does not depend on the computer's culture. Letters that do not decompose (<c>œ</c>, <c>ø</c>)
+/// stay as they are.
+/// </summary>
+public static class TextMatch
+{
+    /// <summary>The text without accents, in lower case.</summary>
+    public static string Fold(string text)
+    {
+        if (text.Length == 0)
+            return text;
+        string decomposed;
+        try
+        {
+            decomposed = text.Normalize(System.Text.NormalizationForm.FormD);
+        }
+        catch (ArgumentException)
+        {
+            decomposed = text;                                  // a broken surrogate in a file name: compare it as it is
+        }
+        var folded = new System.Text.StringBuilder(decomposed.Length);
+        foreach (var c in decomposed)
+        {
+            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+                folded.Append(char.ToLowerInvariant(c));
+        }
+        return folded.ToString();
+    }
+
+    /// <summary>True if <paramref name="foldedNeedle"/> (already folded) is in the text, ignoring case and accents.</summary>
+    public static bool Contains(string text, string foldedNeedle) =>
+        Fold(text).Contains(foldedNeedle, StringComparison.Ordinal);
+}
+
 /// <summary>A refusal or failure the user can act on (wrong password, folder not found, no access...).</summary>
 public sealed class ShareException(string message) : Exception(message);
 
@@ -163,8 +199,13 @@ public sealed record ShareDownload(Stream Stream, string Name, long Length);
 /// <summary>Lists and downloads from a shared folder; an interface so the pages can be tested without a network.</summary>
 public interface IShareBrowser
 {
+    /// <param name="anyOf">
+    /// The ticked substrings: when there are some, a file is listed only if its name contains one of them (any,
+    /// case and accents ignored); folders are always listed, so the tree can still be walked. Empty or null: no such filter.
+    /// </param>
     Task<ShareListing> ListAsync(
-        SharedFolder folder, string? relative, string? filter, string? sort, bool descending, int page, CancellationToken ct);
+        SharedFolder folder, string? relative, string? filter, string? sort, bool descending, int page,
+        CancellationToken ct = default, IReadOnlyList<string>? anyOf = null);
 
     Task<ShareDownload> OpenAsync(SharedFolder folder, string? relative, CancellationToken ct);
 
@@ -209,21 +250,30 @@ public sealed class ShareBrowser(IShareConnector connector) : IShareBrowser
     };
 
     public Task<ShareListing> ListAsync(
-        SharedFolder folder, string? relative, string? filter, string? sort, bool descending, int page, CancellationToken ct) =>
+        SharedFolder folder, string? relative, string? filter, string? sort, bool descending, int page,
+        CancellationToken ct = default, IReadOnlyList<string>? anyOf = null) =>
         Task.Run(() =>
         {
             Connect(folder);
             var full = FolderOf(folder, relative, out var clean);
             var entries = new List<ShareEntry>();
             var capped = false;
+            var substrings = (anyOf ?? []).Where(s => s.Length > 0).Select(TextMatch.Fold).ToList();
+            var wantedFolded = TextMatch.Fold((filter ?? "").Trim());
             try
             {
                 var wanted = (filter ?? "").Trim();
                 foreach (var info in new DirectoryInfo(full).EnumerateFileSystemInfos())
                 {
                     ct.ThrowIfCancellationRequested();
-                    if (wanted.Length > 0 && info.Name.IndexOf(wanted, StringComparison.OrdinalIgnoreCase) < 0)
+                    if (wanted.Length > 0 && !TextMatch.Contains(info.Name, wantedFolded))
                         continue;
+                    if (substrings.Count > 0 && info is not DirectoryInfo)
+                    {
+                        var name = TextMatch.Fold(info.Name);
+                        if (!substrings.Any(s => name.Contains(s, StringComparison.Ordinal)))
+                            continue;
+                    }
                     if (entries.Count >= MaxEntries)
                     {
                         capped = true;

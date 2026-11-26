@@ -138,7 +138,8 @@ Then `git checkout master && git pull`, and delete the branch.
   back; the real database was not touched). Tests: `SecretsTests` (14).
 - **Shared folders (done, 26 Nov 2026; the owner's request: "list and download files
   in a shared folder, ask for user and password and save them"; first candidate
-  `\\10.10.10.7\ftp\emgs\trace_archives`, which is the example in the dialog).**
+  was a folder of an internal ftp server; the dialog's hints are generic ("e.g. ...") on purpose:
+  a grey hint that looked like a value made the owner save an empty Folder field, 26 Nov 2026).**
   `Modules/Shares`, pages `/Shares` (list + dialog) and `/Shares/{id}` (browse; handler
   `Download`), menu "Shared folders" (order 25). Table `shared_folder` (name, path,
   username, password); **the password is protected like the Oracle ones** (`Secrets`,
@@ -169,6 +170,24 @@ Then `git checkout master && git pull`, and delete the branch.
   credentials, listing and downloading from a real `\\server\share`, and the LocalSystem
   service reading it. Try it once with the real folder. Verified in a real Edge on a local demo
   folder (list, browse, sort, paging, dialog; download, range and traversal over real HTTP).
+- **Substring filters of a shared folder (done, 26 Nov 2026, owner's request).** Table
+  `shared_folder_filter` (module migration 2: folder_id with `ON DELETE CASCADE`, text,
+  `active` = ticked, position); `SharedFolderRepository.GetFilters / SaveFilter /
+  DeleteFilter / SetFilterActive / ClearActiveFilters / FilterProblem`. **The tick is
+  stored in the database (per folder, shared by every browser)**, so every link (sort,
+  page, sub-folder) keeps the filter without carrying it in the address. **Semantics:**
+  nothing ticked = every file; otherwise a *file* is listed when its name contains **any**
+  ticked substring (OR); **folders are never filtered by the substrings** (the tree must
+  stay walkable) but the name filter box (`q`) still applies to everything, and the two
+  combine with AND. **Case and accents never matter (owner's request: é, è and e match e):**
+  `TextMatch.Fold` (FormD, drop NonSpacingMark, lower case; independent of the culture; `œ`
+  and `ø` do not decompose and stay) is used for the substrings, for the name box, and for
+  the duplicate check ("été" and "ETE" are the same substring). UI: the "Substrings" box
+  above the file table (chips with a checkbox that posts `ToggleFilter` and a ✎ that opens
+  `_FilterForm`; "+ Add"; "Untick all"); every change answers `HX-Refresh`, so the page
+  reloads on the same address. Handlers check that a filter belongs to the folder in the
+  address (404 otherwise). `ListAsync` got the optional trailing parameter `anyOf` (after
+  the cancellation token) to keep the existing callers. Tests are in `SharedFolderTests`.
 - Fonts (24 Nov 2026, owner's choice after trying Saira Semi Condensed, then
   Iosevka + Michroma, which "did not look good on my screen"): **plain system
   fonts, no font files**: `--font: sans-serif` for the text, `--font-title:

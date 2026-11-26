@@ -793,6 +793,15 @@ body.panel-resizing, body.panel-resizing * { cursor: ns-resize !important; user-
 .files-table tbody tr:hover { background: var(--hover); }
 .file-folder::before { content: "▸ "; color: var(--muted); }
 a.button.small-link { padding: 1px 9px; font-size: 12px; color: var(--muted); }
+.name-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
+.name-filters-title { color: var(--muted); font: 400 11px var(--font-title); text-transform: uppercase; letter-spacing: .04em; }
+.name-filters-hint { margin: 0; }
+.chip { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.chip.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+.chip label { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; cursor: pointer; font-size: 13px; }
+.chip input[type="checkbox"] { width: auto; margin: 0; }
+button.chip-edit { background: transparent; color: var(--muted); border: none; padding: 2px 8px 2px 4px; font-size: 12px; }
+button.chip-edit:hover { color: var(--fg); background: transparent; opacity: 1; }
 .pager { display: flex; align-items: center; gap: 14px; margin: 14px 0; }
 /* The connection health page. */
 .health-table { width: 100%; border-collapse: collapse; font-size: 14px; }

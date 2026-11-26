@@ -28,5 +28,15 @@ public sealed class SharesModule : IModule
             username TEXT NOT NULL DEFAULT '',
             password TEXT NOT NULL DEFAULT '');
         """,
+        // The substrings of a folder's filter list: the ticked ones (active) narrow the file list.
+        """
+        CREATE TABLE shared_folder_filter (
+            id        INTEGER PRIMARY KEY,
+            folder_id INTEGER NOT NULL REFERENCES shared_folder(id) ON DELETE CASCADE,
+            text      TEXT NOT NULL,
+            active    INTEGER NOT NULL DEFAULT 0,
+            position  INTEGER NOT NULL);
+        CREATE INDEX ix_shared_folder_filter ON shared_folder_filter(folder_id, position);
+        """,
     ];
 }

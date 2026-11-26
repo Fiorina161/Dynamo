@@ -26,7 +26,10 @@ web interface and stored in a local Sqlite database; it works fully offline.
 - List and **download** the files of a network folder (`\\server\share\folder`),
   read with an account you save with it (the password is stored encrypted).
 - Browse sub-folders, filter by name, sort by name, size or date, page through
-  long folders; downloads can be resumed. Read only: it never writes or deletes.
+  long folders; downloads can be resumed.
+- A saved list of **substrings** per folder (add, change, remove): tick some and
+  only the files whose name contains one of them are listed; tick none and you see
+  everything. Case and accents do not matter (`é`, `è` and `E` all match `e`). Read only: it never writes or deletes.
 
 **Workspaces**
 - A workspace shows several saved queries as panels, each refreshing on its own;

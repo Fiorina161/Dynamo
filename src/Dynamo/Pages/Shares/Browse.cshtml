@@ -55,18 +55,50 @@ else if (listing is not null)
         }
     </nav>
 
+    @* The folder's substrings: tick some and only the files whose name contains one of them are listed. *@
+    <section class="name-filters" aria-label="Substrings to keep">
+        <span class="name-filters-title">Substrings</span>
+        @foreach (var sub in Model.Filters)
+        {
+            <span class="chip@(sub.Active ? " on" : "")">
+                <label>
+                    <input type="checkbox" name="active" value="true" checked="@sub.Active"
+                           hx-post="@Url.Page("/Shares/Browse", "ToggleFilter", new { id = Model.Folder.Id, filter = sub.Id })"
+                           hx-trigger="change" hx-swap="none" />
+                    @sub.Text
+                </label>
+                <button type="button" class="chip-edit" title="Change or remove “@sub.Text”" aria-label="Change @sub.Text"
+                        hx-get="@Url.Page("/Shares/Browse", "FilterForm", new { id = Model.Folder.Id, filter = sub.Id })"
+                        hx-target="#dlg" hx-swap="innerHTML">✎</button>
+            </span>
+        }
+        <button type="button" class="ghost small"
+                hx-get="@Url.Page("/Shares/Browse", "FilterForm", new { id = Model.Folder.Id, filter = 0 })"
+                hx-target="#dlg" hx-swap="innerHTML">+ Add</button>
+        @if (Model.Filters.Any(x => x.Active))
+        {
+            <button type="button" class="ghost small"
+                    title="Untick every substring: all the files show"
+                    hx-post="@Url.Page("/Shares/Browse", "ClearFilters", new { id = Model.Folder.Id })" hx-swap="none">Untick all</button>
+        }
+        @if (Model.Filters.Count == 0)
+        {
+            <span class="hint-text name-filters-hint">Add substrings to keep only some of the files (nothing ticked: all the files).</span>
+        }
+    </section>
+
     <form method="get" class="files-tools" action="@Url.Page("/Shares/Browse", new { id = Model.Folder.Id })">
         <input type="hidden" name="path" value="@listing.Relative" />
         @if (Model.Sort != "name") { <input type="hidden" name="sort" value="@Model.Sort" /> }
         @if (Model.Descending) { <input type="hidden" name="dir" value="desc" /> }
-        <input type="search" name="q" value="@Model.Query" placeholder="Filter by name…" aria-label="Filter by name" autocomplete="off" />
+        <input type="search" name="q" value="@Model.Query" placeholder="Filter by name…" title="Case and accents do not matter" aria-label="Filter by name" autocomplete="off" />
         <button type="submit" class="ghost">Filter</button>
         @if (Model.Query.Length > 0)
         {
             <a class="button ghost" href="@Link(listing.Relative, null, null, 1).Replace("q=" + Uri.EscapeDataString(Model.Query), "").TrimEnd('&', '?')">Clear</a>
         }
         <span class="count">
-            @listing.Total @(listing.Total == 1 ? "entry" : "entries")@(listing.Capped ? " (the first " + ShareBrowser.MaxEntries + "; filter to narrow)" : "")
+            @listing.Total @(listing.Total == 1 ? "entry" : "entries")@(Model.Filters.Any(x => x.Active) ? " (files filtered by the ticked substrings)" : "")@(listing.Capped ? " (the first " + ShareBrowser.MaxEntries + "; filter to narrow)" : "")
         </span>
     </form>
 

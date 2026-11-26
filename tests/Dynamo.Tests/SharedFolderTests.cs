@@ -100,7 +100,7 @@ public class SharedFolderTests
 
     // ---- What a folder path may be -------------------------------------------------------------------------
 
-    [TestCase(@"\\10.10.10.7\ftp\emgs\trace_archives", @"\\10.10.10.7\ftp\emgs\trace_archives")]
+    [TestCase(@"\\fileserver\share\traces", @"\\fileserver\share\traces")]
     [TestCase(@"//host/share/", @"\\host\share")]
     [TestCase(@"  \\host\share\sub folder\  ", @"\\host\share\sub folder")]
     [TestCase(@"\\fileserver.corp.example\data$", @"\\fileserver.corp.example\data$")]
@@ -144,7 +144,7 @@ public class SharedFolderTests
     [Test]
     public void TheShareRoot_IsServerAndShare()
     {
-        Assert.That(SharePath.ShareRoot(@"\\10.10.10.7\ftp\emgs\trace_archives"), Is.EqualTo(@"\\10.10.10.7\ftp"));
+        Assert.That(SharePath.ShareRoot(@"\\fileserver\share\traces"), Is.EqualTo(@"\\fileserver\share"));
         Assert.That(SharePath.ShareRoot(@"\\host\share"), Is.EqualTo(@"\\host\share"));
     }
 
@@ -368,7 +368,8 @@ public class SharedFolderTests
         var html = await _client.GetStringAsync("/Shares?handler=Form");
 
         Assert.That(html, Does.Contain("name=\"name\"").And.Contain("name=\"path\"").And.Contain("name=\"username\"").And.Contain("name=\"password\""));
-        Assert.That(html, Does.Contain(@"\\10.10.10.7\ftp\emgs\trace_archives"), "the example is the first candidate");
+        Assert.That(html, Does.Contain(@"placeholder=""e.g. \\fileserver\share\traces"""), "the example is a hint, clearly worded as one, not a value");
+        Assert.That(html, Does.Not.Match(@"name=""path"" value=""[^""]"), "and the field itself starts empty");
         Assert.That(html, Does.Contain("type=\"password\""));
     }
 
@@ -376,11 +377,11 @@ public class SharedFolderTests
     public async Task ASavedFolder_KeepsItsAccount_WithThePasswordEncrypted_AndNeverShownAgain()
     {
         var answer = await Post("/Shares?handler=Save", ("id", "0"), ("name", "Trace archives"),
-            ("path", @"\\10.10.10.7\ftp\emgs\trace_archives"), ("username", @"CORP\alain"), ("password", "s3cret-pw"));
+            ("path", @"\\fileserver\share\traces"), ("username", @"CORP\alain"), ("password", "s3cret-pw"));
         var html = await answer.Content.ReadAsStringAsync();
 
         var saved = Repo.GetAll().Single(f => f.Name == "Trace archives");
-        Assert.That(saved.Path, Is.EqualTo(@"\\10.10.10.7\ftp\emgs\trace_archives"));
+        Assert.That(saved.Path, Is.EqualTo(@"\\fileserver\share\traces"));
         Assert.That(saved.Username, Is.EqualTo(@"CORP\alain"));
         Assert.That(saved.Password, Is.EqualTo("s3cret-pw"), "what the connection is made with");
         Assert.That(html, Does.Contain("Trace archives").And.Not.Contain("s3cret-pw"));
@@ -564,6 +565,239 @@ public class SharedFolderTests
         Assert.That(page, Does.Contain("Could not connect to").And.Contain("network path was not found"));
         Assert.That(page, Does.Contain("Edit"));
         Assert.That(page, Does.Not.Contain("class=\"files-table\""));
+    }
+
+
+    // ---- The substring filters ---------------------------------------------------------------------------
+
+    private static string Names(ShareListing listing) => string.Join(",", listing.Entries.Select(e => e.Name));
+
+    [Test]
+    public async Task TheTickedSubstrings_KeepOnlyTheFilesContainingAnyOfThem_FoldersAlwaysStay()
+    {
+        var (folder, dir) = Local("anyof");
+        Directory.CreateDirectory(Path.Combine(dir, "sub"));
+        File(dir, "trace_PROD_01.zip", 1);
+        File(dir, "trace_TEST_01.zip", 1);
+        File(dir, "TRACE_prod_02.zip", 1);
+        File(dir, "report.txt", 1);
+        File(dir, "error.log", 1);
+
+        async Task<string> List(string? q, params string[] anyOf) =>
+            Names(await Browser.ListAsync(folder, null, q, null, false, 1, default, anyOf));
+
+        Assert.That(await List(null), Is.EqualTo("sub,error.log,report.txt,trace_PROD_01.zip,TRACE_prod_02.zip,trace_TEST_01.zip"), "none ticked: everything");
+        Assert.That(await List(null, "_prod_"), Is.EqualTo("sub,trace_PROD_01.zip,TRACE_prod_02.zip"), "one substring, case ignored, the folder stays");
+        Assert.That(await List(null, "_PROD_", ".log"), Is.EqualTo("sub,error.log,trace_PROD_01.zip,TRACE_prod_02.zip"), "any of the ticked ones");
+        Assert.That(await List(null, "nothing-like-this"), Is.EqualTo("sub"), "no file matches: only the folder is left");
+        Assert.That(await List("01", "_PROD_", "_TEST_"), Is.EqualTo("trace_PROD_01.zip,trace_TEST_01.zip"), "together with the name filter box: both must hold");
+        Assert.That(await List(null, ""), Is.EqualTo("sub,error.log,report.txt,trace_PROD_01.zip,TRACE_prod_02.zip,trace_TEST_01.zip"), "an empty substring filters nothing");
+    }
+
+    [Test]
+    public void TheFilterListOfAFolder_IsAddedChangedAndRemoved_WithoutDuplicatesOrBlanks()
+    {
+        var (folder, _) = Local("filter-repo");
+        var other = Local("filter-repo-other").Folder;
+
+        var a = Repo.SaveFilter(folder.Id, 0, "_PROD_");
+        var b = Repo.SaveFilter(folder.Id, 0, ".zip");
+        var c = Repo.SaveFilter(other.Id, 0, "elsewhere");
+
+        Assert.That(Repo.GetFilters(folder.Id).Select(x => x.Text), Is.EqualTo(new[] { "_PROD_", ".zip" }), "in the order they were added");
+        Assert.That(Repo.GetFilters(other.Id).Select(x => x.Text), Is.EqualTo(new[] { "elsewhere" }), "each folder has its own list");
+
+        Repo.SetFilterActive(a, true);
+        Repo.SaveFilter(folder.Id, a, "_LIVE_");
+        var changed = Repo.GetFilter(a)!;
+        Assert.That((changed.Text, changed.Active), Is.EqualTo(("_LIVE_", true)), "changing the text keeps the tick and the place");
+        Assert.That(Repo.GetFilters(folder.Id).First().Id, Is.EqualTo(a));
+
+        Assert.That(Repo.FilterProblem(folder.Id, "", 0), Does.Contain("Type a substring"));
+        Assert.That(Repo.FilterProblem(folder.Id, new string('x', 101), 0), Does.Contain("too long"));
+        Assert.That(Repo.FilterProblem(folder.Id, ".ZIP", 0), Does.Contain("already in the list"), "case does not make it another one");
+        Assert.That(Repo.FilterProblem(folder.Id, ".zip", b), Is.Null, "a filter is not a duplicate of itself");
+        Assert.That(Repo.FilterProblem(other.Id, ".zip", 0), Is.Null, "another folder may have the same");
+
+        Repo.ClearActiveFilters(folder.Id);
+        Assert.That(Repo.GetFilters(folder.Id).Any(x => x.Active), Is.False);
+        Repo.DeleteFilter(b);
+        Assert.That(Repo.GetFilters(folder.Id).Select(x => x.Text), Is.EqualTo(new[] { "_LIVE_" }));
+        Assert.That(Repo.GetFilter(c), Is.Not.Null, "another folder's list is untouched");
+    }
+
+    [Test]
+    public void DeletingAFolder_DeletesItsFilterList()
+    {
+        var (folder, _) = Local("filter-cascade");
+        var id = Repo.SaveFilter(folder.Id, 0, "x");
+
+        Repo.Delete(folder.Id);
+
+        Assert.That(Repo.GetFilter(id), Is.Null);
+    }
+
+
+    [Test]
+    public async Task TheSubstrings_IgnoreCaseAndAccents_SoEAcuteEGraveAndEAllMatchE()
+    {
+        var (folder, dir) = Local("accents");
+        File(dir, "résumé_été.txt", 1);
+        File(dir, "RESUME_ETE.log", 1);
+        File(dir, "Resumè-ÉTÉ.csv", 1);
+        File(dir, "other.txt", 1);
+        File(dir, "çà et là.txt", 1);
+        File(dir, "œuvre.txt", 1);
+
+        async Task<string> List(string? q, params string[] anyOf) =>
+            Names(await Browser.ListAsync(folder, null, q, "name", false, 1, default, anyOf));
+
+        Assert.That(await List(null, "ete"), Is.EqualTo("RESUME_ETE.log,Resumè-ÉTÉ.csv,résumé_été.txt"), "plain letters find the accented names");
+        Assert.That(await List(null, "été"), Is.EqualTo("RESUME_ETE.log,Resumè-ÉTÉ.csv,résumé_été.txt"), "accented letters find the plain ones");
+        Assert.That(await List(null, "ÉTÈ"), Is.EqualTo("RESUME_ETE.log,Resumè-ÉTÉ.csv,résumé_été.txt"), "any accent, any case");
+        Assert.That(await List(null, "resume"), Is.EqualTo("RESUME_ETE.log,Resumè-ÉTÉ.csv,résumé_été.txt"));
+        Assert.That(await List(null, "ca et la"), Is.EqualTo("çà et là.txt"), "ç and à too");
+        Assert.That(await List(null, "e"), Does.Contain("résumé_été.txt").And.Contain("other.txt"), "e matches é and è wherever they are");
+        Assert.That(await List(null, "oeuvre"), Is.EqualTo(""), "a ligature is not decomposed: œ stays œ");
+        Assert.That(await List(null, "œuvre"), Is.EqualTo("œuvre.txt"));
+        Assert.That(await List("ETE"), Is.EqualTo("RESUME_ETE.log,Resumè-ÉTÉ.csv,résumé_été.txt"), "the name filter box behaves the same");
+    }
+
+    [Test]
+    public void TextMatch_FoldsAccentsAndCase_AndSurvivesStrangeText()
+    {
+        Assert.That(TextMatch.Fold("Été à Çà œ ÅØ"), Is.EqualTo("ete a ca œ aø"));
+        Assert.That(TextMatch.Fold(""), Is.EqualTo(""));
+        Assert.That(TextMatch.Fold("plain.txt"), Is.EqualTo("plain.txt"));
+        Assert.That(TextMatch.Contains("Café.txt", TextMatch.Fold("CAFE")), Is.True);
+        Assert.That(() => TextMatch.Fold("broken \ud800 surrogate"), Throws.Nothing);
+    }
+
+    [Test]
+    public void ASubstringThatDiffersOnlyByAccentsOrCase_IsTheSameSubstring()
+    {
+        var (folder, _) = Local("filter-accent-dup");
+        var id = Repo.SaveFilter(folder.Id, 0, "été");
+
+        Assert.That(Repo.FilterProblem(folder.Id, "ETE", 0), Does.Contain("already in the list"));
+        Assert.That(Repo.FilterProblem(folder.Id, "ete", 0), Does.Contain("already in the list"));
+        Assert.That(Repo.FilterProblem(folder.Id, "ÉTÉ", id), Is.Null, "changing it to another spelling of itself is allowed");
+        Assert.That(Repo.FilterProblem(folder.Id, "automne", 0), Is.Null);
+    }
+
+    private async Task<string> Page(long folderId, string query = "") =>
+        await _client.GetStringAsync($"/Shares/{folderId}{query}");
+
+    [Test]
+    public async Task TheBox_ShowsTheSubstrings_AndTickingThemNarrowsTheListOfFiles()
+    {
+        var (folder, dir) = Local("filter-page");
+        Directory.CreateDirectory(Path.Combine(dir, "archive"));
+        File(dir, "a_PROD_1.zip", 1);
+        File(dir, "b_TEST_1.zip", 1);
+        File(dir, "c_DEV_1.zip", 1);
+        var prod = Repo.SaveFilter(folder.Id, 0, "_PROD_");
+        var test = Repo.SaveFilter(folder.Id, 0, "_TEST_");
+
+        var plain = await Page(folder.Id);
+        Assert.That(plain, Does.Contain("Substrings").And.Contain("_PROD_").And.Contain("_TEST_").And.Contain("+ Add"));
+        Assert.That(plain, Does.Contain("a_PROD_1.zip").And.Contain("b_TEST_1.zip").And.Contain("c_DEV_1.zip"), "nothing ticked: all the files");
+        Assert.That(plain, Does.Not.Contain("Untick all").And.Not.Contain("filtered by the ticked"));
+
+        var ticked = await Post($"/Shares/{folder.Id}?handler=ToggleFilter&filter={prod}", ("active", "true"));
+        Assert.That(ticked.Headers.GetValues("HX-Refresh").Single(), Is.EqualTo("true"));
+
+        var one = await Page(folder.Id);
+        Assert.That(one, Does.Contain("a_PROD_1.zip").And.Not.Contain("b_TEST_1.zip").And.Not.Contain("c_DEV_1.zip"));
+        Assert.That(one, Does.Contain("archive"), "folders stay so the tree can be walked");
+        Assert.That(one, Does.Match("class=\"chip on\"").And.Contain("Untick all").And.Contain("filtered by the ticked substrings"));
+        Assert.That(one, Does.Match($"name=\"active\" value=\"true\" checked"));
+
+        await Post($"/Shares/{folder.Id}?handler=ToggleFilter&filter={test}", ("active", "true"));
+        var two = await Page(folder.Id);
+        Assert.That(two, Does.Contain("a_PROD_1.zip").And.Contain("b_TEST_1.zip").And.Not.Contain("c_DEV_1.zip"), "any of the ticked ones");
+
+        // Unticking: the checkbox sends nothing when it is off.
+        await Post($"/Shares/{folder.Id}?handler=ToggleFilter&filter={prod}");
+        Assert.That(await Page(folder.Id), Does.Not.Contain("a_PROD_1.zip").And.Contain("b_TEST_1.zip"));
+
+        var cleared = await Post($"/Shares/{folder.Id}?handler=ClearFilters");
+        Assert.That(cleared.Headers.GetValues("HX-Refresh").Single(), Is.EqualTo("true"));
+        Assert.That(await Page(folder.Id), Does.Contain("a_PROD_1.zip").And.Contain("c_DEV_1.zip"), "nothing ticked: all the files again");
+    }
+
+    [Test]
+    public async Task TheTicks_StayWhenTheSortThePageOrTheSubFolderChange()
+    {
+        var (folder, dir) = Local("filter-sticky");
+        Directory.CreateDirectory(Path.Combine(dir, "sub"));
+        File(dir, "keep_1.log", 5);
+        File(dir, "drop_1.log", 9);
+        File(Path.Combine(dir, "sub"), "keep_2.log", 1);
+        File(Path.Combine(dir, "sub"), "drop_2.log", 1);
+        var id = Repo.SaveFilter(folder.Id, 0, "keep");
+        Repo.SetFilterActive(id, true);
+
+        Assert.That(await Page(folder.Id, "?sort=size&dir=desc"), Does.Contain("keep_1.log").And.Not.Contain("drop_1.log"));
+        var inside = await Page(folder.Id, "?path=sub");
+        Assert.That(inside, Does.Contain("keep_2.log").And.Not.Contain("drop_2.log"), "the same filter applies inside a sub-folder");
+    }
+
+    [Test]
+    public async Task AddingAChangingAndRemovingASubstring_GoThroughTheDialog_AndReloadThePage()
+    {
+        var (folder, _) = Local("filter-dialog");
+
+        var dialog = await _client.GetStringAsync($"/Shares/{folder.Id}?handler=FilterForm&filter=0");
+        Assert.That(dialog, Does.Contain("Add a substring").And.Contain("name=\"text\"").And.Not.Contain("Remove"));
+
+        var added = await Post($"/Shares/{folder.Id}?handler=SaveFilter&filter=0", ("text", "  _PROD_  "));
+        Assert.That(added.Headers.GetValues("HX-Refresh").Single(), Is.EqualTo("true"));
+        var id = Repo.GetFilters(folder.Id).Single().Id;
+        Assert.That(Repo.GetFilter(id)!.Text, Is.EqualTo("_PROD_"), "trimmed");
+
+        var edit = await _client.GetStringAsync($"/Shares/{folder.Id}?handler=FilterForm&filter={id}");
+        Assert.That(edit, Does.Contain("Change the substring").And.Contain("value=\"_PROD_\"").And.Contain("Remove"));
+
+        await Post($"/Shares/{folder.Id}?handler=SaveFilter&filter={id}", ("text", "_LIVE_"));
+        Assert.That(Repo.GetFilters(folder.Id).Single().Text, Is.EqualTo("_LIVE_"));
+
+        var removed = await Post($"/Shares/{folder.Id}?handler=DeleteFilter&filter={id}");
+        Assert.That(removed.Headers.GetValues("HX-Refresh").Single(), Is.EqualTo("true"));
+        Assert.That(Repo.GetFilters(folder.Id), Is.Empty);
+        Assert.That(await Page(folder.Id), Does.Contain("Add substrings to keep only some of the files"));
+    }
+
+    [Test]
+    public async Task TheDialog_RefusesABlankOrDuplicateSubstring_AndShowsWhy()
+    {
+        var (folder, _) = Local("filter-invalid");
+        Repo.SaveFilter(folder.Id, 0, "keep");
+
+        var blank = await Post($"/Shares/{folder.Id}?handler=SaveFilter&filter=0", ("text", "   "));
+        Assert.That(await blank.Content.ReadAsStringAsync(), Does.Contain("Type a substring"));
+        Assert.That(blank.Headers.GetValues("HX-Retarget").Single(), Is.EqualTo("#dlg"));
+
+        var duplicate = await Post($"/Shares/{folder.Id}?handler=SaveFilter&filter=0", ("text", "KEEP"));
+        Assert.That(await duplicate.Content.ReadAsStringAsync(), Does.Contain("already in the list"));
+        Assert.That(Repo.GetFilters(folder.Id), Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task AFilterOfAnotherFolder_OrOneThatDoesNotExist_CannotBeTouched()
+    {
+        var (mine, _) = Local("filter-mine");
+        var (theirs, _) = Local("filter-theirs");
+        var foreign = Repo.SaveFilter(theirs.Id, 0, "secret");
+
+        foreach (var handler in new[] { "ToggleFilter", "DeleteFilter" })
+            Assert.That((await Post($"/Shares/{mine.Id}?handler={handler}&filter={foreign}")).StatusCode, Is.EqualTo(HttpStatusCode.NotFound), handler);
+        Assert.That((await Post($"/Shares/{mine.Id}?handler=SaveFilter&filter={foreign}", ("text", "hijack"))).StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        Assert.That((await _client.GetAsync($"/Shares/{mine.Id}?handler=FilterForm&filter={foreign}")).StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        Assert.That((await Post($"/Shares/{mine.Id}?handler=DeleteFilter&filter=999999")).StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        Assert.That((await Post("/Shares/999999?handler=ClearFilters")).StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        Assert.That(Repo.GetFilter(foreign)!.Text, Is.EqualTo("secret"));
+        Assert.That(Repo.GetFilter(foreign)!.Active, Is.False);
     }
 
     [Test]
