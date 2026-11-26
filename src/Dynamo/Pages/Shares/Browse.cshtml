@@ -46,12 +46,35 @@
 }
 else if (listing is not null)
 {
+    // One level up: the folder before the last one of the breadcrumb, or the top of the shared folder.
+    string? parent = listing.Breadcrumb.Count == 0 ? null
+        : listing.Breadcrumb.Count == 1 ? "" : listing.Breadcrumb[^2].Relative;
+    @* Where you are, and the way back: the Up button, the breadcrumb (each part is a link), and the ".." row of the list. *@
     <nav class="crumbs" aria-label="Where you are">
-        <a href="@Link(null)">@Model.Folder.Name</a>
-        @foreach (var crumb in listing.Breadcrumb)
+        @if (parent is not null)
         {
-            <span aria-hidden="true">/</span>
-            <a href="@Link(crumb.Relative)">@crumb.Name</a>
+            <a class="button ghost up-btn" href="@Link(parent)" title="Back to the folder above">↑ Up</a>
+        }
+        @if (listing.Breadcrumb.Count == 0)
+        {
+            <strong class="crumb-current">@Model.Folder.Name</strong>
+        }
+        else
+        {
+            <a class="crumb" href="@Link(null)">@Model.Folder.Name</a>
+            @for (var i = 0; i < listing.Breadcrumb.Count; i++)
+            {
+                var crumb = listing.Breadcrumb[i];
+                <span class="crumb-sep" aria-hidden="true">›</span>
+                @if (i == listing.Breadcrumb.Count - 1)
+                {
+                    <strong class="crumb-current">@crumb.Name</strong>
+                }
+                else
+                {
+                    <a class="crumb" href="@Link(crumb.Relative)">@crumb.Name</a>
+                }
+            }
         }
     </nav>
 
@@ -119,9 +142,18 @@ else if (listing is not null)
                     </tr>
                 </thead>
                 <tbody>
+                    @if (parent is not null && listing.Page == 1)
+                    {
+                        <tr class="folder-row up-row">
+                            <td><a class="file-folder" href="@Link(parent)" title="Back to the folder above">.. <span class="up-hint">up one level</span></a></td>
+                            <td class="num">—</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    }
                     @foreach (var e in listing.Entries)
                     {
-                        <tr>
+                        <tr class="@(e.IsDirectory ? "folder-row" : null)">
                             <td>
                                 @if (e.IsDirectory)
                                 {

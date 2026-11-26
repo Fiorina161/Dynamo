@@ -171,6 +171,10 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     nom, taille ou date (cliquez l'en-tête; cliquez de nouveau pour inverser),
     et parcourir les longs dossiers page par page (200 éléments par page). Le
     fil d'Ariane au-dessus du tableau permet de remonter.
+  - Les dossiers sont teintés (fond coloré, barre sur le côté, nom en gras) pour
+    se distinguer des fichiers. Dans un sous-dossier, trois façons de remonter :
+    le bouton « ↑ Up », la ligne « .. up one level » en haut de la liste, et le
+    fil d'Ariane dont chaque partie est un lien (le dossier courant est en gras).
   - Sous-chaînes (« Substrings », au-dessus du tableau) : une liste de textes
     propre à chaque dossier, que vous ajoutez (« + Add »), modifiez (le crayon
     ✎ d'une pastille) ou retirez. Cochez-en une ou plusieurs : seuls les fichiers

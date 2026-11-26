@@ -777,8 +777,11 @@ body.panel-resizing, body.panel-resizing * { cursor: ns-resize !important; user-
 .cell-viewer pre.plan-text { white-space: pre-wrap; word-break: break-word; }
 /* Shared folders: the list of folders, and the files of one. */
 .share-list .item .title { display: block; }
-.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 14px; font-size: 14px; }
-.crumbs span { color: var(--muted); }
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 15px; }
+.crumb-sep { color: var(--muted); }
+.crumb { font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.crumb-current { color: var(--fg); }
+a.button.up-btn { padding: 3px 12px; font-weight: 600; }
 .files-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
 .files-tools input[type="search"] { width: 260px; max-width: 100%; }
 .files-group { padding: 0; max-width: 1100px; }
@@ -791,7 +794,15 @@ body.panel-resizing, body.panel-resizing * { cursor: ns-resize !important; user-
 .files-table td:nth-child(3) { white-space: nowrap; }
 .files-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .files-table tbody tr:hover { background: var(--hover); }
-.file-folder::before { content: "▸ "; color: var(--muted); }
+/* Folders stand out from files: a tint of the accent colour, a bar on the left, a bolder name. */
+.files-table tr.folder-row { background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.files-table tr.folder-row:hover { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
+.files-table tr.folder-row td { border-bottom-color: color-mix(in srgb, var(--accent) 22%, var(--line)); }
+.files-table tr.folder-row td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.file-folder { font-weight: 600; color: var(--fg); }
+.file-folder::before { content: "▸ "; color: var(--accent); }
+.up-row .file-folder::before { content: "↑ "; }
+.up-hint { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 6px; }
 a.button.small-link { padding: 1px 9px; font-size: 12px; color: var(--muted); }
 .name-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
 .name-filters-title { color: var(--muted); font: 400 11px var(--font-title); text-transform: uppercase; letter-spacing: .04em; }

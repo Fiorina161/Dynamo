@@ -12,7 +12,7 @@ public sealed class SharesModule : IModule
     public string Id => "shares";
     public string Title => "Shared folders";
     public string Href => "/Shares";
-    public int Order => 25;
+    public int Order => 36;
 
     // A folder.
     public string Icon =>

@@ -25,7 +25,8 @@ web interface and stored in a local Sqlite database; it works fully offline.
 **Shared folders**
 - List and **download** the files of a network folder (`\\server\share\folder`),
   read with an account you save with it (the password is stored encrypted).
-- Browse sub-folders, filter by name, sort by name, size or date, page through
+- Browse sub-folders (folders are tinted, and there is always a way back: an Up
+  button, a `..` row and a clickable breadcrumb), filter by name, sort by name, size or date, page through
   long folders; downloads can be resumed.
 - A saved list of **substrings** per folder (add, change, remove): tick some and
   only the files whose name contains one of them are listed; tick none and you see

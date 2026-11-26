@@ -498,6 +498,59 @@ public class SharedFolderTests
         Assert.That(inside, Does.Not.Contain("trace one.zip"));
     }
 
+
+    [Test]
+    public async Task Folders_AreMarkedApartFromFiles_InTheTable()
+    {
+        var (folder, dir) = Local("folder-rows");
+        Directory.CreateDirectory(Path.Combine(dir, "archive"));
+        File(dir, "plain.txt", 1);
+
+        var page = await Page(folder.Id);
+
+        Assert.That(Regex.Matches(page, "<tr class=\"folder-row\">").Count, Is.EqualTo(1), "one row for the one folder");
+        Assert.That(page, Does.Match("<tr class=\"folder-row\">\\s*<td>\\s*<a class=\"file-folder\"[^>]*>archive</a>"));
+        Assert.That(page, Does.Not.Match("<tr class=\"folder-row\">\\s*<td>\\s*<a[^>]*>plain.txt"));
+    }
+
+    [Test]
+    public async Task AtTheTopOfAFolder_ThereIsNoWayUp_InsideThereAreThreeWaysBack()
+    {
+        var (folder, dir) = Local("going-back");
+        Directory.CreateDirectory(Path.Combine(dir, "2026", "11"));
+        File(Path.Combine(dir, "2026", "11"), "deep.log", 1);
+
+        var top = await Page(folder.Id);
+        Assert.That(top, Does.Not.Contain("up-btn").And.Not.Contain("up-row"), "nothing above the top");
+        Assert.That(top, Does.Contain("class=\"crumb-current\""));
+
+        var level1 = await Page(folder.Id, "?path=2026");
+        Assert.That(level1, Does.Match($"class=\"button ghost up-btn\" href=\"/Shares/{folder.Id}\" "), "Up goes to the top of the share");
+        Assert.That(level1, Does.Match($"class=\"file-folder\" href=\"/Shares/{folder.Id}\""), "so does the .. row");
+        Assert.That(level1, Does.Contain("up one level"));
+        Assert.That(level1, Does.Match($"class=\"crumb\" href=\"/Shares/{folder.Id}\""), "and the breadcrumb");
+        Assert.That(level1, Does.Contain("<strong class=\"crumb-current\">2026</strong>"), "where you are is not a link");
+
+        var level2 = await Page(folder.Id, @"?path=2026%5C11");
+        Assert.That(level2, Does.Match($"up-btn\" href=\"/Shares/{folder.Id}\\?path=2026\""), "Up from the second level goes to the first");
+        Assert.That(level2, Does.Match($"class=\"file-folder\" href=\"/Shares/{folder.Id}\\?path=2026\""));
+        Assert.That(level2, Does.Match($"class=\"crumb\" href=\"/Shares/{folder.Id}\\?path=2026\">2026</a>"));
+        Assert.That(level2, Does.Contain("<strong class=\"crumb-current\">11</strong>").And.Contain("deep.log"));
+    }
+
+    [Test]
+    public async Task TheUpRow_IsOnlyOnTheFirstPageOfALongFolder()
+    {
+        var (folder, dir) = Local("up-paging");
+        Directory.CreateDirectory(Path.Combine(dir, "sub"));
+        for (var i = 0; i < 230; i++) File(Path.Combine(dir, "sub"), $"f{i:D3}.txt", 1);
+
+        Assert.That(await Page(folder.Id, "?path=sub"), Does.Contain("up-row"));
+        var second = await Page(folder.Id, "?path=sub&p=2");
+        Assert.That(second, Does.Not.Contain("up-row"), "not repeated on the next pages");
+        Assert.That(second, Does.Contain("up-btn"), "but the Up button is always there");
+    }
+
     [Test]
     public async Task TheFolderPage_Filters_Sorts_AndPages()
     {
@@ -798,6 +851,21 @@ public class SharedFolderTests
         Assert.That((await Post("/Shares/999999?handler=ClearFilters")).StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
         Assert.That(Repo.GetFilter(foreign)!.Text, Is.EqualTo("secret"));
         Assert.That(Repo.GetFilter(foreign)!.Active, Is.False);
+    }
+
+    [Test]
+    public async Task TheMenuListsSharedFoldersAfterWorkspaces_AndBeforeSettings()
+    {
+        var html = await _client.GetStringAsync("/Shares");
+
+        var workspaces = html.IndexOf("href=\"/Workplaces\"", StringComparison.Ordinal);
+        var shares = html.IndexOf("href=\"/Shares\"", StringComparison.Ordinal);
+        var settings = html.IndexOf("href=\"/Settings\"", StringComparison.Ordinal);
+
+        Assert.That(workspaces, Is.GreaterThan(0));
+        Assert.That(shares, Is.GreaterThan(workspaces), "Shared folders come after Workspaces");
+        Assert.That(settings, Is.GreaterThan(shares), "and Settings stays last");
+        Assert.That(html.IndexOf("href=\"/Oracle\"", StringComparison.Ordinal), Is.LessThan(workspaces), "Connections stay before Workspaces");
     }
 
     [Test]

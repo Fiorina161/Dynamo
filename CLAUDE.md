@@ -141,7 +141,7 @@ Then `git checkout master && git pull`, and delete the branch.
   was a folder of an internal ftp server; the dialog's hints are generic ("e.g. ...") on purpose:
   a grey hint that looked like a value made the owner save an empty Folder field, 26 Nov 2026).**
   `Modules/Shares`, pages `/Shares` (list + dialog) and `/Shares/{id}` (browse; handler
-  `Download`), menu "Shared folders" (order 25). Table `shared_folder` (name, path,
+  `Download`), menu "Shared folders" (order 36: after Workspaces, 26 Nov 2026, owner's request). Table `shared_folder` (name, path,
   username, password); **the password is protected like the Oracle ones** (`Secrets`,
   `Reveal` / `PasswordUnreadable` in `SharedFolderRepository`, same "enter it again"
   behaviour). **Network paths only (`SharePath.Parse`): `\\server\share[\folder]`, a user
@@ -170,6 +170,15 @@ Then `git checkout master && git pull`, and delete the branch.
   credentials, listing and downloading from a real `\\server\share`, and the LocalSystem
   service reading it. Try it once with the real folder. Verified in a real Edge on a local demo
   folder (list, browse, sort, paging, dialog; download, range and traversal over real HTTP).
+- **Shared folders, navigation (26 Nov 2026, owner's request: "folders should be
+  visually distinct" and "when I drill into a folder I don't know how to go back").**
+  Folder rows are `tr.folder-row` (a tint of the accent, a bar on the left, a bold name,
+  a `▸` in the accent colour). Three ways up, shown only below the top: the **↑ Up**
+  button (`.up-btn`) and the `..` row (`.up-row`, first page only) both go to the parent
+  (`listing.Breadcrumb[^2]`, or the top of the share), and the breadcrumb, whose parts are
+  underlined links with the current folder in bold and not a link. At the top of the
+  share there is no Up. The Up link keeps the name filter and the sort, like every other
+  link of the page.
 - **Substring filters of a shared folder (done, 26 Nov 2026, owner's request).** Table
   `shared_folder_filter` (module migration 2: folder_id with `ON DELETE CASCADE`, text,
   `active` = ticked, position); `SharedFolderRepository.GetFilters / SaveFilter /
