@@ -1878,6 +1878,175 @@
         });
     })();
 
+    // ---- Uploading files to a shared folder --------------------------------------------------------------
+    // On the page of a folder that allows it: the "Upload files" button (or files dropped anywhere on the page) sends
+    // each file, one after the other, as the raw body of a POST (so a big one streams from the disk, no form encoding)
+    // with its name in the address; a bar shows the progress of each. A name that already exists is only replaced
+    // after asking. Folders cannot be dropped (files only). When the queue is done the page reloads to list what
+    // arrived; Cancel stops the current file (the server throws the part away) and forgets the rest.
+    (function () {
+        var box = document.querySelector('[data-upload-url]');
+        if (!box) return;
+        var input = box.querySelector('input[type="file"]');
+        var list = box.querySelector('.upload-list');
+        var cancelButton = box.querySelector('[data-upload-cancel]');
+        var queue = [], busy = false, done = 0, current = null, over = 0;
+
+        // The note left by the page that just reloaded after an upload.
+        try {
+            var note = sessionStorage.getItem('uploadNote');
+            if (note) {
+                sessionStorage.removeItem('uploadNote');
+                document.body.dispatchEvent(new CustomEvent('toast', { detail: { value: note } }));
+            }
+        } catch (err) { }
+
+        function human(n) {
+            var units = ['B', 'KB', 'MB', 'GB', 'TB'], i = 0, v = n;
+            while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+            return (i === 0 ? String(n) : v.toFixed(v >= 100 ? 0 : v >= 10 ? 1 : 2)) + ' ' + units[i];
+        }
+
+        function addRow(name, size) {
+            var li = document.createElement('li');
+            var label = document.createElement('span');
+            label.className = 'upload-name';
+            label.textContent = name + (size ? ' (' + human(size) + ')' : '');
+            var bar = document.createElement('progress');
+            bar.max = 1;
+            bar.value = 0;
+            var status = document.createElement('span');
+            status.className = 'upload-status';
+            status.textContent = 'waiting';
+            li.appendChild(label);
+            li.appendChild(bar);
+            li.appendChild(status);
+            list.appendChild(li);
+            return { li: li, bar: bar, status: status };
+        }
+
+        function token() {
+            try { return JSON.parse(document.body.getAttribute('hx-headers')).RequestVerificationToken; } catch (err) { return ''; }
+        }
+
+        function setBusy(on) {
+            busy = on;
+            if (cancelButton) cancelButton.hidden = !on;
+        }
+
+        function finish() {
+            setBusy(false);
+            if (done === 0) return;
+            try { sessionStorage.setItem('uploadNote', 'Uploaded ' + done + (done === 1 ? ' file.' : ' files.')); } catch (err) { }
+            setTimeout(function () { location.reload(); }, 600);
+        }
+
+        function next() {
+            current = null;
+            var item = queue.shift();
+            if (!item) { finish(); return; }
+            send(item, false);
+        }
+
+        function send(item, overwrite) {
+            setBusy(true);
+            item.row.status.textContent = overwrite ? 'replacing…' : 'uploading…';
+            item.row.status.className = 'upload-status';
+            var xhr = new XMLHttpRequest();
+            current = xhr;
+            xhr.open('POST', box.dataset.uploadUrl + '&name=' + encodeURIComponent(item.file.name) + (overwrite ? '&overwrite=1' : ''));
+            xhr.setRequestHeader('RequestVerificationToken', token());
+            xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+            xhr.upload.onprogress = function (e) {
+                if (e.lengthComputable && e.total > 0) {
+                    item.row.bar.value = e.loaded / e.total;
+                    item.row.status.textContent = Math.round(e.loaded / e.total * 100) + '%';
+                }
+            };
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    done++;
+                    item.row.bar.value = 1;
+                    item.row.status.textContent = 'done';
+                    item.row.status.className = 'upload-status ok';
+                } else if (xhr.status === 409 && !overwrite) {
+                    if (window.confirm('“' + item.file.name + '” already exists in this folder. Replace it?')) { send(item, true); return; }
+                    item.row.status.textContent = 'skipped (already there)';
+                } else {
+                    item.row.status.textContent = xhr.responseText || ('failed (' + xhr.status + ')');
+                    item.row.status.className = 'upload-status bad';
+                }
+                next();
+            };
+            xhr.onerror = function () {
+                item.row.status.textContent = 'the connection was lost';
+                item.row.status.className = 'upload-status bad';
+                next();
+            };
+            xhr.onabort = function () {
+                item.row.status.textContent = 'cancelled';
+                item.row.status.className = 'upload-status bad';
+            };
+            xhr.send(item.file);
+        }
+
+        function enqueue(files, skipped) {
+            (skipped || []).forEach(function (name) {
+                var row = addRow(name, 0);
+                row.status.textContent = 'a folder: only files can be uploaded';
+                row.status.className = 'upload-status bad';
+            });
+            Array.prototype.forEach.call(files, function (file) {
+                queue.push({ file: file, row: addRow(file.name, file.size) });
+            });
+            if (!busy) next();
+        }
+
+        if (input) input.addEventListener('change', function () {
+            enqueue(input.files);
+            input.value = '';
+        });
+
+        if (cancelButton) cancelButton.addEventListener('click', function () {
+            queue.forEach(function (item) { item.row.status.textContent = 'cancelled'; item.row.status.className = 'upload-status bad'; });
+            queue = [];
+            if (current) current.abort();
+            setBusy(false);
+        });
+
+        // Files dropped anywhere on the page.
+        function hasFiles(e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') >= 0; }
+        document.addEventListener('dragenter', function (e) {
+            if (!hasFiles(e)) return;
+            over++;
+            document.body.classList.add('upload-over');
+        });
+        document.addEventListener('dragover', function (e) { if (hasFiles(e)) e.preventDefault(); });
+        document.addEventListener('dragleave', function (e) {
+            if (!hasFiles(e)) return;
+            over = Math.max(0, over - 1);
+            if (over === 0) document.body.classList.remove('upload-over');
+        });
+        document.addEventListener('drop', function (e) {
+            if (!hasFiles(e)) return;
+            e.preventDefault();
+            over = 0;
+            document.body.classList.remove('upload-over');
+            var files = [], folders = [];
+            var items = e.dataTransfer.items;
+            if (items && items.length && items[0].webkitGetAsEntry) {
+                for (var i = 0; i < items.length; i++) {
+                    var entry = items[i].kind === 'file' ? items[i].webkitGetAsEntry() : null;
+                    if (entry && entry.isDirectory) folders.push(entry.name);
+                    else if (items[i].kind === 'file' && items[i].getAsFile()) files.push(items[i].getAsFile());
+                }
+            } else {
+                files = Array.prototype.slice.call(e.dataTransfer.files);
+            }
+            enqueue(files, folders);
+        });
+    })();
+
     // ---- Panel title colour = its connection's colour ------------------------------------------
     // The server draws it (class conn-<colour> on the panel); when the connection is changed in
     // the panel's settings the class follows at once. Each <option> carries data-color.

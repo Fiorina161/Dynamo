@@ -135,9 +135,9 @@ button.ghost:hover { background: var(--hover); opacity: 1; }
 button.danger { color: var(--danger); }
 button.small { padding: 1px 8px; font-size: 12px; color: var(--muted); }
 /* A link that looks like a button (the Health link of the Connections page). */
-a.button { display: inline-block; font: inherit; color: var(--bg); background: var(--fg); border: 1px solid var(--fg);
+a.button, label.button { display: inline-block; font: inherit; color: var(--bg); background: var(--fg); border: 1px solid var(--fg);
     border-radius: var(--radius); padding: 5px 12px; text-decoration: none; }
-a.button.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+a.button.ghost, label.button.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
 a.button.ghost:hover { background: var(--hover); }
 
 input, select {
@@ -813,6 +813,20 @@ a.button.small-link { padding: 1px 9px; font-size: 12px; color: var(--muted); }
 .chip input[type="checkbox"] { width: auto; margin: 0; }
 button.chip-edit { background: transparent; color: var(--muted); border: none; padding: 2px 8px 2px 4px; font-size: 12px; }
 button.chip-edit:hover { color: var(--fg); background: transparent; opacity: 1; }
+.upload-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 14px; }
+.upload-box .hint-text { margin: 0; }
+label.upload-pick { cursor: pointer; }
+.upload-list { flex: 1 1 100%; list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.upload-list:empty { display: none; }
+.upload-list li { display: grid; grid-template-columns: minmax(0, 2fr) minmax(80px, 1fr) minmax(0, 2fr); align-items: center; gap: 10px; padding: 3px 0; }
+.upload-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upload-list progress { width: 100%; height: 8px; }
+.upload-status { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upload-status.ok { color: #1f6b3a; }
+:root[data-theme="dark"] .upload-status.ok { color: #8fd6a3; }
+.upload-status.bad { color: var(--danger); white-space: normal; }
+/* Files being dragged over the page: the table shows where they would go. */
+body.upload-over .files-group { outline: 2px dashed var(--accent); outline-offset: 4px; }
 .pager { display: flex; align-items: center; gap: 14px; margin: 14px 0; }
 /* The connection health page. */
 .health-table { width: 100%; border-collapse: collapse; font-size: 14px; }

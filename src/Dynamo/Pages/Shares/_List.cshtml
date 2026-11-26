@@ -19,7 +19,7 @@
                                 <span class="todo">password cannot be read here: edit it and enter it again</span>
                                 <text> · </text>
                             }
-                            @f.Path · @f.Username
+                            @f.Path · @f.Username@(f.AllowUpload ? "" : " · read only")
                         </span>
                     </a>
                     <button type="button" class="ghost small row-btn"

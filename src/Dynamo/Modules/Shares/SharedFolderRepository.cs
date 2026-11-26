@@ -24,6 +24,9 @@ public sealed class SharedFolder
 
     /// <summary>The stored password cannot be decrypted on this computer: it must be entered again.</summary>
     public bool PasswordUnreadable { get; set; }
+
+    /// <summary>Files may be uploaded to this folder (the account must be allowed to write there too).</summary>
+    public bool AllowUpload { get; set; } = true;
 }
 
 /// <summary>One substring of a folder's filter list; ticked (active) ones narrow the file list.</summary>
@@ -39,7 +42,7 @@ public sealed class SharedFolderRepository(Db db)
 {
     public const int MaxFilterLength = 100;
 
-    private const string Columns = "id, name, path, username, password";
+    private const string Columns = "id, name, path, username, password, allow_upload AS AllowUpload";
 
     private static SharedFolder? Reveal(SharedFolder? f)
     {
@@ -72,20 +75,21 @@ public sealed class SharedFolderRepository(Db db)
     /// <summary>Inserts when Id is 0, otherwise updates. Returns the id.</summary>
     public long Save(SharedFolder f)
     {
-        var stored = new { f.Id, f.Name, f.Path, f.Username, Password = Secrets.Protect(f.Password) };
+        var stored = new { f.Id, f.Name, f.Path, f.Username, Password = Secrets.Protect(f.Password), f.AllowUpload };
         using var conn = db.Open();
         if (f.Id != 0)
         {
             conn.Execute("""
                 UPDATE shared_folder
-                   SET name = @Name, path = @Path, username = @Username, password = @Password
+                   SET name = @Name, path = @Path, username = @Username, password = @Password,
+                       allow_upload = @AllowUpload
                  WHERE id = @Id
                 """, stored);
             return f.Id;
         }
         return conn.ExecuteScalar<long>("""
-            INSERT INTO shared_folder (name, path, username, password)
-            VALUES (@Name, @Path, @Username, @Password);
+            INSERT INTO shared_folder (name, path, username, password, allow_upload)
+            VALUES (@Name, @Path, @Username, @Password, @AllowUpload);
             SELECT last_insert_rowid();
             """, stored);
     }

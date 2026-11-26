@@ -185,8 +185,20 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     décoche toutes). La zone « Filter by name » ignore aussi majuscules et
     accents, et se combine avec les sous-chaînes cochées.
   - « Download » (ou le nom du fichier) télécharge le fichier par le
-    navigateur; un téléchargement interrompu peut reprendre. Dynamo ne fait que
-    LIRE : il n'écrit, ne supprime et ne renomme rien sur le partage.
+    navigateur; un téléchargement interrompu peut reprendre.
+  - Téléverser (« Upload files… ») : le bouton au-dessus du tableau, ou des
+    fichiers déposés n'importe où sur la page, les envoie dans le dossier où vous
+    êtes (celui que vous parcourez, pas forcément la racine du partage). Une barre
+    de progression montre chaque fichier; les gros fichiers passent sans problème
+    (5 Go au maximum par fichier). Si un fichier du même nom existe déjà, Dynamo
+    demande avant de le remplacer. Un envoi interrompu ne laisse rien (le fichier
+    est écrit sous un nom provisoire, renommé seulement quand il est complet). Les
+    dossiers ne peuvent pas être déposés (fichiers seulement). Le compte
+    enregistré doit avoir le droit d'ÉCRIRE sur le partage. La case « Allow
+    uploading files to this folder » de la fenêtre du dossier (cochée par
+    défaut) permet de l'interdire pour un dossier (« read only » dans la
+    liste). Dynamo ne supprime et ne renomme jamais rien sur le partage; le seul
+    cas où un fichier existant change est un remplacement que vous avez accepté.
   - Dynamo lit le dossier depuis l'ordinateur où il s'exécute, avec le compte
     enregistré : ce compte doit pouvoir lire le partage depuis cet ordinateur.
     Windows n'accepte qu'un seul compte par serveur à la fois pour un

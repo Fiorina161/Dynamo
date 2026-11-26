@@ -49,6 +49,57 @@ public class BrowseModel(SharedFolderRepository repo, IShareBrowser browser, ILo
         return Page();
     }
 
+    // ---- Uploading ------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Saves a file into the folder you are in: the body of the request is the file itself (the page sends it as it is,
+    /// no form encoding, so a big file streams straight through and is never held in memory or in a temporary file),
+    /// its name is in <c>name</c>. An existing file is only replaced with <c>overwrite=1</c>. Answers 200 with a small
+    /// JSON, or an error status with the reason as text: 409 exists, 413 too large, 403 not allowed, 422 anything else.
+    /// </summary>
+    public async Task<IActionResult> OnPostUploadAsync(long id, string? path, string? name, string? overwrite, CancellationToken ct)
+    {
+        if (repo.Get(id) is not { } folder)
+            return NotFound();
+        // Kestrel stops a request body at 30 MB; a trace archive is bigger. For this request only, the limit is the
+        // one Dynamo enforces itself (plus a little for the request's own overhead), and the copy counts the bytes.
+        if (HttpContext.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit)
+            limit.MaxRequestBodySize = ShareBrowser.MaxUploadBytes + 1024 * 1024;
+        try
+        {
+            // "1" (what the page sends) or "true": a boolean binder only knows the second.
+            var replace = overwrite == "1" || string.Equals(overwrite, "true", StringComparison.OrdinalIgnoreCase);
+            var saved = await browser.UploadAsync(folder, path, name, Request.Body, replace, ct);
+            log.LogInformation("Upload of {File} ({Bytes} bytes{Replaced}) to the shared folder {Folder} by {Client}",
+                saved.Name, saved.Length, saved.Replaced ? ", replaced" : "", folder.Name, HttpContext.Connection.RemoteIpAddress);
+            return new JsonResult(new { ok = true, name = saved.Name, size = saved.Length, replaced = saved.Replaced });
+        }
+        catch (ShareUploadException ex)
+        {
+            return new ContentResult
+            {
+                Content = ex.Message,
+                ContentType = "text/plain; charset=utf-8",
+                StatusCode = ex.Problem switch
+                {
+                    UploadProblem.Exists => StatusCodes.Status409Conflict,
+                    UploadProblem.TooLarge => StatusCodes.Status413PayloadTooLarge,
+                    UploadProblem.NotAllowed => StatusCodes.Status403Forbidden,
+                    _ => StatusCodes.Status422UnprocessableEntity,
+                },
+            };
+        }
+        catch (ShareException ex)
+        {
+            return new ContentResult
+            {
+                Content = ex.Message,
+                ContentType = "text/plain; charset=utf-8",
+                StatusCode = StatusCodes.Status422UnprocessableEntity,
+            };
+        }
+    }
+
     // ---- The substring filters (the box above the files) ------------------------------------------------
 
     /// <summary>The dialog to add a substring (<c>filter</c> 0) or to change or delete one.</summary>

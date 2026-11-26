@@ -40,7 +40,7 @@ public static class TextMatch
 }
 
 /// <summary>A refusal or failure the user can act on (wrong password, folder not found, no access...).</summary>
-public sealed class ShareException(string message) : Exception(message);
+public class ShareException(string message) : Exception(message);
 
 /// <summary>
 /// What a network folder path may be, and how a path inside a folder is made safe. A folder is always a network
@@ -70,6 +70,29 @@ public static class SharePath
         if (parts[0] is "." or "?" || parts.Any(p => p.Trim('.', ' ').Length == 0))
             return (null, "That is not a network folder.");
         return (@"\\" + string.Join('\\', parts), null);
+    }
+
+    private static readonly string[] ReservedNames =
+        ["CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+         "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"];
+
+    /// <summary>Why this cannot be the name of an uploaded file (one name, no folders, nothing Windows refuses), or null.</summary>
+    public static string? CheckFileName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "The file has no name.";
+        if (name.Length > 255)
+            return "The file name is too long (max 255).";
+        if (name != name.Trim() || name.EndsWith('.'))
+            return "A file name cannot start or end with a space, or end with a dot.";
+        if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || name.Any(char.IsControl))
+            return "The file name has a character that Windows does not allow (\\ / : * ? \" < > |).";
+        var stem = name.Split('.')[0].TrimEnd();
+        if (ReservedNames.Contains(stem, StringComparer.OrdinalIgnoreCase))
+            return $"“{name}” is a name Windows reserves.";
+        if (name.EndsWith(".dynamo-upload", StringComparison.OrdinalIgnoreCase))
+            return "That name is used for files being uploaded.";
+        return null;
     }
 
     /// <summary>The <c>\\server\share</c> part, which is what a login is made to.</summary>
@@ -196,6 +219,18 @@ public sealed record ShareListing(
 /// <summary>A file opened to be sent to the browser.</summary>
 public sealed record ShareDownload(Stream Stream, string Name, long Length);
 
+/// <summary>What an upload did: the name it was saved under, its size, and whether it replaced a file.</summary>
+public sealed record ShareUpload(string Name, long Length, bool Replaced);
+
+/// <summary>An upload that cannot go ahead, with what the page should do about it.</summary>
+public enum UploadProblem { Other, Exists, TooLarge, NotAllowed }
+
+/// <summary>A refusal of an upload: <see cref="Problem"/> tells the page which status to answer.</summary>
+public sealed class ShareUploadException(UploadProblem problem, string message) : ShareException(message)
+{
+    public UploadProblem Problem { get; } = problem;
+}
+
 /// <summary>Lists and downloads from a shared folder; an interface so the pages can be tested without a network.</summary>
 public interface IShareBrowser
 {
@@ -211,16 +246,28 @@ public interface IShareBrowser
 
     /// <summary>Connects and reads the top of the folder; the message says what was found. Throws <see cref="ShareException"/>.</summary>
     Task<string> TestAsync(SharedFolder folder, CancellationToken ct);
+
+    /// <summary>
+    /// Saves <paramref name="content"/> as <paramref name="fileName"/> in the folder (inside the share's folder
+    /// <paramref name="relative"/>). Throws <see cref="ShareUploadException"/> when it cannot (not allowed, the file
+    /// exists and <paramref name="overwrite"/> is off, too large) and <see cref="ShareException"/> for anything else.
+    /// </summary>
+    Task<ShareUpload> UploadAsync(
+        SharedFolder folder, string? relative, string? fileName, Stream content, bool overwrite, CancellationToken ct);
 }
 
 /// <summary>
-/// Reads a network folder with the account saved with it. Read only: it lists, and opens a file for reading; it never
-/// writes, deletes or renames anything. The address bar's relative path is resolved with <see cref="SharePath.Resolve"/>,
+/// Reads a network folder with the account saved with it, and (when the folder allows it) saves uploaded files into it.
+/// That upload is the only thing that writes: nothing here deletes, renames or changes an existing file except by an
+/// explicit replace of the same name. The address bar's relative path is resolved with <see cref="SharePath.Resolve"/>,
 /// so nothing outside the folder can be reached.
 /// </summary>
-public sealed class ShareBrowser(IShareConnector connector) : IShareBrowser
+public sealed class ShareBrowser(IShareConnector connector, long maxUploadBytes = ShareBrowser.MaxUploadBytes) : IShareBrowser
 {
     public const int PageSize = 200;
+
+    /// <summary>The largest file an upload accepts (the share's own free space is the other limit).</summary>
+    public const long MaxUploadBytes = 5L * 1024 * 1024 * 1024;
 
     /// <summary>More entries than this in one folder are not listed (the page says so and the filter narrows it).</summary>
     public const int MaxEntries = 50_000;
@@ -241,9 +288,10 @@ public sealed class ShareBrowser(IShareConnector connector) : IShareBrowser
     private static string FolderOf(SharedFolder folder, string? relative, out string clean) =>
         SharePath.Resolve(folder.Path, relative, out clean) ?? throw new ShareException("That path is not inside the folder.");
 
-    private static ShareException Explain(Exception ex, string full) => ex switch
+    private static ShareException Explain(Exception ex, string full, bool writing = false) => ex switch
     {
-        UnauthorizedAccessException => new ShareException("Access denied: the saved account is not allowed to read that."),
+        UnauthorizedAccessException => new ShareException(
+            $"Access denied: the saved account is not allowed to {(writing ? "write there" : "read that")}."),
         DirectoryNotFoundException or FileNotFoundException => new ShareException("That does not exist (or is not shared): " + full),
         IOException io => new ShareException(io.Message.Split('\n', 2)[0].Trim()),
         _ => new ShareException(ex.Message.Split('\n', 2)[0].Trim()),
@@ -334,6 +382,58 @@ public sealed class ShareBrowser(IShareConnector connector) : IShareBrowser
             catch (Exception ex) when (ex is not ShareException)
             {
                 throw Explain(ex, full);
+            }
+        }, ct);
+
+    public Task<ShareUpload> UploadAsync(
+        SharedFolder folder, string? relative, string? fileName, Stream content, bool overwrite, CancellationToken ct) =>
+        Task.Run(async () =>
+        {
+            if (!folder.AllowUpload)
+                throw new ShareUploadException(UploadProblem.NotAllowed, "Uploads are not allowed to this folder: edit the folder to allow them.");
+            if (SharePath.CheckFileName(fileName) is { } nameProblem)
+                throw new ShareException(nameProblem);
+            Connect(folder);
+            var directory = FolderOf(folder, relative, out _);
+            if (!Directory.Exists(directory))
+                throw new ShareException("That folder does not exist (or is not shared): " + directory);
+
+            var target = Path.Combine(directory, fileName!);
+            var partial = target + "." + Guid.NewGuid().ToString("N")[..8] + ".dynamo-upload";
+            var replaced = false;
+            long written = 0;
+            try
+            {
+                if (File.Exists(target) && !overwrite)
+                    throw new ShareUploadException(UploadProblem.Exists, $"“{fileName}” already exists in this folder.");
+                // Written under a temporary name and renamed when complete: an aborted upload never leaves a partial
+                // file under the real name, and a replaced file is only replaced by a whole one.
+                await using (var output = new FileStream(partial, FileMode.CreateNew, FileAccess.Write, FileShare.None, 64 * 1024, useAsync: true))
+                {
+                    var buffer = new byte[64 * 1024];
+                    int read;
+                    while ((read = await content.ReadAsync(buffer, ct)) > 0)
+                    {
+                        written += read;
+                        if (written > maxUploadBytes)
+                            throw new ShareUploadException(UploadProblem.TooLarge,
+                                $"The file is larger than the {Math.Max(1, maxUploadBytes / (1024 * 1024 * 1024))} GB Dynamo accepts.");
+                        await output.WriteAsync(buffer.AsMemory(0, read), ct);
+                    }
+                }
+                replaced = File.Exists(target);
+                if (replaced && !overwrite)                      // someone created it while this one was coming in
+                    throw new ShareUploadException(UploadProblem.Exists, $"“{fileName}” already exists in this folder.");
+                File.Move(partial, target, overwrite);
+                return new ShareUpload(fileName!, written, replaced);
+            }
+            catch (Exception ex) when (ex is not ShareException and not OperationCanceledException)
+            {
+                throw Explain(ex, target, writing: true);
+            }
+            finally
+            {
+                try { if (File.Exists(partial)) File.Delete(partial); } catch { /* best effort */ }
             }
         }, ct);
 

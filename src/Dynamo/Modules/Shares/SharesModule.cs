@@ -38,5 +38,7 @@ public sealed class SharesModule : IModule
             position  INTEGER NOT NULL);
         CREATE INDEX ix_shared_folder_filter ON shared_folder_filter(folder_id, position);
         """,
+        // Whether files may be uploaded to the folder (1 = yes). The folders that existed when uploads were added are on.
+        "ALTER TABLE shared_folder ADD COLUMN allow_upload INTEGER NOT NULL DEFAULT 1;",
     ];
 }

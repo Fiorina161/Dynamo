@@ -22,9 +22,14 @@
         <input name="password" type="password" autocomplete="new-password"
                placeholder="@(f.Id == 0 || f.PasswordUnreadable ? "" : "unchanged")" />
     </label>
+    <label class="check">
+        <input type="checkbox" name="allowUpload" value="on" checked="@f.AllowUpload" />
+        Allow uploading files to this folder
+    </label>
     <p class="hint-text">
-        Dynamo reads the folder from the computer where it runs, with this account, and only ever reads (it lists and
-        downloads, it never writes). The password is stored encrypted.
+        Dynamo uses the folder from the computer where it runs, with this account: it lists and downloads, and uploads
+        files when this is ticked (it never deletes or renames anything). The account must be allowed to write on the
+        share for uploads to work. The password is stored encrypted.
     </p>
 
     @if (Model.Error is not null)

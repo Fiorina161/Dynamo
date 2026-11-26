@@ -853,6 +853,307 @@ public class SharedFolderTests
         Assert.That(Repo.GetFilter(foreign)!.Active, Is.False);
     }
 
+
+    // ---- Uploading ----------------------------------------------------------------------------------------
+
+    private static MemoryStream Bytes(string text) => new(System.Text.Encoding.UTF8.GetBytes(text));
+
+    [TestCase("report.txt")]
+    [TestCase("trace 2026-11-05 (copy).tar.gz")]
+    [TestCase("résumé_été.csv")]
+    [TestCase(".hidden")]
+    [TestCase("a.b.c")]
+    public void AnOrdinaryFileName_IsAccepted(string name) => Assert.That(SharePath.CheckFileName(name), Is.Null);
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    [TestCase(@"..\evil.txt")]
+    [TestCase("a/b.txt")]
+    [TestCase(@"a\b.txt")]
+    [TestCase("C:evil.txt")]
+    [TestCase("file.txt:hidden")]
+    [TestCase("what?.txt")]
+    [TestCase("star*.txt")]
+    [TestCase("pipe|.txt")]
+    [TestCase("quote\".txt")]
+    [TestCase(" leading.txt")]
+    [TestCase("trailing.txt ")]
+    [TestCase("trailing.")]
+    [TestCase("..")]
+    [TestCase(".")]
+    [TestCase("CON")]
+    [TestCase("nul.txt")]
+    [TestCase("Com3.log")]
+    [TestCase("LPT1")]
+    [TestCase("something.dynamo-upload")]
+    public void AFileNameWithAPathInIt_OrOneWindowsRefuses_IsRefused(string? name) =>
+        Assert.That(SharePath.CheckFileName(name), Is.Not.Null.And.Not.Empty);
+
+    [Test]
+    public void ATooLongFileName_IsRefused() => Assert.That(SharePath.CheckFileName(new string('a', 256)), Does.Contain("too long"));
+
+    [Test]
+    public async Task AnUpload_SavesTheFile_UnderItsName_AndLeavesNothingElseBehind()
+    {
+        var (folder, dir) = Local("upload-ok");
+
+        var saved = await Browser.UploadAsync(folder, null, "trace.log", Bytes("hello trace"), false, default);
+
+        Assert.That(saved, Is.EqualTo(new ShareUpload("trace.log", 11, false)));
+        Assert.That(await System.IO.File.ReadAllTextAsync(Path.Combine(dir, "trace.log")), Is.EqualTo("hello trace"));
+        Assert.That(Directory.GetFiles(dir), Has.Length.EqualTo(1), "no temporary file is left");
+    }
+
+    [Test]
+    public async Task AnUpload_GoesIntoTheSubFolderYouAreIn_AndCannotLeaveTheFolder()
+    {
+        var (folder, dir) = Local("upload-sub");
+        Directory.CreateDirectory(Path.Combine(dir, "2026", "11"));
+
+        await Browser.UploadAsync(folder, @"2026\11", "inside.txt", Bytes("x"), false, default);
+        Assert.That(System.IO.File.Exists(Path.Combine(dir, "2026", "11", "inside.txt")), Is.True);
+
+        foreach (var outside in new[] { @"..", @"..\other", @"C:\Windows" })
+            await Assert.ThrowsAsync<ShareException>(() => Browser.UploadAsync(folder, outside, "out.txt", Bytes("x"), false, default));
+        var missing = await Assert.ThrowsAsync<ShareException>(() => Browser.UploadAsync(folder, "no-such-folder", "a.txt", Bytes("x"), false, default));
+        Assert.That(missing!.Message, Does.Contain("does not exist"));
+        Assert.That(System.IO.File.Exists(Path.Combine(_files, "out.txt")), Is.False);
+    }
+
+    [Test]
+    public async Task AnExistingFile_IsNotReplacedUnlessAskedTo()
+    {
+        var (folder, dir) = Local("upload-exists");
+        await System.IO.File.WriteAllTextAsync(Path.Combine(dir, "keep.txt"), "original");
+
+        var refused = await Assert.ThrowsAsync<ShareUploadException>(() => Browser.UploadAsync(folder, null, "keep.txt", Bytes("new"), false, default));
+        Assert.That(refused!.Problem, Is.EqualTo(UploadProblem.Exists));
+        Assert.That(refused.Message, Does.Contain("already exists"));
+        Assert.That(await System.IO.File.ReadAllTextAsync(Path.Combine(dir, "keep.txt")), Is.EqualTo("original"), "untouched");
+        Assert.That(Directory.GetFiles(dir), Has.Length.EqualTo(1), "and no part file left behind");
+
+        var replaced = await Browser.UploadAsync(folder, null, "keep.txt", Bytes("new"), true, default);
+        Assert.That(replaced.Replaced, Is.True);
+        Assert.That(await System.IO.File.ReadAllTextAsync(Path.Combine(dir, "keep.txt")), Is.EqualTo("new"));
+        Assert.That(Directory.GetFiles(dir), Has.Length.EqualTo(1));
+    }
+
+    [Test]
+    public async Task ATooBigFile_IsStopped_ThePartIsThrownAway_AndAnExistingFileStays()
+    {
+        var (folder, dir) = Local("upload-big");
+        await System.IO.File.WriteAllTextAsync(Path.Combine(dir, "big.bin"), "old");
+        var small = new ShareBrowser(_connector, maxUploadBytes: 10);
+
+        var refused = await Assert.ThrowsAsync<ShareUploadException>(() => small.UploadAsync(folder, null, "big.bin", new MemoryStream(new byte[100]), true, default));
+
+        Assert.That(refused!.Problem, Is.EqualTo(UploadProblem.TooLarge));
+        Assert.That(await System.IO.File.ReadAllTextAsync(Path.Combine(dir, "big.bin")), Is.EqualTo("old"), "the old file was not replaced by a part");
+        Assert.That(Directory.GetFiles(dir), Has.Length.EqualTo(1));
+        Assert.That((await small.UploadAsync(folder, null, "fits.bin", new MemoryStream(new byte[10]), false, default)).Length, Is.EqualTo(10), "exactly the limit is fine");
+    }
+
+    private sealed class BrokenStream : Stream
+    {
+        private int _sent;
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            if (_sent++ == 0)
+            {
+                buffer.Span[0] = 7;
+                return ValueTask.FromResult(1);
+            }
+            throw new IOException("The connection was lost.");
+        }
+    }
+
+    [Test]
+    public async Task AnUploadThatBreaksHalfWay_LeavesNoFileAtAll()
+    {
+        var (folder, dir) = Local("upload-broken");
+
+        var failed = await Assert.ThrowsAsync<ShareException>(() => Browser.UploadAsync(folder, null, "half.bin", new BrokenStream(), false, default));
+
+        Assert.That(failed!.Message, Does.Contain("connection was lost"));
+        Assert.That(Directory.GetFiles(dir), Is.Empty, "not even a part file");
+    }
+
+    [Test]
+    public async Task ACancelledUpload_LeavesNoFileAtAll()
+    {
+        var (folder, dir) = Local("upload-cancelled");
+        using var cancel = new CancellationTokenSource();
+        cancel.Cancel();
+
+        Assert.That(async () => await Browser.UploadAsync(folder, null, "never.bin", new MemoryStream(new byte[1000]), false, cancel.Token),
+            Throws.InstanceOf<OperationCanceledException>());
+
+        Assert.That(Directory.GetFiles(dir), Is.Empty);
+        await Task.CompletedTask;
+    }
+
+    [Test]
+    public async Task AFolderThatDoesNotAllowUploads_RefusesThem()
+    {
+        var (folder, dir) = Local("upload-off");
+        folder.AllowUpload = false;
+
+        var refused = await Assert.ThrowsAsync<ShareUploadException>(() => Browser.UploadAsync(folder, null, "a.txt", Bytes("x"), false, default));
+
+        Assert.That(refused!.Problem, Is.EqualTo(UploadProblem.NotAllowed));
+        Assert.That(Directory.GetFiles(dir), Is.Empty);
+    }
+
+    [Test]
+    public async Task AnUploadToANetworkFolder_LogsInFirst_AndStopsIfItCannot()
+    {
+        var folder = new SharedFolder { Name = "net-up", Path = @"\\127.0.0.1\upload-share", Username = "u", Password = "p" };
+        _connector.Failure = "Access is denied.";
+
+        var failed = await Assert.ThrowsAsync<ShareException>(() => Browser.UploadAsync(folder, null, "a.txt", Bytes("x"), false, default));
+
+        Assert.That(failed!.Message, Does.Contain("Could not connect"));
+        Assert.That(_connector.Calls, Has.Count.EqualTo(1));
+    }
+
+    private async Task<HttpResponseMessage> PostFile(long folderId, string name, string content, string path = "", bool overwrite = false)
+    {
+        var url = $"/Shares/{folderId}?handler=Upload&path={Uri.EscapeDataString(path)}&name={Uri.EscapeDataString(name)}" + (overwrite ? "&overwrite=1" : "");
+        var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = new ByteArrayContent(System.Text.Encoding.UTF8.GetBytes(content)),
+        };
+        request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+        request.Headers.Add("RequestVerificationToken", _token);
+        return await _client.SendAsync(request);
+    }
+
+    [Test]
+    public async Task TheUploadRequest_SavesTheBodyAsTheFile_AndAnswersWithWhatHappened()
+    {
+        var (folder, dir) = Local("upload-http");
+
+        var answer = await PostFile(folder.Id, "new file.txt", "from the browser");
+
+        Assert.That(answer.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var json = await answer.Content.ReadAsStringAsync();
+        Assert.That(json, Does.Contain("\"ok\":true").And.Contain("\"name\":\"new file.txt\"").And.Contain("\"size\":16").And.Contain("\"replaced\":false"));
+        Assert.That(await System.IO.File.ReadAllTextAsync(Path.Combine(dir, "new file.txt")), Is.EqualTo("from the browser"));
+    }
+
+    [Test]
+    public async Task TheUploadRequest_AnswersWithAStatusThePageCanActOn()
+    {
+        var (folder, dir) = Local("upload-status");
+        await System.IO.File.WriteAllTextAsync(Path.Combine(dir, "there.txt"), "old");
+        Directory.CreateDirectory(Path.Combine(dir, "sub"));
+
+        var exists = await PostFile(folder.Id, "there.txt", "new");
+        Assert.That(exists.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+        Assert.That(await exists.Content.ReadAsStringAsync(), Does.Contain("already exists"));
+
+        var replaced = await PostFile(folder.Id, "there.txt", "new", overwrite: true);
+        Assert.That(replaced.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(await replaced.Content.ReadAsStringAsync(), Does.Contain("\"replaced\":true"));
+        Assert.That(await System.IO.File.ReadAllTextAsync(Path.Combine(dir, "there.txt")), Is.EqualTo("new"));
+
+        var inSub = await PostFile(folder.Id, "deep.txt", "x", path: "sub");
+        Assert.That(inSub.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(System.IO.File.Exists(Path.Combine(dir, "sub", "deep.txt")), Is.True);
+
+        foreach (var badName in new[] { @"..\evil.txt", "a/b.txt", "CON", "x.txt:hidden" })
+            Assert.That((await PostFile(folder.Id, badName, "x")).StatusCode, Is.EqualTo(HttpStatusCode.UnprocessableEntity), badName);
+        Assert.That((await PostFile(folder.Id, "ok.txt", "x", path: @"..\outside")).StatusCode, Is.EqualTo(HttpStatusCode.UnprocessableEntity));
+        Assert.That((await PostFile(folder.Id, "ok.txt", "x", path: "no-such")).StatusCode, Is.EqualTo(HttpStatusCode.UnprocessableEntity));
+        Assert.That((await PostFile(999999, "a.txt", "x")).StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        Assert.That(Directory.GetFiles(_files).Any(p => Path.GetFileName(p) == "evil.txt"), Is.False);
+    }
+
+    [Test]
+    public async Task AFolderWithUploadsOff_AnswersForbidden_AndShowsNoUploadBox()
+    {
+        var (folder, dir) = Local("upload-forbidden");
+        folder.AllowUpload = false;
+        Repo.Save(folder);
+
+        var answer = await PostFile(folder.Id, "a.txt", "x");
+
+        Assert.That(answer.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        Assert.That(Directory.GetFiles(dir), Is.Empty);
+        var page = await Page(folder.Id);
+        Assert.That(page, Does.Not.Contain("data-upload-url").And.Not.Contain("Upload files"));
+        Assert.That(await _client.GetStringAsync("/Shares"), Does.Contain("read only"));
+    }
+
+    [Test]
+    public async Task TheUploadRequest_NeedsTheAntiforgeryToken()
+    {
+        var (folder, dir) = Local("upload-token");
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/Shares/{folder.Id}?handler=Upload&name=a.txt")
+        {
+            Content = new ByteArrayContent([1, 2, 3]),
+        };
+
+        var answer = await _client.SendAsync(request);
+
+        Assert.That(answer.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(Directory.GetFiles(dir), Is.Empty);
+    }
+
+    [Test]
+    public async Task TheFolderPage_OffersToUpload_IntoTheFolderYouAreIn()
+    {
+        var (folder, dir) = Local("upload-box");
+        Directory.CreateDirectory(Path.Combine(dir, "sub"));
+
+        var top = await Page(folder.Id);
+        Assert.That(top, Does.Contain("Upload files").And.Contain("or drop files anywhere on this page"));
+        Assert.That(top, Does.Match($"data-upload-url=\"/Shares/{folder.Id}\\?handler=Upload\""));
+
+        var inside = await Page(folder.Id, "?path=sub");
+        Assert.That(inside, Does.Match($"data-upload-url=\"/Shares/{folder.Id}\\?path=sub&amp;handler=Upload\""));
+        Assert.That(inside, Does.Contain("<strong>sub</strong>"));
+    }
+
+    [Test]
+    public async Task TheFolderDialog_HasAnAllowUploadsBox_OnByDefault_AndTheChoiceIsKept()
+    {
+        var dialog = await _client.GetStringAsync("/Shares?handler=Form");
+        Assert.That(dialog, Does.Match("name=\"allowUpload\"[^>]*checked").And.Contain("Allow uploading files to this folder"));
+
+        await Post("/Shares?handler=Save", ("id", "0"), ("name", "Up on"), ("path", @"\\h\s"), ("username", "u"), ("password", "p"), ("allowUpload", "on"));
+        await Post("/Shares?handler=Save", ("id", "0"), ("name", "Up off"), ("path", @"\\h\s2"), ("username", "u"), ("password", "p"));
+        Assert.That(Repo.GetAll().Single(f => f.Name == "Up on").AllowUpload, Is.True);
+        Assert.That(Repo.GetAll().Single(f => f.Name == "Up off").AllowUpload, Is.False);
+
+        var off = Repo.GetAll().Single(f => f.Name == "Up off");
+        Assert.That(await _client.GetStringAsync($"/Shares?handler=Form&id={off.Id}"), Does.Not.Match("name=\"allowUpload\"[^>]*checked"));
+    }
+
+    [Test]
+    public void TheFoldersThatExistedBeforeUploads_AreAllowedToUpload()
+    {
+        long id;
+        using (var conn = _factory.Services.GetRequiredService<Db>().Open())
+            id = conn.ExecuteScalar<long>("""
+                INSERT INTO shared_folder (name, path, username, password) VALUES ('Old folder', '\\h\old', 'u', '');
+                SELECT last_insert_rowid();
+                """);
+
+        Assert.That(Repo.Get(id)!.AllowUpload, Is.True, "the column defaults to on");
+    }
+
     [Test]
     public async Task TheMenuListsSharedFoldersAfterWorkspaces_AndBeforeSettings()
     {

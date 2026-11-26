@@ -30,7 +30,11 @@ web interface and stored in a local Sqlite database; it works fully offline.
   long folders; downloads can be resumed.
 - A saved list of **substrings** per folder (add, change, remove): tick some and
   only the files whose name contains one of them are listed; tick none and you see
-  everything. Case and accents do not matter (`é`, `è` and `E` all match `e`). Read only: it never writes or deletes.
+  everything. Case and accents do not matter (`é`, `è` and `E` all match `e`).
+- **Upload** files into the folder you are in: the Upload button or drop files anywhere
+  on the page, with a progress bar per file (big files stream, up to 5 GB each). A file
+  is only replaced after asking, and an interrupted upload leaves nothing behind.
+  Uploads can be turned off per folder; Dynamo never deletes or renames anything.
 
 **Workspaces**
 - A workspace shows several saved queries as panels, each refreshing on its own;

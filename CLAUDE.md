@@ -159,7 +159,7 @@ Then `git checkout master && git pull`, and delete the branch.
   (`IShareBrowser`): `ListAsync` (folders first, then name/size/date, filter, pages of 200,
   at most 50,000 entries read, breadcrumb), `OpenAsync` (`FileShare.ReadWrite | Delete` so
   a trace still being written can be read, range requests on), `TestAsync` (the dialog's Test:
-  connect + count). Read only by construction (no write, delete or rename code exists).
+  connect + count). **Read only until 26 Nov 2026; see "Uploading" below for the one write.**
   Downloads are logged with the client address. A non-UNC path skips the login (only the
   tests use that: they register local temp folders directly in the repository, because the
   dialog refuses them). Tests: `SharedFolderTests` (60: path parsing and traversal, listing,
@@ -179,6 +179,42 @@ Then `git checkout master && git pull`, and delete the branch.
   underlined links with the current folder in bold and not a link. At the top of the
   share there is no Up. The Up link keeps the name filter and the sort, like every other
   link of the page.
+- **Uploading to a shared folder (done, 26 Nov 2026, owner's request: "I want to be able
+  to also upload files").** This is **the only code in Dynamo that writes to a share**
+  (no delete, no rename, no mkdir). Guards: `shared_folder.allow_upload` (Shares migration 3,
+  **default 1**: the owner asked for uploads, so existing and new folders allow them; the
+  dialog's "Allow uploading files" box turns it off per folder, then the handler answers
+  403, the page shows no upload box and the list says "read only"); `SharePath.CheckFileName`
+  (one name: no `\ / : * ? " < > |`, no control characters, no leading/trailing space or
+  trailing dot, not a Windows device name such as CON or NUL, not `*.dynamo-upload`, at most
+  255); the folder is resolved with `Resolve` like every path (a `..` or a drive is refused);
+  the destination folder must exist (no folder is created). **The file is written under a
+  temporary name `<name>.<8 hex>.dynamo-upload` in the same folder and renamed when complete**,
+  and the temporary file is deleted in `finally` whatever happens (too large, broken stream,
+  cancel, exists), so an aborted upload never leaves a part under the real name and a replace
+  is only ever by a whole file. **No silent overwrite:** an existing name answers 409 unless
+  `overwrite=1` (or `true`; a bool binder would not take `1`: this broke once), and the check
+  is made again just before the rename. Size: `MaxUploadBytes` = 5 GB, counted while copying
+  (413 and the part is thrown away); Kestrel stops request bodies at 30 MB, so the handler
+  raises `IHttpMaxRequestBodySizeFeature` for this request only (`[DisableRequestSizeLimit]`
+  cannot go on a Razor Pages handler method, and on the page model it would lift the limit
+  for every POST of the page). **The body of the POST is the file itself**
+  (`application/octet-stream`, `name` in the address): no multipart parsing, no temporary file,
+  a big file streams from the browser's disk to the share. Antiforgery: the token header, as
+  for every other POST (a test checks a missing token is refused). Status codes: 200 + JSON,
+  409 exists, 413 too large, 403 not allowed, 422 anything else (bad name, folder missing, no
+  access, login failed). Each upload is logged with the client address. UI: `.upload-box`
+  (button + "drop files anywhere") and site.js "Uploading files to a shared folder": one XHR
+  per file, one after the other, progress bar and status per file, a confirm before replacing,
+  folders dropped are refused ("only files"), Cancel aborts the current one and forgets the
+  rest, `location.reload()` when the queue is done, with `sessionStorage.uploadNote` showing
+  "Uploaded N files." after the reload. Tests (NUnit, in `SharedFolderTests`: names, write and
+  cleanup, replace, size cap via the optional `maxUploadBytes` constructor parameter, broken
+  and cancelled streams, permission, status codes, token, dialog, defaults), jsdom (32 checks,
+  `upload-ui.js` in the scratch dir) and a **real Edge uploading real files to the running
+  app** (`cdp-upload.js`: 3 files including 60 MB, accented name, progress percentages seen,
+  no temp file left, replace asked then done). **Not verified on a real network share** (the
+  same gap as downloads): a write over SMB with the saved account, and the rename on a share.
 - **Substring filters of a shared folder (done, 26 Nov 2026, owner's request).** Table
   `shared_folder_filter` (module migration 2: folder_id with `ON DELETE CASCADE`, text,
   `active` = ticked, position); `SharedFolderRepository.GetFilters / SaveFilter /

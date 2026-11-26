@@ -78,6 +78,21 @@ else if (listing is not null)
         }
     </nav>
 
+    @if (Model.Folder.AllowUpload)
+    {
+        @* Upload (site.js, "Uploading files to a shared folder"): into the folder you are in. *@
+        <section class="upload-box" aria-label="Upload files"
+                 data-upload-url="@Url.Page("/Shares/Browse", "Upload", new { id = Model.Folder.Id, path = listing.Relative })">
+            <label class="button upload-pick">Upload files…
+                <input type="file" multiple hidden />
+            </label>
+            <span class="hint-text">or drop files anywhere on this page. They go into
+                <strong>@(listing.Relative.Length == 0 ? Model.Folder.Name : listing.Relative)</strong>.</span>
+            <button type="button" class="ghost small" data-upload-cancel hidden>Cancel</button>
+            <ul class="upload-list" aria-live="polite"></ul>
+        </section>
+    }
+
     @* The folder's substrings: tick some and only the files whose name contains one of them are listed. *@
     <section class="name-filters" aria-label="Substrings to keep">
         <span class="name-filters-title">Substrings</span>

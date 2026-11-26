@@ -21,7 +21,7 @@ public class IndexModel(SharedFolderRepository repo, IShareBrowser browser) : Pa
         return folder is null ? NotFound() : Partial("_Form", new ShareFormModel(folder));
     }
 
-    public IActionResult OnPostSave(long id, string? name, string? path, string? username, string? password)
+    public IActionResult OnPostSave(long id, string? name, string? path, string? username, string? password, string? allowUpload)
     {
         var existing = id == 0 ? null : repo.Get(id);
         if (id != 0 && existing is null)
@@ -36,6 +36,7 @@ public class IndexModel(SharedFolderRepository repo, IShareBrowser browser) : Pa
             Username = (username ?? "").Trim(),
             // Left blank: keep the stored password (an edit); a password that could not be read is not kept.
             Password = string.IsNullOrEmpty(password) ? existing?.Password ?? "" : password,
+            AllowUpload = allowUpload == "on",
         };
 
         var error = Validate(folder, pathError);
