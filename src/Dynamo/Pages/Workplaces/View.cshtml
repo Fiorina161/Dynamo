@@ -137,9 +137,10 @@
                            data-view-rows-for="#panel-out-@p.Id"
                            hx-post="@Handler("PanelSettings", new { id = w.Id, panel = p.Id })"
                            hx-trigger="change" hx-swap="none" />
-                    <label>Refresh every (s, 0 = off)
+                    <label>Refresh
                         <input name="seconds" type="number" min="0" max="3600" value="@p.RefreshSeconds"
                                inputmode="numeric" data-panel-seconds
+                               title="Seconds between refreshes; 0 = no automatic refresh"
                                hx-post="@Handler("PanelSettings", new { id = w.Id, panel = p.Id })"
                                hx-trigger="change" hx-swap="none" />
                     </label>
