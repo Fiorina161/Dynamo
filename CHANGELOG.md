@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0 - 2026-11-26
+
+- Reorder the columns of a result by dragging their headers, saved with the panel
+
 ## 1.4.2 - 2026-11-26
 
 - Remove the move arrows from panel details: panels are reordered by dragging their handle
