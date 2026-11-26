@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0 - 2026-11-26
+
+- Upload files to a shared folder, with progress, replace confirmation and a per-folder on/off
+
 ## 1.5.0 - 2026-11-26
 
 - Reorder the columns of a result by dragging their headers, saved with the panel
