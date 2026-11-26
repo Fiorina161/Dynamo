@@ -442,6 +442,37 @@ Then `git checkout master && git pull`, and delete the branch.
   needs 12c), the SYSDBA login, EXPLAIN PLAN through the driver (binds as text), the
   real `ALTER SYSTEM KILL SESSION`, and the health probe against a live database.
   Run them once on a test database before relying on them.
+- **Reordering the columns of a result (done, 26 Nov 2026, owner's request: "reorder
+  columns in grids").** Drag a header (mouse or pen; not touch, a finger scrolls the
+  table; Alt+Left/Right on a focused header too). **The order is saved on the server
+  with the panel** (`watch_panel.column_order`, Workplaces migration 9, a JSON array of
+  column *names*; copied by Duplicate and by an import) and **applied by the server to
+  every result** (`ColumnOrder.Apply` in `OnPostRunPanelAsync`, so each refresh already
+  comes in that order and all the client logic that works by position stays consistent)
+  **and to the CSV export** (what is on screen is what is exported). Names not in the
+  result are ignored, new columns go last in the query's order, names match ignoring
+  case, duplicate names take their turns. `ResultColumn.Source` remembers the query
+  index of a rearranged column; `_ResultTable` renders it as `th[data-qi]` (the list
+  index when nothing was rearranged). **Pin keys follow `data-qi="0"` (the query's first
+  column), not the first column on screen** (`keyRows`), so moving columns never loses a
+  pin. **Sort and filters are stored by position, so a live move remaps them**
+  (`remap` in site.js "Reordering the columns": `sortCol`, the `filters` keys, and the
+  open filter menu is closed). The drag moves the `th` and each row's `td` in the DOM,
+  starts after 6 px (a plain click still sorts; the click that ends a drag is swallowed
+  **only on the dragged header**: an earlier version swallowed any click for 60 ms and made
+  the ⋯ button miss), shows a `.col-drop-marker` and autoscrolls sideways near the edges
+  of `.results` (which is `position: relative` for that), Escape cancels (a capture
+  listener, so the header's own Escape handler, which restores the query's sort order,
+  does not also run). The kill column and `#` cannot be dragged and nothing can be
+  dropped before them. The ⋯ menu has **"Restore the query's column order"** (enabled when
+  `.panel-meta[data-column-order]`; it posts an empty order and submits the panel's form
+  again; the sort and filters of moved columns are then dropped by their existing name
+  checks). Save = `POST ?handler=ColumnOrder&panel=ID` (`order` = JSON names, `[]`/empty
+  resets; 400 for anything that is not a list of 1..200-character names, at most 500; 404
+  for a panel of another workspace). Verified with jsdom (42 checks, `col-drag.js` in the
+  scratch dir) and a real Edge with real mouse events on a rendered result
+  (`cdp-colorder.js`: click sorts, drag, marker, drop, sort follows, far right, Alt+arrow).
+  Tests: `ColumnOrderTests` (12).
 - **The "Visible rows" text box was removed (26 Nov 2026, owner's request: the
   resize bar replaces it).** The details (⚙) no longer show it; the field stays as a
   **hidden input** `name=viewRows` (same `data-view-rows-for` / `-default` and

@@ -283,6 +283,33 @@ public class ViewModel(
         return repo.ReorderPanels(id, ids) ? new NoContentResult() : new ConflictResult();
     }
 
+    /// <summary>
+    /// Saves the order the columns of a panel were dragged into: <c>order</c> is a JSON array of the column names in
+    /// the new order, or empty / <c>[]</c> to go back to the query's own order. No content: the page already shows it.
+    /// </summary>
+    public IActionResult OnPostColumnOrder(long id, long panel, string? order)
+    {
+        if (repo.GetPanel(panel) is not { } p || p.WorkplaceId != id)
+            return NotFound();
+        List<string>? names = [];
+        if (!string.IsNullOrWhiteSpace(order))
+        {
+            try
+            {
+                names = JsonSerializer.Deserialize<List<string>>(order);
+            }
+            catch (JsonException)
+            {
+                return BadRequest();
+            }
+        }
+        if (names is null || names.Count > ColumnOrder.MaxNames
+            || names.Any(n => n is null || n.Length == 0 || n.Length > ColumnOrder.MaxNameLength))
+            return BadRequest();
+        repo.SetColumnOrder(panel, names);
+        return new NoContentResult();
+    }
+
     /// <summary>Collapses a panel to its title line, or expands it. No content.</summary>
     public IActionResult OnPostCollapsePanel(long id, long panel, bool collapsed)
     {
@@ -362,7 +389,10 @@ public class ViewModel(
         var killUrl = sessionsOnDba && results.Result is not null
             ? Url.Page("/Workplaces/View", "KillForm", new { id, panel })
             : null;
-        return Partial("_PanelResults", new PanelResultsModel(results, panel, killUrl));
+        // The columns come in the order the user left them (dragged by their headers).
+        if (results.Result is { } fetched && p.ColumnOrder.Count > 0)
+            results = results with { Result = ColumnOrder.Apply(fetched, p.ColumnOrder) };
+        return Partial("_PanelResults", new PanelResultsModel(results, panel, killUrl, p.ColumnOrder.Count > 0));
     }
 
     // ---- The execution plan of a panel's query ------------------------------------
@@ -467,7 +497,7 @@ public class ViewModel(
 
         var name = string.IsNullOrWhiteSpace(connection) ? p.Connection : connection.Trim();
         return await QueryActions.CsvAsync(
-            runner, log, name, p.Sql, QueryActions.ParamsOf(Request.Form), p.QueryName, ct);
+            runner, log, name, p.Sql, QueryActions.ParamsOf(Request.Form), p.QueryName, ct, p.ColumnOrder);
     }
 
     /// <summary>"X copy", then "X copy 2"...: the first name not taken.</summary>

@@ -322,12 +322,16 @@
     // the rows as they are now on screen.
     function keyRows(body) {
         var rows = Array.prototype.slice.call(body.rows);
+        var queryHead = body.parentNode.tHead && body.parentNode.tHead.rows[0].querySelector('th[data-qi="0"]');
+        var queryFirst = queryHead ? queryHead.cellIndex : -1;
         rows.forEach(function (tr, i) { if (tr.dataset.row === undefined) tr.dataset.row = i; });
         var seen = new Map();
         rows.slice().sort(function (a, b) { return a.dataset.row - b.dataset.row; }).forEach(function (tr) {
-            // The first data column: not the row number, not the Kill column of the sessions panel.
+            // The query's first column (data-qi 0), wherever the user moved it; failing that the first data column
+            // (not the row number, not the Kill column of the sessions panel).
             var first = 1;
             while (first < tr.cells.length && tr.cells[first].classList.contains('kill-col')) first++;
+            if (queryFirst >= 0) first = queryFirst;
             var value = first < tr.cells.length ? tr.cells[first].textContent : '';
             var rank = (seen.get(value) || 0) + 1;
             seen.set(value, rank);
@@ -1209,6 +1213,204 @@
         });
     })();
 
+    // ---- Reordering the columns by dragging their headers ------------------------------------------------
+    // Press a header (mouse or pen), move sideways and a line shows where the column will land; release to drop it
+    // there. The cells of the column move with it. The new order is saved with the panel (the names, with one request)
+    // and the server then sends every refresh, and the CSV, in that order, so nothing here has to be re-applied. What
+    // is kept by position (the sort, the column filters) is moved along; the pins follow the query's first column
+    // (data-qi), whatever the order. A plain click still sorts: the drag only starts after a few pixels. The page
+    // scrolls sideways near its edges, Escape cancels, and Alt + the left or right arrow moves the focused column by
+    // one. Not for touch (a finger scrolls the table). "Restore the query's order" is in the ⋯ menu.
+    (function () {
+        var drag = null, suppressClick = null, edgeTimer = null, marker = null;     // suppressClick: the header just dropped
+
+        function isMovable(th) {
+            return !!th && th.tagName === 'TH' && !th.classList.contains('rownum') && !th.classList.contains('kill-col');
+        }
+        function dataHeads(table) { return Array.prototype.filter.call(table.tHead.rows[0].cells, isMovable); }
+        function allRows(table) {
+            return [table.tHead.rows[0]].concat(Array.prototype.slice.call(table.tBodies[0].rows));
+        }
+        function mapIndex(i, from, to) {
+            if (i === from) return to;
+            if (from < to && i > from && i <= to) return i - 1;
+            if (from > to && i >= to && i < from) return i + 1;
+            return i;
+        }
+
+        // The sort and the filters are kept by the column's position: follow the column to its new one.
+        function remap(root, from, to) {
+            if (root.dataset.sortCol !== undefined)
+                root.dataset.sortCol = String(mapIndex(parseInt(root.dataset.sortCol, 10), from, to));
+            var filters = filtersOf(root), moved = {};
+            Object.keys(filters).forEach(function (k) { moved[mapIndex(parseInt(k, 10), from, to)] = filters[k]; });
+            saveFilters(root, moved);
+            closeFilterMenu();
+        }
+
+        function save(root, table) {
+            var grid = document.querySelector('[data-workplace][data-column-order-url]');
+            var panel = root.closest('.panel');
+            if (!grid || !panel) return;
+            var names = dataHeads(table).map(function (th) { return th.textContent.trim(); });
+            var token = '';
+            try { token = JSON.parse(document.body.getAttribute('hx-headers')).RequestVerificationToken; } catch (err) { }
+            fetch(grid.dataset.columnOrderUrl + '&panel=' + encodeURIComponent(panel.dataset.panel), {
+                method: 'POST',
+                headers: { 'RequestVerificationToken': token, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'order=' + encodeURIComponent(JSON.stringify(names))
+            }).then(function (response) {
+                if (!response.ok) throw new Error('status ' + response.status);
+            }).catch(function () {
+                location.reload();          // the server did not take it: show the real order
+            });
+            var meta = root.querySelector('.panel-meta');
+            if (meta) meta.setAttribute('data-column-order', '1');
+        }
+
+        // Moves the header and the cell of every row; toData is the column's place among the data columns afterwards.
+        function commit(root, table, th, toData) {
+            var heads = dataHeads(table);
+            var fromData = heads.indexOf(th);
+            if (fromData < 0 || toData === fromData || toData < 0 || toData >= heads.length) return;
+            var fromCell = th.cellIndex;
+            var target = heads[toData];
+            var beforeCell = toData > fromData ? target.cellIndex + 1 : target.cellIndex;
+            allRows(table).forEach(function (row) {
+                var cell = row.cells[fromCell];
+                var ref = row.cells[beforeCell] || null;
+                if (cell && cell !== ref) row.insertBefore(cell, ref);
+            });
+            remap(root, fromCell, th.cellIndex);
+            refilter(root);
+            save(root, table);
+        }
+
+        function stopEdgeTimer() { if (edgeTimer) { clearInterval(edgeTimer); edgeTimer = null; } }
+
+        function cleanup() {
+            stopEdgeTimer();
+            if (marker && marker.parentNode) marker.parentNode.removeChild(marker);
+            marker = null;
+            if (drag) {
+                drag.th.classList.remove('col-dragging');
+                if (drag.cells) drag.cells.forEach(function (td) { td.classList.remove('col-dragging'); });
+            }
+            document.body.classList.remove('col-reordering');
+            drag = null;
+        }
+
+        // Where the column would land for the pointer: the nearest boundary between data columns.
+        function update() {
+            var heads = dataHeads(drag.table);
+            var from = heads.indexOf(drag.th);
+            var edges = [];
+            heads.forEach(function (h, i) {
+                var r = h.getBoundingClientRect();
+                edges.push(r.left);
+                if (i === heads.length - 1) edges.push(r.right);
+            });
+            var best = 0, bestDistance = Infinity;
+            edges.forEach(function (x, k) {
+                var d = Math.abs(x - drag.x);
+                if (d < bestDistance) { bestDistance = d; best = k; }
+            });
+            drag.from = from;
+            drag.to = best > from ? best - 1 : best;
+            var box = drag.table.closest('.results');
+            var boxRect = box.getBoundingClientRect();
+            marker.style.left = (edges[best] - boxRect.left + box.scrollLeft - 1) + 'px';
+            marker.style.height = drag.table.offsetHeight + 'px';
+            marker.hidden = drag.to === from;
+        }
+
+        function begin() {
+            drag.active = true;
+            drag.th.classList.add('col-dragging');
+            var index = drag.th.cellIndex;
+            drag.cells = Array.prototype.map.call(drag.table.tBodies[0].rows, function (tr) { return tr.cells[index]; });
+            drag.cells.forEach(function (td) { if (td) td.classList.add('col-dragging'); });
+            marker = document.createElement('div');
+            marker.className = 'col-drop-marker';
+            marker.hidden = true;
+            drag.table.closest('.results').appendChild(marker);
+            document.body.classList.add('col-reordering');
+            closeFilterMenu();
+            if (window.getSelection) window.getSelection().removeAllRanges();
+            edgeTimer = setInterval(function () {
+                if (!drag) return;
+                var box = drag.table.closest('.results'), r = box.getBoundingClientRect();
+                if (drag.x < r.left + 40) box.scrollLeft -= 14;
+                else if (drag.x > r.right - 40) box.scrollLeft += 14;
+                else return;
+                update();
+            }, 30);
+        }
+
+        document.addEventListener('pointerdown', function (e) {
+            if (e.button || e.pointerType === 'touch') return;
+            var th = e.target.closest && e.target.closest('.results th');
+            if (!isMovable(th) || e.target.closest('.col-filter')) return;
+            var root = th.closest('.panel-results'), table = th.closest('table');
+            if (!root || !table || !table.tHead || !table.tBodies[0]) return;
+            drag = { th: th, root: root, table: table, x0: e.clientX, x: e.clientX, active: false, from: 0, to: 0 };
+        });
+
+        document.addEventListener('pointermove', function (e) {
+            if (!drag) return;
+            drag.x = e.clientX;
+            if (!drag.active) {
+                if (Math.abs(e.clientX - drag.x0) < 6) return;
+                begin();
+            }
+            update();
+        });
+
+        document.addEventListener('pointerup', function () {
+            if (!drag) return;
+            var d = drag;
+            var moved = d.active;
+            cleanup();
+            if (!moved) return;
+            // The release is followed by a click on that header: it must not sort (a click anywhere else is not touched).
+            suppressClick = d.th;
+            setTimeout(function () { suppressClick = null; }, 60);
+            commit(d.root, d.table, d.th, d.to);
+        });
+        document.addEventListener('pointercancel', cleanup);
+        window.addEventListener('blur', cleanup);
+
+        document.addEventListener('click', function (e) {
+            if (!suppressClick) return;
+            var clicked = e.target.closest && e.target.closest('th');
+            if (clicked !== suppressClick) return;
+            suppressClick = null;
+            e.stopPropagation();
+            e.preventDefault();
+        }, true);
+
+        // Escape while dragging cancels (before the header's own Escape handler, which goes back to the query's order).
+        document.addEventListener('keydown', function (e) {
+            if (drag && drag.active && e.key === 'Escape') {
+                e.stopPropagation();
+                cleanup();
+            }
+        }, true);
+
+        // Alt + left or right arrow: the focused column goes one place that way.
+        document.addEventListener('keydown', function (e) {
+            if (!e.altKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+            var th = e.target.closest && e.target.closest('.results th');
+            if (!isMovable(th)) return;
+            var root = th.closest('.panel-results'), table = th.closest('table');
+            if (!root || !table) return;
+            var to = dataHeads(table).indexOf(th) + (e.key === 'ArrowRight' ? 1 : -1);
+            e.preventDefault();
+            commit(root, table, th, to);
+            th.focus();
+        });
+    })();
+
     // ---- Result tools: copy, vertical view, readable sizes, full text -------------------------------
     // For the results of every panel (a .panel-results container). The ⋯ button of the title bar opens a
     // menu: copy what is on screen (the visible rows, in the order shown) as TSV (for Excel), as a Markdown
@@ -1436,6 +1638,24 @@
             };
         }
 
+        // Forgets the dragged order (the panel's saved list of columns) and runs the panel again.
+        function restoreColumnOrder(root) {
+            var grid = document.querySelector('[data-workplace][data-column-order-url]');
+            var panel = root.closest('.panel');
+            if (!grid || !panel) return;
+            var token = '';
+            try { token = JSON.parse(document.body.getAttribute('hx-headers')).RequestVerificationToken; } catch (err) { }
+            fetch(grid.dataset.columnOrderUrl + '&panel=' + encodeURIComponent(panel.dataset.panel), {
+                method: 'POST',
+                headers: { 'RequestVerificationToken': token, 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'order='
+            }).then(function (response) {
+                if (!response.ok) throw new Error('status ' + response.status);
+                var form = panel.querySelector('.panel-form');
+                if (form && window.htmx) htmx.trigger(form, 'submit'); else location.reload();
+            }).catch(function () { location.reload(); });
+        }
+
         function openMenu(button) {
             var panel = button.closest('.panel');
             var root = panel && panel.querySelector('.panel-results');
@@ -1452,6 +1672,9 @@
             addItem((vertical ? '✓ ' : '') + 'Vertical view', !!d && (d.rows.length === 1 || vertical),
                 'A result of one row, listed down the page: one line per column',
                 function (r) { setPref('vertical', r, !getPref('vertical', r)); applyVertical(r); });
+            addItem('Restore the query\'s column order', !!root.querySelector('.panel-meta[data-column-order]'),
+                'Put the columns back in the order the query gives them (you moved them by their headers)',
+                function (r) { restoreColumnOrder(r); });
             addItem((sizes ? '✓ ' : '') + 'Readable sizes (KB, MB, GB)', hasBytes || sizes,
                 'Shows the columns whose name has BYTES in it as KB, MB or GB',
                 function (r) { setPref('sizes', r, !getPref('sizes', r)); applySizes(r); });

@@ -37,7 +37,8 @@ web interface and stored in a local Sqlite database; it works fully offline.
   bind variables are shared across panels.
 - Panels can be reordered by dragging, collapsed, made full width, duplicated
   between workspaces, and **resized with the mouse** (in whole rows).
-- Results: sort, spreadsheet-style column filters, pinned rows, three highlight
+- Results: **drag the column headers to reorder the columns** (kept with the panel,
+  also used by the CSV export), sort, spreadsheet-style column filters, pinned rows, three highlight
   boxes, row numbers, CSV export, **copy as TSV / Markdown / table**, vertical
   view of a one-row result, readable sizes (KB/MB/GB) and a window for long text.
 - **Execution plan** of any panel's query (`EXPLAIN PLAN`, without running it).

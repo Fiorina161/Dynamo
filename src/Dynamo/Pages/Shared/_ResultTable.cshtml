@@ -36,10 +36,13 @@ else
                     {
                         <th class="kill-col" aria-label="Actions"></th>
                     }
-                    @foreach (var c in r.Columns)
+                    @for (var ci = 0; ci < r.Columns.Count; ci++)
                     {
-                        <th class="@(c.Numeric ? "num" : "")" tabindex="0"
-                            title="Click to sort, again to reverse (Shift-click: original order)">@c.Name<button type="button" class="ghost col-filter" aria-label="Filter @c.Name" title="Filter the rows by the values of this column"></button></th>
+                        var c = r.Columns[ci];
+                        @* data-qi: where the column is in the query's own order (the pins follow the query's first column
+                           even when the user moved the columns); the title says the column can be dragged. *@
+                        <th class="@(c.Numeric ? "num" : "")" tabindex="0" data-qi="@(c.Source >= 0 ? c.Source : ci)"
+                            title="Click to sort, again to reverse (Shift-click: original order). Drag to move the column (Alt + arrows too).">@c.Name<button type="button" class="ghost col-filter" aria-label="Filter @c.Name" title="Filter the rows by the values of this column"></button></th>
                     }
                 </tr>
             </thead>

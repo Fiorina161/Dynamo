@@ -10,7 +10,11 @@ namespace Dynamo.Modules.Queries;
 /// <summary>A refusal the user can act on (bad SQL, no connection chosen...).</summary>
 public sealed class QueryException(string message) : Exception(message);
 
-public sealed record ResultColumn(string Name, bool Numeric);
+/// <param name="Source">
+/// Where the column was in the query's own order, once the columns were rearranged (see <see cref="ColumnOrder"/>);
+/// -1 when they were not (its place in the list is then its place in the query).
+/// </param>
+public sealed record ResultColumn(string Name, bool Numeric, int Source = -1);
 
 /// <summary>Values are already formatted for display; null is a SQL NULL.</summary>
 public sealed record QueryResult(

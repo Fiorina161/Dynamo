@@ -14,7 +14,9 @@ public sealed record ResultsModel(QueryResult? Result, string? Error);
 /// The sessions panel on a DBA connection: the address of the Kill dialog (the row adds the session);
 /// null for every other panel, which gets no Kill column.
 /// </param>
-public sealed record PanelResultsModel(ResultsModel Results, long PanelId, string? KillUrl = null);
+/// <param name="CustomColumnOrder">The panel has a saved order of its columns (the page offers to restore the query's).</param>
+public sealed record PanelResultsModel(
+    ResultsModel Results, long PanelId, string? KillUrl = null, bool CustomColumnOrder = false);
 
 /// <summary>A button that downloads the query's whole result as CSV.</summary>
 public sealed record ExportButtonModel(string Url, string? IncludeSelector = null);
@@ -56,11 +58,13 @@ public static class QueryActions
     /// </summary>
     public static async Task<IActionResult> CsvAsync(
         IQueryRunner runner, ILogger log, string connection, string sql,
-        IReadOnlyDictionary<string, string> values, string name, CancellationToken ct)
+        IReadOnlyDictionary<string, string> values, string name, CancellationToken ct,
+        IReadOnlyList<string>? columnOrder = null)
     {
         try
         {
-            var result = await runner.RunAsync(connection, sql, values, QueryRunner.ExportLimit, ct);
+            var result = ColumnOrder.Apply(
+                await runner.RunAsync(connection, sql, values, QueryRunner.ExportLimit, ct), columnOrder);
             return new FileContentResult(QueryCsv.Write(result), "text/csv; charset=utf-8")
             {
                 FileDownloadName = QueryCsv.FileName(name),

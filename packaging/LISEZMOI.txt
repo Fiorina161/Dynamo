@@ -282,6 +282,17 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
 
   - Les lignes sont numérotées de 1 à n dans la première colonne (la
     numérotation suit l'ordre affiché).
+  - Réordonner les colonnes : glissez l'en-tête d'une colonne vers la gauche ou
+    vers la droite; un trait indique où elle se posera, relâchez pour la déposer
+    (la page défile de côté près des bords; Échap annule). Un simple clic sur
+    l'en-tête trie toujours. Au clavier : Alt + flèche gauche ou droite sur un
+    en-tête. L'ordre est retenu avec le panneau (il est aussi utilisé par
+    l'export CSV) et appliqué à chaque rafraîchissement; le tri et les filtres de
+    la colonne la suivent. Le bouton « ⋯ » du panneau a « Restore the query's
+    column order » pour revenir à l'ordre de la requête. Les épingles suivent la
+    première colonne de la requête, où qu'elle soit. Pas pour un écran tactile
+    (un doigt fait défiler le tableau); la colonne « Kill » et le « # » restent
+    en tête.
   - Tri : cliquez sur l'en-tête d'une colonne pour trier selon cette colonne,
     cliquez de nouveau pour inverser l'ordre (▲ ou ▼ indique la colonne
     triée). Les colonnes numériques sont triées comme des nombres, les autres

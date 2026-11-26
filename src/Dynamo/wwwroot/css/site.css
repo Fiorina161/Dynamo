@@ -875,6 +875,13 @@ dialog label.tns-row { display: flex; flex: 1; align-items: center; gap: 12px;
 .results th:hover { color: var(--fg); }
 .results th.rownum { cursor: default; }
 .results th.rownum:hover { color: var(--muted); }
+/* Reordering the columns by dragging their headers (site.js, "Reordering the columns"). */
+.results { position: relative; }
+.panel-results .results th:not(.rownum):not(.kill-col) { cursor: grab; }
+.results th.col-dragging, .results td.col-dragging { opacity: .45; }
+.col-drop-marker { position: absolute; top: 0; width: 3px; background: var(--accent); z-index: 6; pointer-events: none; }
+.col-drop-marker[hidden] { display: none; }
+body.col-reordering, body.col-reordering * { cursor: grabbing !important; user-select: none; }
 .results th:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .results th[aria-sort] { color: var(--fg); }
 .results th[aria-sort="ascending"]::after { content: " ▲"; font-size: 9px; }

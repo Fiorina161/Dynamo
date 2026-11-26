@@ -70,7 +70,8 @@
 }
 
 <div class="workplace-grid" data-workplace data-reorder-url="@Handler("ReorderPanels")"
-     data-collapse-url="@Handler("CollapsePanel")" data-collapse-all-url="@Handler("CollapseAll")">
+     data-collapse-url="@Handler("CollapsePanel")" data-collapse-all-url="@Handler("CollapseAll")"
+     data-column-order-url="@Handler("ColumnOrder")">
     @for (var index = 0; index < w.Panels.Count; index++)
     {
         var p = w.Panels[index];

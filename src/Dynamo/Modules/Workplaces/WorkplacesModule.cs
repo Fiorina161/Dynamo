@@ -118,5 +118,8 @@ public sealed class WorkplacesModule : IModule
         // What a panel is: 'query' (an ordinary query) or 'sessions' (the DBA sessions panel, which
         // adds a Kill button to each row). Copied by Duplicate and by an import.
         "ALTER TABLE watch_panel ADD COLUMN kind TEXT NOT NULL DEFAULT 'query';",
+        // The order of the columns of the panel's result as the user dragged them: a JSON array of column
+        // names, empty = the query's own order. Copied by Duplicate and by an import.
+        "ALTER TABLE watch_panel ADD COLUMN column_order TEXT NOT NULL DEFAULT '';",
     ];
 }

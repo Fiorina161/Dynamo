@@ -45,6 +45,27 @@ public sealed class WorkplacePanel
 
     public bool IsSessions => Kind == PanelKinds.Sessions;
 
+    /// <summary>The columns' names in the order the user left them (JSON); empty = the query's own order.</summary>
+    public string ColumnOrderJson { get; set; } = "";
+
+    /// <summary>The saved order of the result's columns; empty when there is none.</summary>
+    public IReadOnlyList<string> ColumnOrder
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(ColumnOrderJson))
+                return [];
+            try
+            {
+                return JsonSerializer.Deserialize<List<string>>(ColumnOrderJson) ?? [];
+            }
+            catch (JsonException)
+            {
+                return [];
+            }
+        }
+    }
+
     /// <summary>Seed values for the binds: those the query had when it was created or copied.</summary>
     public string LastParamsJson { get; set; } = "{}";
 
@@ -132,7 +153,8 @@ public sealed class WorkplaceRepository(Db db)
                p.sql_text AS Sql, p.last_params AS LastParamsJson,
                p.connection_name AS Connection, p.refresh_seconds AS RefreshSeconds,
                p.max_rows AS MaxRows, p.view_rows AS ViewRows, p.position AS Position,
-               p.collapsed AS Collapsed, p.kind AS Kind
+               p.collapsed AS Collapsed, p.kind AS Kind,
+               p.column_order AS ColumnOrderJson
           FROM watch_panel p
         """;
 
@@ -217,9 +239,9 @@ public sealed class WorkplaceRepository(Db db)
             conn.Execute("""
                 INSERT INTO watch_panel
                     (watch_id, name, sql_text, last_params, connection_name,
-                     refresh_seconds, max_rows, view_rows, collapsed, kind, position)
+                     refresh_seconds, max_rows, view_rows, collapsed, kind, column_order, position)
                 SELECT @workplaceId, p.name, p.sql_text, p.last_params, p.connection_name,
-                       p.refresh_seconds, p.max_rows, p.view_rows, p.collapsed, p.kind,
+                       p.refresh_seconds, p.max_rows, p.view_rows, p.collapsed, p.kind, p.column_order,
                        (SELECT COALESCE(MAX(position), 0) + 1
                           FROM watch_panel WHERE watch_id = @workplaceId)
                   FROM watch_panel p WHERE p.id = @source
@@ -310,6 +332,14 @@ public sealed class WorkplaceRepository(Db db)
         });
     }
 
+    /// <summary>Saves the order of the panel's columns (names); an empty list goes back to the query's own order.</summary>
+    public void SetColumnOrder(long id, IReadOnlyList<string> names)
+    {
+        using var conn = db.Open();
+        conn.Execute("UPDATE watch_panel SET column_order = @json WHERE id = @id",
+            new { id, json = names.Count == 0 ? "" : JsonSerializer.Serialize(names) });
+    }
+
     /// <summary>Collapses a panel to its title line, or expands it.</summary>
     public void SetCollapsed(long id, bool collapsed)
     {
@@ -365,9 +395,9 @@ public sealed class WorkplaceRepository(Db db)
         conn.Execute("""
             INSERT INTO watch_panel
                 (watch_id, name, sql_text, last_params, connection_name,
-                 refresh_seconds, max_rows, view_rows, collapsed, kind, position)
+                 refresh_seconds, max_rows, view_rows, collapsed, kind, column_order, position)
             SELECT @copy, name, sql_text, last_params, connection_name,
-                   refresh_seconds, max_rows, view_rows, collapsed, kind, position
+                   refresh_seconds, max_rows, view_rows, collapsed, kind, column_order, position
               FROM watch_panel WHERE watch_id = @id
             """, new { copy, id }, tx);
         tx.Commit();
