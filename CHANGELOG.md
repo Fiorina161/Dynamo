@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.2 - 2026-11-26
+
+- Remove the Visible rows text box: a panel is resized with the bar at its bottom edge, and new panels keep the default from Settings
+
 ## 1.1.1 - 2026-11-24
 
 - Resize a panel with the mouse by dragging the bar at its bottom edge, in whole rows
