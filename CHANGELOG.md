@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1 - 2026-11-26
+
+- Shorten the panel refresh label to Refresh
+
 ## 1.2.0 - 2026-11-26
 
 - Encrypt the Oracle passwords and the https private keys in the database with Windows DPAPI
