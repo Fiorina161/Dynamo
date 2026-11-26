@@ -83,6 +83,61 @@ public static class DesktopLauncher
         return null;
     }
 
+    /// <summary>
+    /// Runs <paramref name="action"/> for the person using the computer. From a service that is with their own
+    /// token (the primary token handle given to the action, valid only during the call: use it to impersonate them or
+    /// to start a program as them); run as a console the current user already is that person and the action gets
+    /// <see cref="IntPtr.Zero"/>. The action's text is the error to show, or null. Used where something has to happen in the user's
+    /// own account (their Windows credential store, a program on their desktop).
+    /// </summary>
+    public static string? WithUserSession(Func<IntPtr, string?> action)
+    {
+        try
+        {
+            return InServiceSession ? WithServiceUserToken(action) : action(IntPtr.Zero);
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
+    }
+
+    private static string? WithServiceUserToken(Func<IntPtr, string?> action)
+    {
+        var session = WTSGetActiveConsoleSessionId();
+        if (session == NoSession)
+            return "No user is signed in on this computer.";
+        if (!WTSQueryUserToken(session, out var userToken))
+        {
+            var error = Marshal.GetLastWin32Error();
+            return error switch
+            {
+                ErrorNoToken => "No user is signed in on this computer.",
+                ErrorPrivilegeNotHeld =>
+                    "The Dynamo service may not act as the signed-in user. Reinstall it as LocalSystem " +
+                    "(install-service.ps1 -LocalSystem) or run Dynamo as a console.",
+                _ => $"Could not reach your session: {new Win32Exception(error).Message}",
+            };
+        }
+        try
+        {
+            if (!DuplicateTokenEx(userToken, MaximumAllowed, IntPtr.Zero, SecurityImpersonation, TokenPrimary, out var primary))
+                return $"Could not reach your session: {new Win32Exception().Message}";
+            try
+            {
+                return action(primary);
+            }
+            finally
+            {
+                CloseHandle(primary);
+            }
+        }
+        finally
+        {
+            CloseHandle(userToken);
+        }
+    }
+
     private static string? OpenFromService(string target)
     {
         if (Refusal(target) is { } refusal)
@@ -142,7 +197,7 @@ public static class DesktopLauncher
     /// <paramref name="waitMilliseconds"/> for it to end. The exit code is null if it
     /// was still running (a program that stays open is a success).
     /// </summary>
-    internal static (string? Error, uint? ExitCode) RunAsUser(
+    public static (string? Error, uint? ExitCode) RunAsUser(
         IntPtr primaryToken, string application, string commandLine, string? folder, int waitMilliseconds)
     {
         // The user's own environment (PATH, profile folders), not the service's.

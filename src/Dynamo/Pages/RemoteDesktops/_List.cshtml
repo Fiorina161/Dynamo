@@ -1,0 +1,38 @@
+@model Dynamo.Pages.RemoteDesktops.RemoteDesktopListModel
+@* Every action inside replaces the list; the dialog's buttons and Connect override that. *@
+<div id="remote-desktops" hx-target="#remote-desktops" hx-swap="outerHTML">
+    @if (Model.Desktops.Count == 0)
+    {
+        <p class="empty">No remote desktop yet. Use “New remote desktop” to add one.</p>
+    }
+    else
+    {
+        <ul class="items plain share-list">
+            @foreach (var d in Model.Desktops)
+            {
+                <li class="item">
+                    <span class="link">
+                        <span class="title">@d.Name</span>
+                        <span class="hint">
+                            @if (d.PasswordUnreadable)
+                            {
+                                <span class="todo">password cannot be read here: edit it and enter it again</span>
+                                <text> · </text>
+                            }
+                            @d.Host · @d.Username
+                        </span>
+                    </span>
+                    <button type="button" class="row-btn"
+                            title="@(Model.CanConnect ? "Save the password in Windows and open the Remote Desktop client" : "Only from the computer where Dynamo runs")"
+                            disabled="@(!Model.CanConnect || d.PasswordUnreadable)"
+                            hx-post="@Url.Page("/RemoteDesktops/Index", "Connect", new { id = d.Id })"
+                            hx-swap="none">Connect</button>
+                    <button type="button" class="ghost small row-btn"
+                            title="Change the host, the account or the password"
+                            hx-get="@Url.Page("/RemoteDesktops/Index", "Form", new { id = d.Id })"
+                            hx-target="#dlg" hx-swap="innerHTML">Edit</button>
+                </li>
+            }
+        </ul>
+    }
+</div>

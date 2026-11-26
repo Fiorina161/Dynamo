@@ -209,6 +209,42 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     enregistré ne peut plus être lu : la liste l'indique, il suffit de le
     saisir de nouveau (« Edit »).
 
+3.2c Remote desktops (bureaux à distance)
+
+  Pour ouvrir une session Bureau à distance (RDP) en un clic, sans retaper le
+  mot de passe chaque fois.
+
+  - « New remote desktop » demande :
+      Name ............ un nom unique (par exemple « Serveur de build »)
+      Host ............ le nom de l'ordinateur ou son adresse IPv4, avec le port
+                        si ce n'est pas 3389 (serveur01, 10.0.0.5:3390)
+      User ............ le compte (utilisateur ou DOMAINE\utilisateur)
+      Password ........ son mot de passe (enregistré CHIFFRÉ, jamais réaffiché)
+  - « Connect » fait deux choses, dans VOTRE session Windows : il enregistre le
+    compte dans le Gestionnaire d'informations d'identification de Windows
+    (sous le nom TERMSRV/serveur), puis ouvre le client Bureau à distance, qui
+    s'y connecte sans rien demander. Le mot de passe ne passe jamais par une
+    ligne de commande.
+  - Connect ne fonctionne que depuis l'ordinateur où Dynamo s'exécute (c'est
+    celui dont on utilise le Gestionnaire d'informations d'identification et le
+    bureau). Depuis un autre ordinateur, le bouton est désactivé; on peut
+    quand même ajouter, modifier ou supprimer des bureaux à distance.
+  - Ressaisir les identifiants : si le mot de passe a changé (ou expiré) sur
+    l'ordinateur distant, cliquez « Edit » et tapez le nouveau (laissé vide, le
+    mot de passe enregistré est conservé). Chaque « Connect » enregistre de
+    nouveau le compte dans Windows : le nouveau mot de passe s'applique donc au
+    prochain Connect. « Forget in Windows » (dans la fenêtre « Edit », depuis
+    cet ordinateur) supprime le mot de passe que Windows avait enregistré pour
+    ce serveur.
+  - Si Windows redemande quand même un mot de passe : soit celui d'ici n'est
+    plus valide (ressaisissez-le), soit Windows refuse les identifiants
+    enregistrés pour ce serveur (cas d'un serveur hors domaine : la stratégie
+    « Autoriser la délégation des informations d'identification enregistrées »
+    doit l'autoriser).
+  - Si la base de données a été copiée d'un autre ordinateur, le mot de passe
+    enregistré ne peut plus être lu : la liste l'indique, il suffit de le saisir
+    de nouveau.
+
 3.3 Workspaces (espaces de travail)
 
   Les requêtes SQL vivent dans des espaces de travail. Un espace affiche

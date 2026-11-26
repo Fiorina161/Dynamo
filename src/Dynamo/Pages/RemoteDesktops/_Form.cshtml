@@ -1,0 +1,52 @@
+@model Dynamo.Pages.RemoteDesktops.RemoteDesktopFormModel
+@{
+    var d = Model.Desktop;
+    string Handler(string name, object? values = null) => Url.Page("/RemoteDesktops/Index", name, values)!;
+}
+<form hx-post="@Handler("Save")" hx-target="#remote-desktops" hx-swap="outerHTML">
+    <h2>@(d.Id == 0 ? "New remote desktop" : "Edit remote desktop")</h2>
+    <input type="hidden" name="id" value="@d.Id" />
+
+    <label>Name
+        <input name="name" value="@d.Name" autocomplete="off" autofocus placeholder="e.g. Build server" />
+    </label>
+    <label>Host
+        <input name="host" value="@d.Host" autocomplete="off" spellcheck="false" placeholder="e.g. server01 or 10.0.0.5:3390" />
+    </label>
+    <label>User
+        <input name="username" value="@d.Username" autocomplete="off" spellcheck="false" placeholder="e.g. DOMAIN\user" />
+    </label>
+    <label>Password
+        <input name="password" type="password" autocomplete="new-password"
+               placeholder="@(d.Id == 0 || d.PasswordUnreadable ? "" : "unchanged")" />
+    </label>
+    <p class="hint-text">
+        <b>Connect</b> saves this account in your Windows Credential Manager and opens the Remote Desktop client, which
+        then connects without asking. It is saved again at every Connect, so a password you re-enter here (after it
+        changed or expired on the remote computer) applies at once. Leave the password blank to keep the one stored
+        (encrypted) here.
+    </p>
+
+    @if (Model.Error is not null)
+    {
+        <p class="error">@Model.Error</p>
+    }
+
+    <footer>
+        @if (d.Id != 0)
+        {
+            <button type="button" class="ghost danger"
+                    hx-post="@Handler("Delete", new { id = d.Id })"
+                    hx-confirm="Delete the remote desktop “@d.Name”? The password saved in Windows is not touched (use “Forget in Windows” first).">Delete</button>
+            @if (Model.CanConnect)
+            {
+                <button type="button" class="ghost"
+                        title="Remove the password Windows saved for this host (it is saved again at the next Connect)"
+                        hx-post="@Handler("Forget", new { id = d.Id })" hx-swap="none">Forget in Windows</button>
+            }
+        }
+        <span class="spacer"></span>
+        <button type="button" class="ghost" data-close>Cancel</button>
+        <button type="submit">Save</button>
+    </footer>
+</form>

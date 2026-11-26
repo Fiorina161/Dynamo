@@ -36,6 +36,14 @@ web interface and stored in a local Sqlite database; it works fully offline.
   is only replaced after asking, and an interrupted upload leaves nothing behind.
   Uploads can be turned off per folder; Dynamo never deletes or renames anything.
 
+**Remote desktops**
+- Save a host, an account and its password (encrypted), then **Connect** opens a Remote
+  Desktop session in one click without typing the password: Dynamo saves it in your
+  Windows Credential Manager and starts the Remote Desktop client in your session.
+  Works from the computer Dynamo runs on; editing works from anywhere. A password
+  that changed is re-entered in the Edit dialog (blank keeps the stored one), and
+  "Forget in Windows" removes the saved credential.
+
 **Workspaces**
 - A workspace shows several saved queries as panels, each refreshing on its own;
   bind variables are shared across panels.

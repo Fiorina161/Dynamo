@@ -97,7 +97,8 @@ Then `git checkout master && git pull`, and delete the branch.
   one signed in -> "No user is signed in". The token step can only be tested
   as LocalSystem; the rest is tested with a copy of the test process's own
   token (`DesktopLauncherTests`). Reuse `DesktopLauncher` for any future
-  "run a program for the user" feature (command-line tools module).
+  "run a program for the user" feature (command-line tools module); `WithUserSession` hands
+  the user's token to code that has to act in their account (used by Remote desktops).
 - UI: sober, minimal color (one accent), light/dark/system theme. **Small
   screens (< 760 px, a phone)**: the sidebar becomes a sticky top bar and the
   menu (links, theme, log out) folds behind a hamburger button (`#menu-toggle`,
@@ -136,6 +137,46 @@ Then `git checkout master && git pull`, and delete the branch.
   ignored on purpose. **Rehearsed on a copy of the real database** (4 connections: all
   converted, each decrypts to the same SHA-256 as before, both certificate keys read
   back; the real database was not touched). Tests: `SecretsTests` (14).
+- **Remote desktops (done, 26 Nov 2026; the owner's request: "start a remote desktop
+  session from a web link without logging in each time", then "that's what we'll do, but
+  provide a way to re-enter the credentials").** `Modules/RemoteDesktops`, page
+  `/RemoteDesktops` (menu "Remote desktops", order 37, after Shared folders), table
+  `remote_desktop` (name, host, username, password **protected like the other passwords**:
+  `Secrets`, `Reveal` / `PasswordUnreadable`). **Connect = two steps in the signed-in
+  user's own account, both done by the service:** (1) the credential is written into the
+  user's Windows Credential Manager, (2) `mstsc.exe /v:host` is started on their desktop and
+  finds it, so it does not ask. **Only from the computer Dynamo runs on** (`ClientAccess.IsLocal`,
+  like Update now): the vault and the desktop are this computer's, a remote browser would
+  only fill the VM's; the page says so and the button is off. Adding, editing and
+  deleting work from anywhere. **Why the Windows API and not `cmdkey`:**
+  `WindowsCredentials` calls `CredWriteW` (generic credential `TERMSRV/<host>` without the
+  port, `CRED_PERSIST_LOCAL_MACHINE`, the same thing `cmdkey /generic:` makes) while
+  **impersonating** the user (`DesktopLauncher.WithUserSession` gives the primary token from
+  `WTSQueryUserToken`; a duplicated impersonation token and `WindowsIdentity.RunImpersonated`
+  do the rest), so the password never goes on a command line (visible in the process list)
+  and needs no quoting. Without impersonation a LocalSystem service would write into its
+  own store, which nobody reads. As a console run the current user is used directly
+  (token zero). **The host is validated hard** (`RemoteDesktopHost`: letters, digits, dot,
+  hyphen, underscore, optional `:port` 1..65535) because it goes on the `mstsc` command
+  line. **Re-entering the credentials:** Edit (a blank password keeps the stored one, a typed
+  one replaces it); **every Connect writes the credential again**, so a changed password
+  applies at the next Connect; "Forget in Windows" (local only) deletes the saved credential
+  (`CredDeleteW`; nothing to delete is not an error). A password that cannot be decrypted
+  here is `PasswordUnreadable` (Connect off, saving with a blank password refused). The
+  toast after Connect says what to do if Windows still asks: use Edit. Tests:
+  `RemoteDesktopTests` (host rule, encryption, re-entering, Connect/Forget with a fake
+  launcher, refusal from another computer via the `X-Test-Client` login pattern, and the
+  **real** credential store for the test's own user: write, replace, read, delete, the
+  impersonation path with the process's own token, and the real launcher's Forget).
+  **Verified as a real LocalSystem service** with a throwaway service (`DynamoRdpTest`,
+  created, used and removed by one elevated script; made-up host name): the service (session
+  0) wrote the credential into the signed-in user's store, started `mstsc` in session 1, and
+  Forget removed it. **Not verified: a real RDP connection.** That mstsc then connects
+  without prompting is the documented behaviour of a saved `TERMSRV/host` credential; on a
+  target that only accepts NTLM and is not in the domain, Windows may refuse saved credentials
+  unless the policy "Allow delegating saved credentials" (and `AllowSavedCredentials`) covers
+  that host: a prompt then reappears whatever Dynamo does. A host with a non-default port is
+  stored under the host name only.
 - **Shared folders (done, 26 Nov 2026; the owner's request: "list and download files
   in a shared folder, ask for user and password and save them"; first candidate
   was a folder of an internal ftp server; the dialog's hints are generic ("e.g. ...") on purpose:

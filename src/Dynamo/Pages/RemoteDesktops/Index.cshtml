@@ -1,0 +1,27 @@
+@page "/RemoteDesktops"
+@model Dynamo.Pages.RemoteDesktops.IndexModel
+@{
+    ViewData["Title"] = "Remote desktops";
+}
+
+<header class="page-head">
+    <div class="greeting">
+        <h1>Remote desktops</h1>
+        <p>One click opens a Remote Desktop session, without asking for the password each time.</p>
+    </div>
+    <div class="actions">
+        <button type="button"
+                hx-get="@Url.Page("/RemoteDesktops/Index", "Form")"
+                hx-target="#dlg">New remote desktop</button>
+    </div>
+</header>
+
+@if (!Model.CanConnect)
+{
+    <p class="notice">
+        Connect works only from the computer where Dynamo runs: it saves the password in that computer's Windows
+        Credential Manager and opens the Remote Desktop client there. You can still add and change remote desktops from here.
+    </p>
+}
+
+<partial name="_List" model="new Dynamo.Pages.RemoteDesktops.RemoteDesktopListModel(Model.Desktops, Model.CanConnect)" />
