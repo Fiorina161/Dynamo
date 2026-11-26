@@ -242,8 +242,7 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
   - Réordonner : glissez la poignée ⠿ du titre d'un panneau pour le placer
     ailleurs dans l'ordre (un trait indique où il se posera; la page défile
     près des bords; Échap annule), à la souris, au stylet ou au doigt. Sur la
-    poignée, les touches ↑ et ↓ déplacent le panneau d'un cran, et les détails
-    (⚙) ont aussi des boutons « plus tôt / plus tard ».
+    poignée, les touches ↑ et ↓ déplacent le panneau d'un cran.
   - Pleine largeur : le bouton ↔ du titre d'un panneau lui donne toute la
     largeur de la page (il occupe toutes les colonnes), pour voir une requête
     qui a beaucoup de colonnes. Retenu par ce navigateur, panneau par panneau.
@@ -261,7 +260,7 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     intervalle de rafraîchissement en secondes (0 = aucun), nombre maximal de
     lignes lues (500 par défaut, jusqu'à 10 000), « Run now », « Export CSV » (jusqu'à 100 000 lignes, un fichier
     qui s'ouvre directement dans Excel), « Edit query » (modifier le nom et le
-    SQL du panneau), « plus tôt / plus tard » et « Remove ».
+    SQL du panneau) et « Remove ».
   - Chaque panneau se rafraîchit à son rythme : la prochaine exécution part
     quand la précédente est terminée. Les cellules qui ont changé depuis la
     dernière fois clignotent brièvement, et la variation du nombre de lignes

@@ -1108,21 +1108,9 @@
             marker.hidden = false;
         }
 
-        // The earlier/later buttons in the details: the first panel cannot go earlier, the last later.
-        function refreshMoveButtons() {
-            var list = panelsOf();
-            list.forEach(function (panel, i) {
-                var earlier = panel.querySelector('[data-move="-1"]');
-                var later = panel.querySelector('[data-move="1"]');
-                if (earlier) earlier.disabled = i === 0;
-                if (later) later.disabled = i === list.length - 1;
-            });
-        }
-
         function saveOrder() {
             var token = '';
             try { token = JSON.parse(document.body.getAttribute('hx-headers')).RequestVerificationToken; } catch (err) { }
-            refreshMoveButtons();
             fetch(grid.dataset.reorderUrl, {
                 method: 'POST',
                 headers: { 'RequestVerificationToken': token, 'Content-Type': 'application/x-www-form-urlencoded' },

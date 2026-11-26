@@ -310,33 +310,6 @@ public sealed class WorkplaceRepository(Db db)
         });
     }
 
-    /// <summary>
-    /// Moves a panel one place earlier (delta -1) or later (+1) among the
-    /// panels of its workspace; at either end nothing changes.
-    /// </summary>
-    public void MovePanel(long id, int delta)
-    {
-        using var conn = db.Open();
-        using var tx = conn.BeginTransaction();
-        var workplaceId = conn.ExecuteScalar<long?>(
-            "SELECT watch_id FROM watch_panel WHERE id = @id", new { id }, tx);
-        if (workplaceId is null)
-            return;
-        var order = conn.Query<long>(
-            "SELECT id FROM watch_panel WHERE watch_id = @workplaceId ORDER BY position, id",
-            new { workplaceId }, tx).ToList();
-        var from = order.IndexOf(id);
-        var to = from + Math.Sign(delta);
-        if (from >= 0 && to >= 0 && to < order.Count)
-        {
-            (order[from], order[to]) = (order[to], order[from]);
-            for (var i = 0; i < order.Count; i++)
-                conn.Execute("UPDATE watch_panel SET position = @position WHERE id = @id",
-                    new { id = order[i], position = i + 1 }, tx);
-        }
-        tx.Commit();
-    }
-
     /// <summary>Collapses a panel to its title line, or expands it.</summary>
     public void SetCollapsed(long id, bool collapsed)
     {

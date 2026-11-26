@@ -617,56 +617,20 @@ public class WorkplacesTests
     }
 
     [Test]
-    public async Task Panels_CanBeMovedEarlierAndLater_NotPastTheEnds()
-    {
-        var w = NewWorkplace("Order");
-        _workplaces.AddCopies(w, [NewQuery("P1", "select 1 from dual"), NewQuery("P2", "select 2 from dual"), NewQuery("P3", "select 3 from dual")]);
-        string Names() => string.Join(",", _workplaces.Get(w)!.Panels.Select(p => p.QueryName));
-        var ids = _workplaces.Get(w)!.Panels.Select(p => p.Id).ToList();
-
-        var moved = await Post($"/Workplaces/{w}?handler=MovePanel&panel={ids[2]}&dir=-1");
-        Assert.That(Header(moved, "HX-Refresh"), Is.EqualTo("true"));
-        Assert.That(Names(), Is.EqualTo("P1,P3,P2"));
-        await Post($"/Workplaces/{w}?handler=MovePanel&panel={ids[2]}&dir=-1");
-        Assert.That(Names(), Is.EqualTo("P3,P1,P2"));
-        await Post($"/Workplaces/{w}?handler=MovePanel&panel={ids[2]}&dir=-1");
-        Assert.That(Names(), Is.EqualTo("P3,P1,P2"), "already first");
-        await Post($"/Workplaces/{w}?handler=MovePanel&panel={ids[0]}&dir=1");
-        Assert.That(Names(), Is.EqualTo("P3,P2,P1"));
-        await Post($"/Workplaces/{w}?handler=MovePanel&panel={ids[0]}&dir=1");
-        Assert.That(Names(), Is.EqualTo("P3,P2,P1"), "already last");
-        await Post($"/Workplaces/{w}?handler=MovePanel&panel={ids[1]}&dir=1");
-        Assert.That(Names(), Is.EqualTo("P3,P1,P2"));
-    }
-
-    [Test]
-    public async Task APanelCannotBeMovedThroughAnotherWorkplace()
-    {
-        var a = NewWorkplace("Move A");
-        var b = NewWorkplace("Move B");
-        _workplaces.AddCopies(a, [NewQuery("M1", "select 1 from dual"), NewQuery("M2", "select 2 from dual")]);
-        var panels = _workplaces.Get(a)!.Panels;
-
-        Assert.That((await Post($"/Workplaces/{b}?handler=MovePanel&panel={panels[0].Id}&dir=1")).StatusCode,
-            Is.EqualTo(HttpStatusCode.NotFound));
-        Assert.That(_workplaces.Get(a)!.Panels.Select(p => p.QueryName), Is.EqualTo(new[] { "M1", "M2" }));
-    }
-
-    [Test]
-    public async Task EachPanelHasEarlierAndLaterButtons_DisabledAtTheEnds_AndNothingIsHtml5Draggable()
+    public async Task ThereAreNoMoveArrowsAnyMore_PanelsAreReorderedByTheHandle_AndNothingIsHtml5Draggable()
     {
         var w = NewWorkplace("Arrow markup");
         _workplaces.AddCopies(w, [NewQuery("A1", "select 1 from dual"), NewQuery("A2", "select 2 from dual"), NewQuery("A3", "select 3 from dual")]);
         var html = await _client.GetStringAsync($"/Workplaces/{w}");
 
-        Assert.That(Regex.Matches(html, "Move this panel earlier in the order").Count, Is.EqualTo(3));
-        Assert.That(Regex.Matches(html, "Move this panel later in the order").Count, Is.EqualTo(3));
-        // The first panel cannot go earlier, the last cannot go later.
-        Assert.That(Regex.Matches(html, "title=\"Move this panel earlier in the order\"[^>]*disabled").Count, Is.EqualTo(1));
-        Assert.That(Regex.Matches(html, "title=\"Move this panel later in the order\"[^>]*disabled").Count, Is.EqualTo(1));
-        // The order is a sequence, not a position on the screen: the buttons say earlier/later, not left/right.
-        Assert.That(html, Does.Not.Contain(">←</button>").And.Not.Contain(">→</button>"));
+        Assert.That(html, Does.Not.Contain("Move this panel earlier").And.Not.Contain("Move this panel later")
+            .And.Not.Contain("data-move=").And.Not.Contain("handler=MovePanel"), "the ↑ ↓ buttons of the details are gone");
+        Assert.That(Regex.Matches(html, "data-panel-grip").Count, Is.EqualTo(3), "the drag handle is how panels are moved");
         Assert.That(html, Does.Not.Contain("draggable=\"true\""), "dragging is done with pointer events, from a handle");
+        var first = _workplaces.Get(w)!.Panels[0].Id;
+        await Post($"/Workplaces/{w}?handler=MovePanel&panel={first}&dir=1");
+        Assert.That(_workplaces.Get(w)!.Panels.Select(p => p.QueryName), Is.EqualTo(new[] { "A1", "A2", "A3" }),
+            "the old request no longer moves anything");
     }
 
     [Test]
@@ -679,7 +643,6 @@ public class WorkplacesTests
 
         Assert.That(Regex.Matches(html, "data-panel-grip").Count, Is.EqualTo(2));
         Assert.That(html, Does.Contain($"data-reorder-url=\"/Workplaces/{w}?handler=ReorderPanels\""));
-        Assert.That(html, Does.Contain("data-move=\"-1\"").And.Contain("data-move=\"1\""));
     }
 
     [Test]

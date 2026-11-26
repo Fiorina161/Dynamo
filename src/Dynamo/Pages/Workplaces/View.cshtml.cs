@@ -263,15 +263,6 @@ public class ViewModel(
         return new NoContentResult();
     }
 
-    /// <summary>Moves a panel one place earlier (dir = -1) or later (1).</summary>
-    public IActionResult OnPostMovePanel(long id, long panel, int dir)
-    {
-        if (repo.GetPanel(panel) is not { } p || p.WorkplaceId != id)
-            return NotFound();
-        repo.MovePanel(panel, dir);
-        return Refresh();
-    }
-
     /// <summary>
     /// Saves the order the panels were dragged into: <c>order</c> is every panel
     /// id of the workspace, comma separated, in the new order. A list that is not

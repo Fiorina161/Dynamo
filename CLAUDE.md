@@ -343,8 +343,10 @@ Then `git checkout master && git pull`, and delete the branch.
   Escape cancels, and ArrowUp/Down on the handle move one place. **One POST
   `ReorderPanels` with the whole order** (antiforgery header from `hx-headers`;
   the list must be exactly the workspace's panels or it answers 409 and the page
-  reloads; non-numbers 400). The earlier/later buttons (↑ ↓, `MovePanel`,
-  `HX-Refresh`) remain for phones and as the fallback. **History: drag and drop
+  reloads; non-numbers 400). **The earlier/later buttons (↑ ↓, `MovePanel`,
+  `HX-Refresh`) were removed on 26 Nov 2026 (owner's request: drag and drop makes them
+  unnecessary); the handle's pointer events work with a finger too, and ArrowUp/Down on the
+  handle are the keyboard way.** **History: drag and drop
   was built and removed on 12 Nov 2026 (the owner did not like how it worked;
   what exactly was never said; its first save also failed); the owner asked for
   it again on 23 Nov 2026, so it is wanted. This version is handle-only, with a

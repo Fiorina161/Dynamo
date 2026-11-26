@@ -159,16 +159,6 @@
                                 hx-post="@Handler("Plan", new { id = w.Id, panel = p.Id })"
                                 hx-include="#binds, closest form" hx-target="#dlg" hx-swap="innerHTML">Plan</button>
                     }
-                    <button type="button" class="ghost" data-move="-1" title="Move this panel earlier in the order"
-                            aria-label="Move @p.QueryName earlier"
-                            disabled="@(index == 0)"
-                            hx-post="@Handler("MovePanel", new { id = w.Id, panel = p.Id, dir = -1 })"
-                            hx-swap="none" hx-include="this">↑</button>
-                    <button type="button" class="ghost" data-move="1" title="Move this panel later in the order"
-                            aria-label="Move @p.QueryName later"
-                            disabled="@(index == w.Panels.Count - 1)"
-                            hx-post="@Handler("MovePanel", new { id = w.Id, panel = p.Id, dir = 1 })"
-                            hx-swap="none" hx-include="this">↓</button>
                     <button type="button" class="ghost danger"
                             hx-post="@Handler("RemovePanel", new { id = w.Id, panel = p.Id })"
                             hx-swap="none" hx-include="this"
