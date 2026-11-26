@@ -956,7 +956,7 @@
     }
 
     // Also makes the panel exactly N rows tall: its results container gets a
-    // min-height of the header plus N rows, so "Visible rows" is the height, not a
+    // min-height of the header plus N rows, so the number of rows is the height, not a
     // ceiling: a result with fewer rows, an error or no rows leaves blank space
     // inside the panel (the owner asked for it: the number set is the number
     // respected). It also keeps the panel from changing height when a refresh
@@ -1586,10 +1586,10 @@
 
     // ---- Resizing a panel with the mouse ---------------------------------------------------------
     // The bar at the bottom edge of a panel: drag it up or down and the panel grows or shrinks by whole
-    // rows (a panel is always exactly as tall as its Visible rows, so this sets that number: the one in
-    // its details, saved like any change there). Mouse, pen or finger (pointer events); Escape cancels;
+    // rows (a panel is always exactly as tall as its number of rows, so this sets that number, kept in a
+    // hidden field of the panel's details form and saved like any change there). Mouse, pen or finger (pointer events); Escape cancels;
     // on the bar the up and down arrow keys change it by one row; a double-click goes back to the default
-    // number of rows (Settings, Results). The saving is the details' own: the "visible rows" input gets
+    // number of rows (Settings, Results). The saving is the details' own: the hidden viewRows field gets
     // the value and its change event makes htmx post the panel's settings.
     (function () {
         var drag = null;

@@ -54,7 +54,7 @@ public class ViewModel(
     IQueryRunner runner, IPlanRunner planner, ISessionKiller killer,
     ResultOptions resultOptions, ILogger<ViewModel> log) : PageModel
 {
-    /// <summary>How many rows a panel shows when its own Visible rows is 0 (Settings).</summary>
+    /// <summary>How many rows a panel shows when it has no number of its own, i.e. 0 (Settings).</summary>
     public int DefaultRows => resultOptions.DefaultRows;
 
 

@@ -21,7 +21,7 @@ public sealed class ResultOptions(SettingsRepository settings)
     private int? _defaultRows;
 
     /// <summary>
-    /// How many rows a panel shows when its own "Visible rows" is 0 (1..1,000, default
+    /// How many rows a panel shows when it has no number of its own (0: it was never resized) (1..1,000, default
     /// 10: what used to be hard-coded).
     /// </summary>
     public int DefaultRows

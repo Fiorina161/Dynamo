@@ -1,7 +1,7 @@
 # CLAUDE.md — Dynamo
 
-Self-hosted local Windows site for a programmer's tools (see README.md for
-run/install and architecture). Work directly in this checkout; no worktrees.
+Self-hosted local Windows site for a programmer's tools (README.md has the
+features and the install; this file holds the design notes and decisions). Work directly in this checkout; no worktrees.
 Comments wrap at column 80. Commit and push only when the user asks.
 
 ## Git
@@ -349,6 +349,12 @@ Then `git checkout master && git pull`, and delete the branch.
   needs 12c), the SYSDBA login, EXPLAIN PLAN through the driver (binds as text), the
   real `ALTER SYSTEM KILL SESSION`, and the health probe against a live database.
   Run them once on a test database before relying on them.
+- **The "Visible rows" text box was removed (26 Nov 2026, owner's request: the
+  resize bar replaces it).** The details (⚙) no longer show it; the field stays as a
+  **hidden input** `name=viewRows` (same `data-view-rows-for` / `-default` and
+  `hx-post`), because the resize bar saves through it. The **Settings default
+  (`results.default_rows`) stays** and is what new panels follow (`view_rows` 0);
+  `PanelSettings` still accepts `viewRows`. Double-click on the bar = back to 0.
 - **Resizing a panel with the mouse (done, 24 Nov 2026).** A bar at the bottom of
   every panel (`.panel-resize`, `data-panel-resize`) drags the height by **whole
   rows**: it does not add a free pixel height, because a panel is exactly as tall as
@@ -526,6 +532,13 @@ console, non-SELECT statements.
 
 ## Conventions
 
+- Architecture: ASP.NET Core 10, Razor Pages and htmx (vendored in `wwwroot/lib`, no
+  CDN, no Node build), Sqlite through Dapper. `Core/` = home directory, database,
+  migrations, the `IModule` contract. **Adding a use case:** create
+  `Modules/<Name>/<Name>Module.cs` implementing `IModule` with its SQL migrations
+  (append-only, applied once per module at startup), its repository/logic beside it
+  and the pages under `Pages/<Name>/`, then register it in `Program.cs`
+  (`AddSingleton<IModule, ...>`): it appears in the navigation.
 - One folder per use case: `Modules/<Name>` (IModule, migrations, repository)
   and `Pages/<Name>` (Razor pages, htmx fragments).
 - Migrations are append-only per module; never edit a shipped one.

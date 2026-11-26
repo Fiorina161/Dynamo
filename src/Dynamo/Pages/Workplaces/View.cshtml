@@ -129,15 +129,14 @@
                                hx-post="@Handler("PanelSettings", new { id = w.Id, panel = p.Id })"
                                hx-trigger="change" hx-swap="none" />
                     </label>
-                    <label>Visible rows <small class="hint-inline">(0 = the default, @Model.DefaultRows)</small>
-                        <input name="viewRows" type="number" min="0" max="@WorkplaceRepository.MaxViewRows"
-                               value="@p.ViewRows" inputmode="numeric"
-                               data-view-rows-default="@Model.DefaultRows"
-                               title="The panel is always this many rows tall: a longer result scrolls, a shorter one leaves blank space. 0 = the default number of rows from Settings (@Model.DefaultRows)."
-                               data-view-rows-for="#panel-out-@p.Id"
-                               hx-post="@Handler("PanelSettings", new { id = w.Id, panel = p.Id })"
-                               hx-trigger="change" hx-swap="none" />
-                    </label>
+                    @* The panel's height in rows is no longer typed: the bar at the bottom of the panel sets it
+                       (site.js, "Resizing a panel"), by changing this field and saving it. 0 = the default
+                       number of rows from Settings (@Model.DefaultRows), which new panels start with. *@
+                    <input name="viewRows" type="hidden" value="@p.ViewRows"
+                           data-view-rows-default="@Model.DefaultRows"
+                           data-view-rows-for="#panel-out-@p.Id"
+                           hx-post="@Handler("PanelSettings", new { id = w.Id, panel = p.Id })"
+                           hx-trigger="change" hx-swap="none" />
                     <label>Refresh every (s, 0 = off)
                         <input name="seconds" type="number" min="0" max="3600" value="@p.RefreshSeconds"
                                inputmode="numeric" data-panel-seconds
@@ -179,7 +178,7 @@
 
             <div class="panel-results" id="panel-out-@p.Id"><p class="empty">Loading…</p></div>
 
-            @* Drag to resize by whole rows (it sets "Visible rows"); arrow keys: one row; double-click: the default. *@
+            @* Drag to resize by whole rows (it sets the panel's number of rows); arrow keys: one row; double-click: the default. *@
             <div class="panel-resize" data-panel-resize role="separator" aria-orientation="horizontal" tabindex="0"
                  title="Drag to change the number of visible rows (double-click: the default)"
                  aria-label="Resize @p.QueryName: drag, or use the up and down arrow keys"></div>

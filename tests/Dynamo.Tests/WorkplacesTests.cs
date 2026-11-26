@@ -556,7 +556,9 @@ public class WorkplacesTests
         Assert.That(panel.ViewRows, Is.EqualTo(0), "a new panel has no number of its own: 0 = the default from Settings");
         var page = await _client.GetStringAsync($"/Workplaces/{w}");
         Assert.That(page, Does.Match("name=\"viewRows\"[^>]*value=\"0\"").Or.Match("value=\"0\"[^>]*name=\"viewRows\""));
-        Assert.That(page, Does.Contain("data-view-rows-default=\"10\"").And.Contain("(0 = the default, 10)"));
+        Assert.That(page, Does.Contain("data-view-rows-default=\"10\""));
+        Assert.That(page, Does.Match("<input name=\"viewRows\" type=\"hidden\""), "the height is no longer typed: the resize bar sets it");
+        Assert.That(page, Does.Not.Contain("Visible rows").And.Not.Match("name=\"viewRows\"[^>]*type=\"number\""));
 
         // Its own number; 0 goes back to the default; out of range is kept inside 0..1000.
         await Post($"/Workplaces/{w}?handler=PanelSettings&panel={panel.Id}",
@@ -589,7 +591,7 @@ public class WorkplacesTests
         {
             options.SetDefaultRows(7);
             var page = await _client.GetStringAsync($"/Workplaces/{w}");
-            Assert.That(page, Does.Contain("data-view-rows-default=\"7\"").And.Contain("(0 = the default, 7)"));
+            Assert.That(page, Does.Contain("data-view-rows-default=\"7\""));
         }
         finally
         {

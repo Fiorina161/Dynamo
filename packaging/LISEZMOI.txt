@@ -185,9 +185,9 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
   - Disposition : les panneaux s'écoulent le long des colonnes de la page
     (autant de colonnes que la largeur en permet, d'au moins 560 px chacune),
     de sorte qu'un petit panneau ne laisse pas de vide : le suivant prend sa
-    place. Un panneau a toujours exactement la hauteur de ses « lignes visibles »
-    (par défaut, le nombre de lignes réglé dans « Settings », section « Results »,
-    10 au départ, sauf si le panneau a son propre nombre) : un résultat plus long défile, un résultat plus court, une
+    place. Un panneau a toujours exactement la hauteur d'un nombre entier de
+    lignes (par défaut, le nombre de lignes réglé dans « Settings », section
+    « Results », 10 au départ, sauf si le panneau a été redimensionné à la souris) : un résultat plus long défile, un résultat plus court, une
     erreur ou aucune ligne laisse de l'espace vide; le nombre réglé est donc le
     nombre obtenu, et la disposition ne saute pas à un rafraîchissement. L'ordre est
     une suite (on descend la première colonne, puis la suivante), pas une
@@ -212,11 +212,7 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
     panneau réduit le rouvre.
   - L'engrenage (⚙) du titre d'un panneau ouvre ses détails : connexion,
     intervalle de rafraîchissement en secondes (0 = aucun), nombre maximal de
-    lignes lues (500 par défaut, jusqu'à 10 000), nombre de lignes visibles
-    (« Visible rows », de 0 à 1 000 : la hauteur du tableau, qui défile
-    au-delà; 0 = le nombre par défaut réglé dans « Settings », section « Results »,
-    « Default number of rows displayed » : les nouveaux panneaux commencent à 0,
-    donc changer ce seul nombre redimensionne tous les panneaux qui le suivent), « Run now », « Export CSV » (jusqu'à 100 000 lignes, un fichier
+    lignes lues (500 par défaut, jusqu'à 10 000), « Run now », « Export CSV » (jusqu'à 100 000 lignes, un fichier
     qui s'ouvre directement dans Excel), « Edit query » (modifier le nom et le
     SQL du panneau), « plus tôt / plus tard » et « Remove ».
   - Chaque panneau se rafraîchit à son rythme : la prochaine exécution part
@@ -277,9 +273,12 @@ du menu alterne entre les thèmes clair, sombre et celui du système.
 
   Redimensionner un panneau : tirez la barre située au bas d'un panneau vers le
   haut ou vers le bas. La hauteur suit la souris et se cale sur un nombre
-  ENTIER de lignes; ce nombre est celui de « Visible rows » du panneau,
-  enregistré comme tout changement fait dans ses détails (le rythme de
-  rafraîchissement et les autres réglages ne bougent pas). Une étiquette
+  ENTIER de lignes; ce nombre est enregistré avec le panneau (il n'y a plus de
+  case pour le saisir; le rythme de rafraîchissement et les autres réglages ne
+  bougent pas). Les nouveaux panneaux commencent au nombre de lignes par défaut
+  réglé dans « Settings », section « Results » (« Default number of rows
+  displayed »); changer ce nombre redimensionne tous les panneaux qui n'ont pas
+  été redimensionnés. Une étiquette
   indique le nombre de lignes pendant le glissement; Échap annule; les flèches
   haut et bas sur la barre changent d'une ligne; un double-clic revient au
   nombre de lignes par défaut (« Settings », section « Results »).

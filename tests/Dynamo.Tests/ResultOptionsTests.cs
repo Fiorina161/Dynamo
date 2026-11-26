@@ -117,7 +117,7 @@ public class ResultOptionsTests
 
         Assert.That(page, Does.Contain("Default number of rows displayed"));
         Assert.That(page, Does.Match("name=\"defaultRows\"[^>]*value=\"10\"").Or.Match("value=\"10\"[^>]*name=\"defaultRows\""));
-        Assert.That(page, Does.Contain("Visible rows"));
+        Assert.That(page, Does.Contain("bar at the bottom of a panel"), "says that resizing a panel gives it its own number");
     }
 
     [Test]
