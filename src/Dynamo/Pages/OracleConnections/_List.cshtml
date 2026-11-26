@@ -6,7 +6,8 @@
 
     // The second line of a row: what is missing, then schema@host:port/service.
     string Missing(OracleConnectionInfo c) =>
-        c.Username.Length == 0 && c.Password.Length == 0 ? "no schema or password yet"
+        c.PasswordUnreadable ? "password cannot be read here: enter it again"
+        : c.Username.Length == 0 && c.Password.Length == 0 ? "no schema or password yet"
         : c.Username.Length == 0 ? "no schema yet"
         : c.Password.Length == 0 ? "no password yet"
         : "";

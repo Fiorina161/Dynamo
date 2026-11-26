@@ -21,6 +21,18 @@ public sealed class SettingsRepository(Db db)
             """, new { key, value });
     }
 
+    /// <summary>
+    /// A secret setting (a certificate with its private key): protected in the database
+    /// (<see cref="Secrets"/>). Null when there is none, or when it cannot be decrypted on this computer.
+    /// </summary>
+    public string? GetSecret(string key)
+    {
+        var stored = Get(key);
+        return Secrets.TryUnprotect(stored, out var clear) ? clear : null;
+    }
+
+    public void SetSecret(string key, string value) => Set(key, Secrets.Protect(value));
+
     public void Delete(string key)
     {
         using var conn = db.Open();

@@ -21,8 +21,8 @@ public sealed record HttpsOptions(int Port)
 /// year), which is renewed by itself before it expires or when the computer's
 /// names or addresses change. The user trusts the authority once, in the
 /// browser or in Windows; every renewal after that is trusted without a
-/// warning. Both are kept, private key included, in the settings table, like
-/// the other secrets of this database.
+/// warning. Both are kept, private key included, in the settings table,
+/// protected like the Oracle passwords (<see cref="Dynamo.Core.Secrets"/>).
 /// </summary>
 public sealed class CertificateService
 {
@@ -136,7 +136,7 @@ public sealed class CertificateService
             {
                 leaf?.Dispose();
                 leaf = IssueServerCertificate(authority, names);
-                _settings.Set(LeafKey, Convert.ToBase64String(leaf.Export(X509ContentType.Pfx)));
+                _settings.SetSecret(LeafKey, Convert.ToBase64String(leaf.Export(X509ContentType.Pfx)));
                 _settings.Set(NamesKey, string.Join('\n', names));
             }
 
@@ -150,7 +150,7 @@ public sealed class CertificateService
 
     private X509Certificate2? Load(string key)
     {
-        var text = _settings.Get(key);
+        var text = _settings.GetSecret(key);     // protected in the database; null if it cannot be read
         if (string.IsNullOrEmpty(text))
             return null;
         try
@@ -176,7 +176,7 @@ public sealed class CertificateService
         var now = _now();
         using var made = request.CreateSelfSigned(now.AddDays(-1), now.AddYears(AuthorityValidityYears));
         var ca = X509CertificateLoader.LoadPkcs12(made.Export(X509ContentType.Pfx), null, X509KeyStorageFlags.Exportable);
-        _settings.Set(CaKey, Convert.ToBase64String(ca.Export(X509ContentType.Pfx)));
+        _settings.SetSecret(CaKey, Convert.ToBase64String(ca.Export(X509ContentType.Pfx)));
         // A new authority makes the old server certificate useless.
         _settings.Delete(LeafKey);
         return ca;

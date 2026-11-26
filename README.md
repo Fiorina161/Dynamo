@@ -74,8 +74,12 @@ Settings (environment variables):
 Dynamo is a personal tool for a trusted network, **not hardened for the open
 internet**.
 
-- Oracle passwords are stored **in clear** in `dynamo.db` (they must be sent to
-  Oracle): protect that file.
+- Oracle passwords (and the private keys of the https certificates) are
+  **encrypted** in `dynamo.db` with Windows DPAPI at machine scope: a copy of the
+  file read on another computer shows nothing useful. This protects the file, not
+  the running machine (any account on it can decrypt), and not a stolen disk or VM
+  image. After restoring the database on another computer, or reinstalling Windows,
+  enter the passwords again.
 - On its own computer Dynamo asks for nothing; another computer is refused until
   a password is set in Settings.
 - Whoever can use Dynamo can run any `SELECT` the saved accounts allow, and (with a

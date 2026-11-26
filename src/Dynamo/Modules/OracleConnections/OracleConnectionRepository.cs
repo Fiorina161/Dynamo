@@ -19,8 +19,18 @@ public sealed class OracleConnectionInfo
     /// <summary>The schema (database user) to log in as.</summary>
     public string Username { get; set; } = "";
 
-    /// <summary>Stored as typed, in clear: Dynamo has no security by design.</summary>
+    /// <summary>
+    /// The password in clear in memory only: in the database it is protected (<see cref="Secrets"/>,
+    /// Windows DPAPI at machine scope), and it is never rendered back in a page.
+    /// </summary>
     public string Password { get; set; } = "";
+
+    /// <summary>
+    /// The stored password is protected and cannot be decrypted on this computer (the database was
+    /// copied from another one, or Windows was reinstalled): the connection is not ready until the
+    /// password is entered again.
+    /// </summary>
+    public bool PasswordUnreadable { get; set; }
 
     /// <summary>Pinned connections come first in lists and pickers.</summary>
     public bool Pinned { get; set; }
@@ -49,27 +59,48 @@ public sealed class OracleConnectionRepository(Db db)
     private const string Columns =
         "id, name, data_source AS DataSource, username, password, pinned, dba, color";
 
+    /// <summary>The stored password becomes the clear one (or unreadable, see the property).</summary>
+    private static OracleConnectionInfo? Reveal(OracleConnectionInfo? c)
+    {
+        if (c is null)
+            return null;
+        if (Secrets.TryUnprotect(c.Password, out var clear))
+            c.Password = clear;
+        else
+        {
+            c.Password = "";
+            c.PasswordUnreadable = true;
+        }
+        return c;
+    }
+
     public List<OracleConnectionInfo> GetAll()
     {
         using var conn = db.Open();
         return conn.Query<OracleConnectionInfo>(
-            $"SELECT {Columns} FROM oracle_connection ORDER BY pinned DESC, name").ToList();
+            $"SELECT {Columns} FROM oracle_connection ORDER BY pinned DESC, name").Select(c => Reveal(c)!).ToList();
     }
 
     public OracleConnectionInfo? Get(long id)
     {
         using var conn = db.Open();
-        return conn.QuerySingleOrDefault<OracleConnectionInfo>(
-            $"SELECT {Columns} FROM oracle_connection WHERE id = @id", new { id });
+        return Reveal(conn.QuerySingleOrDefault<OracleConnectionInfo>(
+            $"SELECT {Columns} FROM oracle_connection WHERE id = @id", new { id }));
     }
 
     /// <summary>Case-insensitive, like the unique index on the name.</summary>
     public OracleConnectionInfo? GetByName(string name)
     {
         using var conn = db.Open();
-        return conn.QuerySingleOrDefault<OracleConnectionInfo>(
-            $"SELECT {Columns} FROM oracle_connection WHERE name = @name", new { name });
+        return Reveal(conn.QuerySingleOrDefault<OracleConnectionInfo>(
+            $"SELECT {Columns} FROM oracle_connection WHERE name = @name", new { name }));
     }
+
+    /// <summary>The values to write: the password protected, never in clear.</summary>
+    private static object ToStore(OracleConnectionInfo c) => new
+    {
+        c.Id, c.Name, c.DataSource, c.Username, Password = Secrets.Protect(c.Password), c.Dba, c.Color,
+    };
 
     /// <summary>Inserts when Id is 0, otherwise updates. Returns the id.</summary>
     public long Save(OracleConnectionInfo c)
@@ -83,7 +114,7 @@ public sealed class OracleConnectionRepository(Db db)
                        username = @Username, password = @Password,
                        dba = @Dba, color = @Color
                  WHERE id = @Id
-                """, c);
+                """, ToStore(c));
             return c.Id;
         }
 
@@ -91,7 +122,7 @@ public sealed class OracleConnectionRepository(Db db)
             INSERT INTO oracle_connection (name, data_source, username, password, dba, color)
             VALUES (@Name, @DataSource, @Username, @Password, @Dba, @Color);
             SELECT last_insert_rowid();
-            """, c);
+            """, ToStore(c));
     }
 
     /// <summary>Pins or unpins a connection (a quick toggle, no other change).</summary>
@@ -117,7 +148,7 @@ public sealed class OracleConnectionRepository(Db db)
         using var conn = db.Open();
         return conn.Query<OracleConnectionInfo>(
             $"SELECT {Columns} FROM oracle_connection WHERE id IN @wanted ORDER BY pinned DESC, name",
-            new { wanted }).ToList();
+            new { wanted }).Select(c => Reveal(c)!).ToList();
     }
 
     /// <summary>Deletes these connections in one transaction; returns how many existed.</summary>

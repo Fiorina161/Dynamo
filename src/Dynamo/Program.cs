@@ -114,6 +114,16 @@ var app = builder.Build();
 
 app.Services.GetRequiredService<Db>().Migrate(app.Services.GetServices<IModule>());
 
+// The Oracle passwords and the private keys of the https certificates are protected (Windows DPAPI,
+// machine scope). What an older version stored in clear is converted here, once, before anything
+// reads it; the certificate below is made after this.
+{
+    var (passwords, keys) = Secrets.ProtectStored(app.Services.GetRequiredService<Db>());
+    if (passwords + keys > 0)
+        app.Logger.LogInformation(
+            "Protected {Passwords} Oracle password(s) and {Keys} certificate key(s) in the database", passwords, keys);
+}
+
 // The https certificate exists before the first connection (made on first start,
 // renewed by the hosted service afterwards).
 if (app.Services.GetRequiredService<HttpsOptions>().Enabled)

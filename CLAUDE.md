@@ -44,7 +44,8 @@ Then `git checkout master && git pull`, and delete the branch.
   `/css`, `/js`, `/lib`, `/favicon.svg`; htmx gets 401 + `HX-Redirect`).
   Password in the `setting` table (`Modules/Settings`, key `access.password`) as
   **salted PBKDF2-SHA256, 600,000 iterations, never in clear** (the Oracle
-  passwords stay in clear: they must be sent to Oracle). Session = random token
+  passwords are encrypted, not hashed, since 26 Nov 2026: they must be sent to
+  Oracle, see "Secrets in the database"). Session = random token
   in a cookie **without Expires** (lasts until the browser closes), HttpOnly,
   SameSite=Strict, not Secure (plain http), kept in memory in `SessionStore`
   with the password stamp, so **changing or removing the password ends every
@@ -106,6 +107,35 @@ Then `git checkout master && git pull`, and delete the branch.
   drawn by hand: no icon CDN or font, Dynamo works offline and the VM may have
   no internet); they take `currentColor`, so they are monochrome and follow the
   theme and the active state.
+- **Secrets in the database (done, 26 Nov 2026; the owner chose "option 1" of a list
+  of five: DPAPI at machine scope).** `Core/Secrets` (static): `Protect` /
+  `TryUnprotect` with `ProtectedData` at `DataProtectionScope.LocalMachine` (fixed
+  entropy `Dynamo secrets v1`), stored as `dpapi1:` + Base64; the package
+  `System.Security.Cryptography.ProtectedData` is pinned in the csproj (it was only
+  transitive). **Machine scope on purpose:** the service runs as LocalSystem and the
+  console as a user, both must decrypt (a per-user scope would break that). What it
+  protects: a copy of `dynamo.db` read elsewhere. What it does **not**: any account on
+  this machine (they can decrypt), a stolen disk or VM image (the machine key is on it).
+  The owner was told so. **Covered:** `oracle_connection.password` (the repository
+  protects on `Save` and reveals on every read: `Reveal` in
+  `OracleConnectionRepository`; `OracleConnectionInfo.Password` is clear **in memory
+  only**) and the two secret settings `tls.ca` / `tls.leaf` (`SettingsRepository.
+  GetSecret` / `SetSecret`, used by `CertificateService`). **Not covered:**
+  `access.password` (already a salted hash), the other settings. **Conversion at start**
+  (`Program.cs`, right after the migrations, before the certificate is made):
+  `Secrets.ProtectStored` converts what is still in clear, **reads each value back
+  before replacing it**, is idempotent (values with the prefix are left alone) and
+  keeps no backup file (it would hold the clear passwords). A legacy value without the
+  prefix is read as it is, so tests and old databases keep working. **A protected value
+  that cannot be decrypted here** (database restored on another computer, Windows
+  reinstalled) is `PasswordUnreadable`: password empty, connection "not ready" with its
+  own message and list text ("password cannot be read here: enter it again"); saving
+  with a blank password is refused, so the lost one is never "kept"; an unreadable
+  certificate is simply issued again (clients must trust the new authority). The
+  `dpapi1:` prefix could in theory clash with a clear password that starts with it:
+  ignored on purpose. **Rehearsed on a copy of the real database** (4 connections: all
+  converted, each decrypts to the same SHA-256 as before, both certificate keys read
+  back; the real database was not touched). Tests: `SecretsTests` (14).
 - Fonts (24 Nov 2026, owner's choice after trying Saira Semi Condensed, then
   Iosevka + Michroma, which "did not look good on my screen"): **plain system
   fonts, no font files**: `--font: sans-serif` for the text, `--font-title:
@@ -119,7 +149,7 @@ Then `git checkout master && git pull`, and delete the branch.
   A connection is a unique name (case-insensitive) + data source (TNS alias
   via TNS_ADMIN, Easy Connect `host:port/service`, or a full descriptor) +
   schema (user) + password, in table `oracle_connection`. The password is
-  stored in clear (no security by design), never rendered back in HTML; a
+  encrypted in the database (see "Secrets in the database"), never rendered back in HTML; a
   blank password on edit keeps the stored one. The page has Test buttons
   (row and dialog; the dialog tests unsaved values). **Other features must
   get Oracle only through `OracleConnector`** (singleton):

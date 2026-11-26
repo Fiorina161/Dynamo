@@ -116,6 +116,9 @@ public sealed class OracleConnector(OracleConnectionRepository repo)
     /// <summary>Why this connection cannot log in yet, or null when it can.</summary>
     private static string? NotReady(OracleConnectionInfo info)
     {
+        if (info.PasswordUnreadable)
+            return $"“{info.Name}”: its stored password cannot be read on this computer (the database " +
+                   "came from another one, or Windows was reinstalled): enter it again on the Oracle page.";
         if (info.Username.Length == 0)
             return $"“{info.Name}” has no schema yet: fill it in on the Oracle page.";
         if (info.Password.Length == 0)
