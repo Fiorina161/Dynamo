@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.2 - 2026-11-26
+
+- Remove the move arrows from panel details: panels are reordered by dragging their handle
+
 ## 1.4.1 - 2026-11-26
 
 - Tint folders in shared folders, add Up, a .. row and a clearer breadcrumb to go back, and list Shared folders after Workspaces
