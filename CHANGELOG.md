@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0 - 2026-11-26
+
+- Add saved substring filters to shared folders, ignoring case and accents, and make the dialog hints read as examples
+
 ## 1.3.0 - 2026-11-26
 
 - Add Shared folders: list and download the files of a network folder with a saved, encrypted account
