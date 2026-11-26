@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1 - 2026-11-26
+
+- Tint folders in shared folders, add Up, a .. row and a clearer breadcrumb to go back, and list Shared folders after Workspaces
+
 ## 1.4.0 - 2026-11-26
 
 - Add saved substring filters to shared folders, ignoring case and accents, and make the dialog hints read as examples
