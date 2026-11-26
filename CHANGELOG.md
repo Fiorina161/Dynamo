@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0 - 2026-11-26
+
+- Encrypt the Oracle passwords and the https private keys in the database with Windows DPAPI
+
 ## 1.1.2 - 2026-11-26
 
 - Remove the Visible rows text box: a panel is resized with the bar at its bottom edge, and new panels keep the default from Settings
