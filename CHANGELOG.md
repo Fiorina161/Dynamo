@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.0 - 2026-11-26
+
+- Add Remote desktops: one-click Remote Desktop sessions with the account saved in the user's Windows credential store, re-enterable at any time
+
 ## 1.6.0 - 2026-11-26
 
 - Upload files to a shared folder, with progress, replace confirmation and a per-folder on/off
